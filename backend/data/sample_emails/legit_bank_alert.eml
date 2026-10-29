@@ -1,0 +1,14 @@
+From: "HDFC Bank Alerts" <no-reply@hdfcbank.com>
+To: student@example.com
+Subject: Transaction alert
+Date: Mon, 12 Oct 2026 10:30:00 +0000
+Return-Path: <bounce@alerts.hdfcbank.com>
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Received: from mail.hdfcbank.com by mx.example.com; Mon, 12 Oct 2026 10:30:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Dear customer, INR 1250 was debited from your account ending 4421 on 12 Oct. If you did not do this
+transaction, call the number printed on your card. Security alert.
+
+This is an auto-generated alert. Never share your OTP or PIN with anyone.

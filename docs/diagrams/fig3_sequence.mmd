@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant U as User
+    participant EM as Email provider
+    participant WH as Ingestion webhook
+    participant BE as FastAPI backend
+    participant DB as Supabase DB
+    participant FE as Web frontend
+    U->>EM: Forward suspicious email
+    EM->>WH: Deliver to bot address
+    WH->>BE: POST raw MIME (signed)
+    BE->>BE: Parse headers, body, URLs, attachments
+    BE->>DB: Fetch sender history
+    BE->>BE: Extract feature vector
+    BE->>BE: model.predict_proba(features)
+    BE->>BE: SHAP explain(features, prediction)
+    BE->>BE: Generate reasons + risk band
+    BE->>DB: Store analysis, features, explanation
+    BE->>DB: Update sender profile
+    U->>FE: Open PhishLens dashboard
+    FE->>BE: GET /api/analyses/{id}
+    BE-->>FE: score, band, reasons
+    FE-->>U: Rendered result

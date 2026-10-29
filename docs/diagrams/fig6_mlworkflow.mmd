@@ -1,0 +1,15 @@
+flowchart TB
+  D1["Public corpora<br/>Nazario, SpamAssassin, Enron,<br/>PhishTank, LLM-augmented emails"] --> D2["Clean, de-duplicate,<br/>label, anonymise"]
+  D2 --> D3["Shared feature extraction<br/>(same code as production)"]
+  D3 --> D4["Grouped and temporal split<br/>train / validation / test"]
+  D4 --> M0["Existing approach<br/>(re-implemented baseline)"]
+  D4 --> M1["Logistic Regression<br/>(baseline)"]
+  D4 --> M2["Random Forest"]
+  D4 --> M3["XGBoost"]
+  M0 --> T["Tune with stratified<br/>grouped cross-validation"]
+  M1 --> T
+  M2 --> T
+  M3 --> T
+  T --> EV["Evaluate: F1, ROC-AUC, PR-AUC, FPR,<br/>cross-dataset, LLM-rewritten test set"]
+  EV --> SEL["Select model and calibrate probabilities"]
+  SEL --> REG["Register versioned model<br/>(model_versions table)"]

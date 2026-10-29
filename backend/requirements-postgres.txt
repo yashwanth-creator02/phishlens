@@ -1,0 +1,2 @@
+# Only needed when PHISHLENS_DATABASE_URL points at PostgreSQL / Supabase (not covered by the automated tests).
+psycopg[binary]>=3.1

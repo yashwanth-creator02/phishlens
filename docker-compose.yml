@@ -1,0 +1,24 @@
+# docker compose up --build   ->  web UI on http://localhost:8080, API docs on http://localhost:8000/docs
+services:
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      PHISHLENS_AUTO_TRAIN_DEMO: "true"       # trains a SYNTHETIC demo model on first start; disable in real use
+    volumes:
+      - phishlens_models:/app/models
+      - phishlens_storage:/app/storage
+      - phishlens_data:/app/data_db
+    ports: ["8000:8000"]
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+    depends_on: [backend]
+    ports: ["8080:80"]
+volumes:
+  phishlens_models:
+  phishlens_storage:
+  phishlens_data:

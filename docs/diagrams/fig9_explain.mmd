@@ -1,0 +1,9 @@
+flowchart TB
+  FV["Feature vector x"] --> PR["Model output<br/>phishing probability p(x)"]
+  FV --> SV["SHAP values<br/>one value per feature"]
+  PR --> SV
+  SV --> AG["Aggregate by feature group<br/>(header, URL, text, action, attachment, behaviour)"]
+  AG --> TK["Select top-k risk-raising features"]
+  TK --> VF["Verify each against extracted evidence<br/>(no unsupported statements)"]
+  VF --> TP["Fill sentence templates<br/>with the actual detected values"]
+  TP --> OUT["Risk card<br/>score, band, ranked reasons"]

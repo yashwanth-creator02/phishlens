@@ -1,0 +1,9 @@
+flowchart TB
+  R["Recruit participants<br/>informed consent"] --> PRE["Pre-test questionnaire<br/>background and phishing awareness"]
+  PRE --> RAND["Random assignment"]
+  RAND --> A["Group A<br/>risk label only"]
+  RAND --> B["Group B<br/>risk label + plain-language reasons"]
+  A --> TASK["Classify a fixed set of emails<br/>phishing or legitimate"]
+  B --> TASK
+  TASK --> POST["Post-test<br/>confidence, understanding, trust"]
+  POST --> AN["Analyse accuracy, time and Likert scores<br/>non-parametric tests, effect sizes"]

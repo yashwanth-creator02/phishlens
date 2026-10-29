@@ -1,0 +1,15 @@
+From: "Medium Daily Digest" <no-reply@medium.com>
+To: student@example.com
+Subject: Your weekly digest: machine learning
+Date: Mon, 12 Oct 2026 06:00:00 +0000
+Return-Path: <bounce@mail.medium.com>
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Received: from mail.medium.com by mx.example.com; Mon, 12 Oct 2026 06:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Top stories for you this week: machine learning, web security. Read now.</p>
+<p>You are receiving this digest because you follow topics on Medium.</p>
+<p><a href="https://medium.com/article/123">Read more</a></p>
+</body></html>

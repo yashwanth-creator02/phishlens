@@ -1,0 +1,54 @@
+erDiagram
+    USERS ||--o{ ANALYSES : owns
+    ANALYSES ||--|| EMAIL_RAW : has
+    ANALYSES ||--o{ FEATURE_VALUES : has
+    ANALYSES ||--o{ EXPLANATIONS : has
+    ANALYSES }o--|| MODEL_VERSIONS : scored_by
+    SENDER_PROFILES ||--o{ ANALYSES : referenced_by
+    USERS {
+        uuid id PK
+        text email
+        timestamptz created_at
+    }
+    ANALYSES {
+        uuid id PK
+        uuid user_id FK
+        text sender_address
+        text subject
+        float risk_score
+        text risk_band
+        uuid model_version_id FK
+        timestamptz created_at
+    }
+    EMAIL_RAW {
+        uuid analysis_id FK
+        text storage_path
+        jsonb headers
+    }
+    FEATURE_VALUES {
+        uuid analysis_id FK
+        text feature_name
+        float feature_value
+    }
+    EXPLANATIONS {
+        uuid analysis_id FK
+        text feature_name
+        float shap_value
+        text sentence
+        int rank
+    }
+    MODEL_VERSIONS {
+        uuid id PK
+        text algorithm
+        text version_tag
+        float f1_score
+        float roc_auc
+        timestamptz trained_at
+        bool is_active
+    }
+    SENDER_PROFILES {
+        text sender_address PK
+        int message_count
+        jsonb rolling_stats
+        timestamptz updated_at
+    }

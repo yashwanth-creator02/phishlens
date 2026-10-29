@@ -1,0 +1,11 @@
+flowchart TB
+    subgraph Docker["docker-compose"]
+        FE["frontend container<br/>React + TypeScript"]
+        BE["backend container<br/>FastAPI + ML + SHAP"]
+    end
+    Supabase["Supabase (managed)<br/>Postgres + Auth + Storage"]
+    Provider["Inbound email provider<br/>(webhook)"]
+    FE <--> BE
+    BE <--> Supabase
+    Provider --> BE
+    FE -. "login (JWT)" .-> Supabase

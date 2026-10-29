@@ -1,0 +1,16 @@
+flowchart TB
+  A["Email client<br/>user forwards suspicious email"] --> B["Ingestion<br/>inbound webhook or bot inbox"]
+  B --> C["Email parser<br/>headers, body, links, files"]
+  subgraph FX["Feature extraction (six modules, one feature vector)"]
+    direction LR
+    F1["Header"] ~~~ F2["URL"] ~~~ F3["Text"] ~~~ F4["Action"] ~~~ F5["Attachment"] ~~~ F6["Behaviour"]
+  end
+  C --> FX
+  FX --> M["ML inference<br/>LR / Random Forest / XGBoost"]
+  M --> S["SHAP explainer<br/>per-prediction feature contributions"]
+  M --> R["Risk scorer<br/>0-100 score, Low / Medium / High"]
+  S --> E["Explanation generator<br/>feature to plain-language reason"]
+  E --> API["API layer"]
+  R --> API
+  API --> DB[("Supabase<br/>database, auth, storage")]
+  DB --> FE["React web interface<br/>score, band, reasons"]

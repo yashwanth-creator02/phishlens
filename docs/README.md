@@ -1,0 +1,25 @@
+# PhishLens documentation index
+
+| # | Document | Read it for |
+|---|---|---|
+| 01 | [Project overview](01-project-overview.md) | the idea, user flow, scope, tech stack |
+| 02 | [**Project log**](02-project-log.md) | **everything that was done so far, in order, and why** (research, design, report, slides, code) |
+| 03 | [**Plan and roadmap**](03-plan-and-roadmap.md) | phases, week-by-week plan, task checklist, definition of done, next steps |
+| 04 | [Architecture](04-architecture.md) | components, diagrams, data flow, design principles |
+| 05 | [Backend design](05-backend-design.md) | modules, pipeline, config, how to extend |
+| 06 | [Frontend design](06-frontend-design.md) | pages, API client, screenshots |
+| 07 | [Data model](07-data-model.md) | tables, ERD, retention |
+| 08 | [ML pipeline](08-ml-pipeline.md) | features (all 57), datasets, models, evaluation, behavioural benchmark |
+| 09 | [Explainability](09-explainability.md) | SHAP, reason rules, verification, templates |
+| 10 | [API reference](10-api-reference.md) | endpoints, payloads, webhook contract |
+| 11 | [Security and privacy](11-security-privacy.md) | threats, mitigations, retention |
+| 12 | [Deployment](12-deployment.md) | Docker, Supabase, hosting, async path |
+| 13 | [Testing and evaluation](13-testing-and-evaluation.md) | test suite, evaluation experiments E1-E8 |
+| 14 | [User study](14-user-study.md) | protocol to test whether explanations help |
+| 15 | [Risks and limitations](15-risks-and-limitations.md) | what can go wrong, what is not done |
+| - | [Decision log (ADRs)](decisions/) | why each important choice was made |
+| - | [Project report (Markdown)](report/) | literature survey, problem, objectives, methodology (Word build still pending) |
+| - | [References](references.md) | 37 IEEE-style references |
+| - | [Review-1 slide deck](presentation/) | PhishLens_Review1.pptx + how it was derived |
+| - | [Diagrams](diagrams/) | Mermaid sources + PNGs |
+| - | [Original inputs](original/) | the first project definition, your synopsis, the evaluation rubric |

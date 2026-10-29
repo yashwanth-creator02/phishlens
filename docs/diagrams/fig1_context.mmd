@@ -1,0 +1,33 @@
+flowchart TB
+  U["User's email client<br/>(Gmail / Outlook)"]
+  subgraph ING["Ingestion"]
+    BOT["PhishLens bot address<br/>inbound webhook / Gmail API"]
+  end
+  subgraph BE["FastAPI backend (modular monolith)"]
+    direction TB
+    PARSE["Email parser"]
+    FEAT["Feature extraction engine"]
+    ML["ML inference"]
+    SHAP["SHAP explainer"]
+    EXP["Explanation generator"]
+    RISK["Risk scorer"]
+    API["REST API layer"]
+  end
+  subgraph SB["Supabase (managed)"]
+    DB[("PostgreSQL")]
+    AUTH["Supabase Auth"]
+    STORE[("Storage: raw emails")]
+  end
+  FE["React + TypeScript web app"]
+  U -->|forward| BOT
+  BOT --> PARSE
+  PARSE --> STORE
+  PARSE --> FEAT
+  FEAT <--> DB
+  FEAT --> ML
+  ML --> SHAP --> EXP --> API
+  ML --> RISK --> API
+  API <--> DB
+  API <--> AUTH
+  API <--> FE
+  FE <--> AUTH
