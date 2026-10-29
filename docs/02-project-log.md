@@ -73,7 +73,7 @@ Output: [presentation/PhishLens_Review1.pptx](presentation/) (+ `edit_deck.py`, 
 **Built and tested here:**
 - Backend: parser (direct / forward-as-attachment / inline forward), 6 feature modules (57 features), model registry,
   SHAP engine, 18 reason rules with evidence verification, risk bands, SQLAlchemy models, repository, analysis pipeline,
-  API (upload, baseline, list/detail/features/delete, alias, model info, webhook), Supabase-JWT auth mode, tests (**28 passing**).
+  API (upload, baseline, list/detail/features/delete, alias, model info, webhook), Supabase-JWT auth mode, tests (**30 passing**).
 - Training: semi-synthetic generator (with confusable legitimate mail, LLM-style calm phishing, spoofed known senders, forwarding wrappers,
   histories), real-corpus loader, train/compare/select/calibrate/ablate script, auto-written training report.
 - Frontend: Vite + React + TypeScript (builds cleanly), dashboard, detail, settings, login; screenshots captured from the live app.
@@ -114,3 +114,15 @@ Node 24.19.0, npm 11.17.0. No Docker available.
 
 **Not changed by this run:** Docker Compose, real-corpus training, Supabase auth, and the frontend audit findings remain
 unverified or unresolved.
+
+## 8. Low-impact hardening  - DONE
+**Scope:** small changes that do not alter the feature set, model, thresholds, reason rules, or UI behaviour.
+- Upload reads in 1 MB chunks and stops at 10 MB. The webhook streams its body, rejects an oversized declared
+  `Content-Length` before reading, and allows the JSON envelope enough room for a 10 MB base64 payload.
+- Raised the bundled nginx `client_max_body_size` from 12 MB to 15 MB so a near-limit JSON webhook is not rejected
+  before the application sees it.
+- Added regression tests for oversized upload and webhook requests. Suite: **30 passed**, one Starlette/httpx warning.
+- Declared `requires-python = ">=3.11"` in `backend/pyproject.toml`.
+- Clarified in `.env.example` and the README that its SQLite path is for Docker; local development uses `sqlite:///./phishlens.db`.
+**Still open:** reverse-proxy body limits beyond the bundled nginx config, production auth/secret startup guard, alias entropy,
+dependency-lock adoption, frontend major-version upgrades, Docker Compose and live Supabase verification.

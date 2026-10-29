@@ -1,6 +1,6 @@
 # 05 - Backend design
 
-Python 3.12, FastAPI, SQLAlchemy 2, scikit-learn, XGBoost (CPU), SHAP. Source: `backend/`.
+Python 3.11+ (CI and Docker use 3.12), FastAPI, SQLAlchemy 2, scikit-learn, XGBoost (CPU), SHAP. Source: `backend/`.
 
 ## Layout
 ```
@@ -18,7 +18,7 @@ backend/
     services/analysis_service.py   the pipeline
     schemas.py              Pydantic response models
   training/                 synthetic.py, corpus.py, train.py
-  tests/                    parser, features, reasons/bands, API (28 tests)
+  tests/                    parser, features, reasons/bands, API (30 tests)
   data/sample_emails/       4 hand-written .eml samples
 ```
 
@@ -50,5 +50,6 @@ backend/
 ## Failure behaviour
 * No model -> API starts, `/api/health` says `degraded`, analysis endpoints return 503 with instructions.
 * Model/feature mismatch -> 503 "retrain".
-* Unparseable mail -> parser is defensive (undecodable parts skipped); empty/oversized upload -> 400/413.
+* Unparseable mail -> parser is defensive (undecodable parts skipped); empty/oversized upload -> 400/413;
+  oversized webhook body -> 400.
 * Unknown webhook alias -> 404; bad secret -> 401.

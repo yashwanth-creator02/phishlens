@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import active_model, current_user
+from app.api.limits import MAX_MESSAGE_BYTES
 from app.core.config import Settings, get_settings
 from app.db import repository as repo
 from app.db.models import Analysis
@@ -16,16 +17,18 @@ from app.scoring.risk_bands import GUIDANCE
 from app.services import analysis_service
 
 router = APIRouter(prefix="/api", tags=["analyses"])
-MAX_BYTES = 10 * 1024 * 1024
+CHUNK_SIZE = 1024 * 1024
 
 
 async def _read(upload: UploadFile) -> bytes:
-    data = await upload.read()
+    data = bytearray()
+    while chunk := await upload.read(CHUNK_SIZE):
+        data.extend(chunk)
+        if len(data) > MAX_MESSAGE_BYTES:
+            raise HTTPException(413, "File too large (limit 10 MB)")
     if not data:
         raise HTTPException(400, "Empty file")
-    if len(data) > MAX_BYTES:
-        raise HTTPException(413, "File too large (limit 10 MB)")
-    return data
+    return bytes(data)
 
 
 def _detail(db: Session, a: Analysis) -> AnalysisDetail:

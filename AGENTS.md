@@ -19,7 +19,7 @@ Status: v0.1 working skeleton. The bundled model is trained on synthetic data an
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (28 tests) |
+| `backend/tests/` | Pytest suite (30 tests) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `supabase/migrations/` | PostgreSQL schema and Row-Level-Security policies |
@@ -131,6 +131,7 @@ Also upload at least one sample email through the UI or API and confirm a scored
 
 - No real corpus evaluation, real inbound-email provider, or domain-age lookup yet.
 - Docker Compose has not been exercised in this environment.
+- Upload multipart bodies are parsed by Starlette before the route runs; the 10 MB application cap does not replace a reverse-proxy body limit.
 - The frontend has no automated tests or linter.
 - `requirements.lock.txt` exists but is not used by install, CI, or Docker targets.
 - The report references `docs/original/synopsis_mini_project_phishlens.docx`, which is not present in the repository.

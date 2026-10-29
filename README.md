@@ -6,7 +6,7 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **verified against evidence actually found in the email** before they are shown.
 
 > Status: **v0.1 (initial version)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 28 passing tests. It ships with a **synthetic-data demo model for pipeline
+> verified reasons -> API -> web UI) with 30 passing tests. It ships with a **synthetic-data demo model for pipeline
 > checks only**. Real corpora, real inbound-email provider, real domain-age lookups and the user study are still to do
 > (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
 
@@ -41,7 +41,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 python -m training.train --source synthetic --n 2400 --out models --reports reports   # DEMO model, ~60 s
-python -m pytest -q                                      # 28 tests
+python -m pytest -q                                      # 30 tests
 python -m uvicorn app.main:app --reload --port 8000      # API docs: http://localhost:8000/docs
 
 # 2) frontend (second terminal)
@@ -56,6 +56,9 @@ Try the other samples too (legitimate newsletter, bank alert, an inline-forwarde
 **Docker:** `cp .env.example .env && docker compose up --build` -> UI on http://localhost:8080, API on :8000
 (first start trains the synthetic demo model automatically). *Docker was not available in the environment where
 this repo was built, so the compose files are untested - see docs/12-deployment.md.*
+
+For a local run without Docker, do not copy `.env.example`: the backend defaults to `sqlite:///./phishlens.db`.
+If you create `backend/.env`, set `PHISHLENS_DATABASE_URL=sqlite:///./phishlens.db` (unless you want PostgreSQL).
 
 ## Using real data (do this before reporting any result)
 
