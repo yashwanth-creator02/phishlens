@@ -123,3 +123,7 @@ and exits with a clear message otherwise; a 3.10 venv fails on `websockets` and 
 ## 9. Supabase RLS contract
 Added the RLS/service-role distinction to `docs/11-security-privacy.md` and idempotent auth hardening in `supabase/migrations/0002_auth_hardening.sql`. `backend/tests/test_rls_contract.py` skips without live Supabase credentials; `backend/scripts/verify_rls.py` checks isolation in both directions when two user JWTs and two analysis IDs are supplied. The local suite still passes with one live-only skip.
 
+
+## 10. Auth, deployment, and frontend foundation
+Supabase JWT verification now supports HS256 or JWKS behind `AUTH_MODE=supabase`; disabled local mode is unchanged. Added `Dockerfile.space` and a GitHub Actions upload/health workflow for a free Hugging Face Space; Docker is not installed here, so the image build remains unverified. The frontend now has `apiFetch` with `VITE_API_BASE_URL`, a session provider, `RequireAuth`, and two Vitest tests. Backend suite is 37 passed plus one live-only RLS skip; frontend test and production build pass.
+

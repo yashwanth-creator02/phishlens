@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes } from "react-router-dom";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import { NavLink, Route, Routes } from "react-router-dom";
+import { useSession, RequireAuth } from "./auth";
 import { api } from "./api/client";
 import type { Health } from "./types";
 import Dashboard from "./pages/Dashboard";
@@ -10,29 +9,16 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [ready, setReady] = useState(!supabase);
+  const { session, loading, signOut } = useSession();
   const [health, setHealth] = useState<Health | null>(null);
-
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setReady(true);
-    });
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => data.subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     api.health().then(setHealth).catch(() => setHealth(null));
   }, []);
 
-  if (!ready) {
+  if (loading) {
     return <p className="muted pad">Initializing authentication session...</p>;
   }
-
-  const needsLogin = !!supabase && !session;
 
   return (
     <div className="app">
@@ -42,8 +28,8 @@ export default function App() {
         <nav aria-label="Main navigation">
           <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>Analyses</NavLink>
           <NavLink to="/settings" className={({ isActive }) => (isActive ? "active" : "")}>Settings</NavLink>
-          {supabase && session && (
-            <button className="link" onClick={() => void supabase!.auth.signOut()} type="button">
+          {session && (
+            <button className="link" onClick={() => void signOut()} type="button">
               Sign out
             </button>
           )}
@@ -59,9 +45,9 @@ export default function App() {
       <main id="main-content">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={needsLogin ? <Navigate to="/login" /> : <Dashboard />} />
-          <Route path="/analyses/:id" element={needsLogin ? <Navigate to="/login" /> : <AnalysisDetailPage />} />
-          <Route path="/settings" element={needsLogin ? <Navigate to="/login" /> : <Settings />} />
+          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/analyses/:id" element={<RequireAuth><AnalysisDetailPage /></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
         </Routes>
       </main>
 

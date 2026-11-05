@@ -138,7 +138,7 @@ Also upload at least one sample email through the UI or API and confirm a scored
 
 - No real corpus evaluation, real inbound-email provider, or domain-age lookup yet.
 - Docker Compose has not been exercised in this environment.
-- The frontend has no automated tests or linter.
+- The frontend has Vitest coverage for the API client only, and no linter.
 - `requirements.lock.txt` exists but is not used by install, CI, or Docker targets.
 - The report references `docs/original/synopsis_mini_project_phishlens.docx`, which is not present in the repository.
 - The frontend dependency audit reports known Vite, esbuild, and React Router advisories whose fixes are major-version upgrades.
