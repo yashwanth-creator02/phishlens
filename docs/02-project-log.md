@@ -119,3 +119,7 @@ unverified or unresolved.
 Added `backend.ps1` and `frontend.ps1` at the repository root so the app starts with `.\backend.ps1` and
 `.\frontend.ps1` without changing directories. `backend.ps1` checks that `backend\.venv` uses Python 3.11 or newer
 and exits with a clear message otherwise; a 3.10 venv fails on `websockets` and `datetime.UTC`.
+
+## 9. Supabase RLS contract
+Added the RLS/service-role distinction to `docs/11-security-privacy.md` and idempotent auth hardening in `supabase/migrations/0002_auth_hardening.sql`. `backend/tests/test_rls_contract.py` skips without live Supabase credentials; `backend/scripts/verify_rls.py` checks isolation in both directions when two user JWTs and two analysis IDs are supplied. The local suite still passes with one live-only skip.
+
