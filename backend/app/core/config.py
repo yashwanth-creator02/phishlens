@@ -16,7 +16,10 @@ class Settings(BaseSettings):
 
     # authentication: "disabled" (local development, single dev user) or "supabase" (verify Supabase JWT)
     auth_mode: str = "disabled"
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
     supabase_jwt_secret: str = ""
+    supabase_jwks_url: str = ""
     dev_user_id: str = "dev-user"
 
     # inbound webhook protection (shared secret sent in the X-Webhook-Secret header)
