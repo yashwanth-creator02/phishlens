@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.features.common import ProfileData
 
-from .models import ModelVersion, SenderProfile, UserAlias
+from .models import Analysis, ModelVersion, SenderProfile, UserAlias
 
 
 def load_profile(db: Session, user_id: str, sender: str) -> ProfileData | None:
@@ -63,3 +63,37 @@ def sync_model_version(db: Session, meta: dict) -> None:
         db.add(ModelVersion(algorithm=meta["algorithm"], version_tag=tag, f1_macro=m.get("f1_macro", 0.0),
                             roc_auc=m.get("roc_auc", 0.0), meta=meta, is_active=True))
     db.commit()
+
+
+def load_sender_profile(db: Session, user_id: str, sender: str) -> ProfileData:
+    """Neutral defaults when the sender has no history yet (cold start)."""
+    return load_profile(db, user_id, sender) or ProfileData()
+
+
+def delete_analysis(db: Session, user_id: str, analysis_id: str) -> str | None:
+    """Delete one analysis owned by user_id, cascade to children.
+
+    Returns the stored file path to remove after commit, or None when
+    the id is missing or belongs to another user.
+    """
+    row = db.get(Analysis, analysis_id)
+    if row is None or row.user_id != user_id:
+        return None
+    storage_path = row.raw.storage_path if row.raw else None
+    db.delete(row)
+    db.commit()
+    return storage_path
+
+
+def purge_expired(db: Session, before: datetime) -> tuple[int, list[str]]:
+    """Delete analyses older than `before` across all users.
+
+    Returns (count, [storage_paths...]) — caller removes files after commit.
+    """
+    rows = db.scalars(select(Analysis).where(Analysis.created_at < before)).all()
+    paths = [r.raw.storage_path for r in rows if r.raw]
+    for row in rows:
+        db.delete(row)
+    if rows:
+        db.commit()
+    return len(rows), paths

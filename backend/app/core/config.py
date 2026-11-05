@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     webhook_secret: str = "change-me"
     alias_domain: str = "phishlens.example"    # forwarding alias: u-<token>@alias_domain
 
+    # admin purge endpoint (X-Admin-Token header). Empty = disabled (503).
+    admin_token: str = ""
+
     cors_origins: str = "http://localhost:5173"
 
     # risk bands (provisional starting values; tune on validation data, see docs/08-ml-pipeline.md)

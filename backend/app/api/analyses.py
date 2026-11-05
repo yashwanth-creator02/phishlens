@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,7 +13,7 @@ from app.db.models import Analysis
 from app.db.session import get_db
 from app.ml.registry import ModelBundle
 from app.schemas import (AliasOut, AnalysisDetail, AnalysisList, AnalysisSummary, AttachmentOut, BaselineOut,
-                         FeatureOut, ModelInfo, ReasonOut)
+                         FeatureOut, ModelInfo, PurgeOut, ReasonOut)
 from app.scoring.risk_bands import GUIDANCE
 from app.services import analysis_service
 
@@ -94,12 +96,23 @@ def get_features(aid: str, user: str = Depends(current_user), db: Session = Depe
 
 @router.delete("/analyses/{aid}", status_code=204)
 def delete_analysis(aid: str, user: str = Depends(current_user), db: Session = Depends(get_db)) -> None:
-    a = _own(db, user, aid)
-    if a.raw:
-        from pathlib import Path
-        Path(a.raw.storage_path).unlink(missing_ok=True)
-    db.delete(a)
-    db.commit()
+    # _own() raises 404 for missing or other-user rows, so the service only runs for owned rows.
+    _own(db, user, aid)
+    if analysis_service.delete_analysis(db, user, aid) is False:
+        raise HTTPException(404, "Analysis not found")
+
+
+@router.post("/admin/purge", response_model=PurgeOut)
+def purge_old(x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+              db: Session = Depends(get_db), settings: Settings = Depends(get_settings)) -> PurgeOut:
+    """Purge analyses older than retention_days. Guarded by admin_token (not a user JWT)."""
+    if not settings.admin_token:
+        raise HTTPException(503, "Admin purge is disabled (PHISHLENS_ADMIN_TOKEN is empty)")
+    if x_admin_token != settings.admin_token:
+        raise HTTPException(401, "Invalid admin token")
+    before = datetime.utcnow() - timedelta(days=settings.retention_days)
+    deleted = analysis_service.purge_expired(db, before)
+    return PurgeOut(deleted=deleted)
 
 
 @router.get("/me/alias", response_model=AliasOut)
