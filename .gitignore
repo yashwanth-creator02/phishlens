@@ -9,6 +9,7 @@ dist/
 backend/models/
 backend/storage/
 backend/reports/
+backend/data/raw/
 .pytest_cache/
 .tmp/
 notes.txt

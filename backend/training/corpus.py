@@ -10,7 +10,7 @@ from __future__ import annotations
 import mailbox
 from pathlib import Path
 
-from app.features.common import NullDomainAge
+from app.features.common import NullDomainAge, split_host
 from app.ingestion.email_parser import parse_email
 
 from .synthetic import Sample
@@ -41,7 +41,16 @@ def load_dir(path: str | Path, label: int, limit: int | None = None) -> list[Sam
         if p.raw_sha256 in seen:            # exact-duplicate removal
             continue
         seen.add(p.raw_sha256)
-        group = f"{'phish' if label else 'legit'}-{p.from_domain or 'unknown'}"   # split by sender domain
+        if label == 1:
+            host = ""
+            if p.links:
+                h, reg, _ = split_host(p.links[0].href)
+                host = reg or h
+            if not host:
+                host = p.from_domain or "unknown"
+            group = f"phish-{host}"
+        else:
+            group = f"legit-{p.from_domain or 'unknown'}"   # split by sender domain
         out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge()))
         if limit and len(out) >= limit:
             break
