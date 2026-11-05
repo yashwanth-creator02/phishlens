@@ -88,6 +88,13 @@ Non-negotiable invariants:
 
 ## Commands
 
+From the repository root on Windows:
+
+```powershell
+.\backend.ps1   # API on :8000 (uses backend\.venv; requires Python 3.11+)
+.\frontend.ps1  # UI on :5173 (uses frontend\node_modules)
+```
+
 ```powershell
 # Train on a real corpus
 python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir C:\data\spamassassin_ham --out models

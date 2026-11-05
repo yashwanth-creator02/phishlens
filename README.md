@@ -50,6 +50,17 @@ npm install
 npm run dev                                              # http://localhost:5173  (proxies /api to :8000)
 ```
 
+### Windows shortcuts
+
+From the repository root, the two scripts use the existing `.venv` and `node_modules`:
+
+```powershell
+.\backend.ps1    # API on http://localhost:8000
+.\frontend.ps1   # UI on http://localhost:5173
+```
+
+`backend.ps1` refuses to start if `.venv` was built with Python older than 3.11, because the training code needs it.
+
 Open http://localhost:5173, drop `backend/data/sample_emails/phish_paypal_direct.eml` on the upload box, and read the result.
 Try the other samples too (legitimate newsletter, bank alert, an inline-forwarded invoice phish).
 

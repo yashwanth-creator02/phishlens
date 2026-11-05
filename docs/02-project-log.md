@@ -114,3 +114,8 @@ Node 24.19.0, npm 11.17.0. No Docker available.
 
 **Not changed by this run:** Docker Compose, real-corpus training, Supabase auth, and the frontend audit findings remain
 unverified or unresolved.
+
+## 8. Run shortcuts
+Added `backend.ps1` and `frontend.ps1` at the repository root so the app starts with `.\backend.ps1` and
+`.\frontend.ps1` without changing directories. `backend.ps1` checks that `backend\.venv` uses Python 3.11 or newer
+and exits with a clear message otherwise; a 3.10 venv fails on `websockets` and `datetime.UTC`.
