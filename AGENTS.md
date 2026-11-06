@@ -19,7 +19,7 @@ Status: v0.1 working skeleton. The bundled model is trained on synthetic data an
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (47 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (49 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
@@ -106,6 +106,9 @@ python -m pytest -q
 # Docker (not verified in this environment)
 copy .env.example .env
 docker compose up --build
+
+# Backend image alone (also what Render builds; bakes the synthetic demo model)
+docker build -f backend/Dockerfile -t phishlens-api backend
 ```
 
 Root `make` targets: `setup`, `train-demo`, `backend`, `frontend`, `test`, `build`, `up`. On Windows, prefer the explicit PowerShell commands unless `make` is installed.
@@ -150,6 +153,9 @@ Also upload at least one sample email through the UI or API and confirm a scored
 - The frontend is deployed on Vercel (https://phishlens-gules.vercel.app) and the Supabase schema is applied to project
   `vmbtdrmevlovvvfvtqmd`, but the backend is not deployed anywhere: there is no `VITE_API_BASE_URL`, so the live UI can
   sign in and render but every API call fails. Vercel pushes do not auto-deploy (the GitHub App lacks repo access).
+- Hugging Face hosting is ruled out: Docker Spaces need a paid plan and free ZeroGPU Spaces need a 30-day-old account
+  (HTTP 402 on both). The backend target is now Render's free Docker web service via `render.yaml` (512 MB, 0.1 CPU,
+  sleeps after 15 idle minutes). Peak RSS for one demo analysis measured ~257 MB locally.
 - The frontend has Vitest coverage for the API client, case helpers, shell, login, and feature table, and a Playwright
   smoke suite whose signed-in journey needs seeded credentials; there is no linter.
 - `requirements.lock.txt` exists but is not used by install, CI, or Docker targets.

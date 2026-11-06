@@ -192,3 +192,12 @@ the synthetic demo.
   errors. Local suites stay green: backend 47 passed / 1 skipped, frontend 18 passed, production build clean.
 - **Still blocked on accounts.** The backend Space needs the Hugging Face account and HF_TOKEN/HF_SPACE_ID; the
   Vercel MCP token can create no projects (403); the Supabase MCP cannot read the database password.
+
+- **Hugging Face ruled out; Render chosen (2026-11-06).** Two Space attempts returned HTTP 402: custom Docker Spaces
+  need a paid plan, and free ZeroGPU Spaces need an account at least 30 days old. `Dockerfile.space`,
+  `deploy/space/` and `.github/workflows/deploy-space.yml` are deleted. `render.yaml` defines a free Docker web
+  service (`phishlens-api`) built from `backend/Dockerfile`, which now bakes the synthetic demo model at build time so
+  the platform health check passes on cold start instead of waiting through a training run. Measured peak RSS for one
+  upload-plus-SHAP analysis: 257 MB against Render's 512 MB free instance. `PHISHLENS_DATABASE_URL` accepts Supabase's
+  bare `postgresql://` string because `app/db/session.py` rewrites it to `postgresql+psycopg://`
+  (covered by `backend/tests/test_db_url.py`).

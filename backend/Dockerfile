@@ -9,5 +9,8 @@ COPY training ./training
 COPY data ./data
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x entrypoint.sh && mkdir -p /app/models /app/storage /app/reports
+# Bake the synthetic demo model into the image: a host that opens the port only after training
+# would miss its health check on every cold start.
+RUN python -m training.train --source synthetic --n 2400 --out /app/models --reports /app/reports
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]

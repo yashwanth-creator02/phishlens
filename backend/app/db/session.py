@@ -11,9 +11,16 @@ from app.core.config import get_settings
 from .models import Base
 
 
+def _normalize_url(url: str) -> str:
+    # Supabase hands out postgresql:// strings; only the psycopg3 driver is installed
+    if url.startswith(("postgresql://", "postgres://")):
+        return "postgresql+psycopg://" + url.split("://", 1)[1]
+    return url
+
+
 @lru_cache
 def get_engine():
-    url = get_settings().database_url
+    url = _normalize_url(get_settings().database_url)
     kwargs = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {"pool_pre_ping": True}
     return create_engine(url, **kwargs)
 

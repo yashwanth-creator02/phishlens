@@ -153,14 +153,15 @@ and Docker Compose has not been executed in this environment.
 
 ## 7. Deployment
 
-Target topology, all free tier: React frontend on Vercel, FastAPI container on a Hugging Face Space, Supabase for
-authentication and PostgreSQL. The repository contains `frontend/vercel.json`, `frontend/.env.example`,
-`Dockerfile.space`, and a GitHub Actions workflow that uploads the Space and checks health. `docs/12-deployment.md`
-carries the exact settings, including the CORS origin list and the Supabase keys.
+Target topology, all free tier: React frontend on Vercel, FastAPI container on Render's free Docker web service, and
+Supabase for authentication and PostgreSQL. The repository contains `frontend/vercel.json`, `frontend/.env.example`,
+`render.yaml` (the blueprint), and `backend/Dockerfile` with the synthetic demo model baked in at build time.
+`docs/12-deployment.md` carries the exact settings, including the CORS origin list and the Supabase keys.
 
-Verified locally: production build, API health, upload, scored analysis, and the full test suites.
-Not verified here: the Vercel deployment, the Space build, and Supabase sign-in against a live project, all of which
-require account credentials.
+Verified: the Vercel deployment serves https://phishlens-gules.vercel.app, the Supabase project has both migrations and
+all seven tables under RLS, and the local production build plus API round trip pass. Not verified yet: the Render build
+and the end-to-end signed-in upload against the deployed backend, which need the service to exist first. Hugging Face
+was evaluated and rejected as a host (HTTP 402: Docker Spaces are paid, free ZeroGPU Spaces need a 30-day-old account).
 
 ## 8. Limitations
 
