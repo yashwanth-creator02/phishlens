@@ -6,8 +6,10 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **verified against evidence actually found in the email** before they are shown.
 
 > Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 44 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
-> **synthetic-data demo model for pipeline checks only**. Real corpora, real inbound-email provider, real domain-age
+> verified reasons -> API -> web UI) with 47 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
+> **synthetic-data demo model for pipeline checks only**; detection quality is measured offline on the Nazario and
+> SpamAssassin corpora (grouped-split F1 0.948, one split, no confidence interval - see
+> [docs/17-real-corpus-evaluation.md](docs/17-real-corpus-evaluation.md)). Real inbound-email provider, real domain-age
 > lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and
 > [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
 
@@ -73,11 +75,18 @@ this repo was built, so the compose files are untested - see docs/12-deployment.
 
 ## Using real data (do this before reporting any result)
 
-```bash
-python -m training.train --source corpus --phish-dir /data/nazario --legit-dir /data/spamassassin_ham --out models
+```powershell
+cd backend
+python -m training.download_datasets                  # Nazario phishing + SpamAssassin ham into data/raw
+python -m training.evaluate --out reports             # grouped-split metrics -> reports/evaluation.md
+python -m training.train --source corpus --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin --out models
 ```
 
-See [docs/08-ml-pipeline.md](docs/08-ml-pipeline.md) (datasets, splits, behavioural benchmark, evaluation plan).
+`download_datasets` fetches the corpora itself (no manual download) and is rerunnable; `evaluate` trains a
+throwaway comparator in memory and never touches the serving model in `backend/models/`.
+
+See [docs/datasets/README.md](docs/datasets/README.md) for provenance and split rules, and
+[docs/08-ml-pipeline.md](docs/08-ml-pipeline.md) for the feature set, splits, behavioural benchmark, and evaluation plan.
 
 ## Important honesty notes
 

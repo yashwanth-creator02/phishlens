@@ -68,6 +68,8 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `test_cors.py` | Configured origin allowed, unknown origin rejected, wildcard refused |
 | `test_retention_and_cold_start.py` | Transactional delete, purge, neutral cold start |
 | `test_evaluate.py` | Grouped-split evaluation harness on fixtures |
+| `test_corpus_loading.py` | Extensionless hash-named corpus files and mbox-plus-loose-file loading |
+| `test_download_datasets.py` | Archive fetch, checksum manifest, idempotent reruns, tar traversal rejection |
 | `test_rls_contract.py` | Live-only PostgreSQL RLS contract (skips without credentials) |
 
 ## `backend/data/sample_emails/`
@@ -117,6 +119,7 @@ legitimate bank alert.
 | `README.md` | Documentation index |
 | `01`-`15` | Topic docs: overview, project log, plan, architecture, backend, frontend, data model, ML, explainability, API, security, deployment, testing, user study, risks |
 | `16-demo-script.md` | Review walkthrough with expected screens and fallbacks |
+| `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |

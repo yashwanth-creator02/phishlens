@@ -19,7 +19,7 @@ Status: v0.1 working skeleton. The bundled model is trained on synthetic data an
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (44 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (47 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
@@ -139,7 +139,12 @@ Also upload at least one sample email through the UI or API and confirm a scored
 
 ## Known gaps
 
-- No real corpus evaluation, real inbound-email provider, or domain-age lookup yet.
+- Real-corpus evaluation is measured on 2003-2007 research corpora with one grouped split and no confidence interval
+  (grouped F1 0.948, PR-AUC 0.990; see `docs/17-real-corpus-evaluation.md`). It does not validate the shipped model.
+- No real inbound-email provider or domain-age lookup yet.
+- Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
+  and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
+  filter silently drops every legitimate sample.
 - Docker Compose has not been exercised in this environment.
 - The frontend has Vitest coverage for the API client, case helpers, shell, login, and feature table, and a Playwright
   smoke suite whose signed-in journey needs seeded credentials; there is no linter.

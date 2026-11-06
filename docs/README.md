@@ -18,7 +18,9 @@
 | 14 | [User study](14-user-study.md) | protocol to test whether explanations help |
 | 15 | [Risks and limitations](15-risks-and-limitations.md) | what can go wrong, what is not done |
 | 16 | [Demo script](16-demo-script.md) | what to click during the review, and what to say |
+| 17 | [**Real-corpus evaluation**](17-real-corpus-evaluation.md) | **measured** numbers on Nazario + SpamAssassin, the grouped split, and what they do not prove |
 | - | [File inventory](FILE_INVENTORY.md) | what each tracked path is for |
+| - | [Dataset card](datasets/README.md) | corpus sources, licences, fetch command, split rules |
 | - | [Decision log (ADRs)](decisions/) | why each important choice was made |
 | - | [Final report](report/final-report.md) | submission write-up: objectives, what was built, verified results, limits |
 | - | [Project report (Markdown)](report/) | literature survey, problem, objectives, methodology (Word build still pending) |

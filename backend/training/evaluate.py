@@ -78,6 +78,13 @@ def run_evaluation(phish_dir: Path, ham_dir: Path, out: Path) -> dict:
         "f1": test_metrics["f1"],
         "pr_auc": test_metrics["pr_auc"],
         "fpr_at_threshold": test_metrics["fpr_at_threshold"],
+        "test_positives": int(test_metrics["tp"] + test_metrics["fn"]),
+        "confusion": {
+            "tn": test_metrics["tn"],
+            "fp": test_metrics["fp"],
+            "fn": test_metrics["fn"],
+            "tp": test_metrics["tp"],
+        },
         "cold_start_f1": cold_start_f1,
         "cold_start_n": cold_start_n,
         "split_unit": "campaign_or_sender",
@@ -98,6 +105,7 @@ def run_evaluation(phish_dir: Path, ham_dir: Path, out: Path) -> dict:
 - **Recall**: {report['recall']:.3f}
 - **PR-AUC (Grouped)**: {report['pr_auc']:.3f}
 - **FPR at threshold**: {report['fpr_at_threshold']:.3f}
+- **Confusion (test)**: TP {report['confusion']['tp']} / FP {report['confusion']['fp']} / FN {report['confusion']['fn']} / TN {report['confusion']['tn']} ({report['test_positives']} phishing in test)
 - **Cold-start F1**: {report['cold_start_f1']:.3f} (for {report['cold_start_n']} unseen test group samples)
 - **Random Split F1**: {report['random_split_f1']:.3f}
 - **Random Split PR-AUC**: {report['random_split_pr_auc']:.3f}
@@ -109,8 +117,8 @@ def run_evaluation(phish_dir: Path, ham_dir: Path, out: Path) -> dict:
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--phish-dir", type=Path, default=Path("backend/data/raw/nazario"))
-    ap.add_argument("--ham-dir", type=Path, default=Path("backend/data/raw/spamassassin"))
+    ap.add_argument("--phish-dir", type=Path, default=Path("data/raw/nazario"))
+    ap.add_argument("--ham-dir", type=Path, default=Path("data/raw/spamassassin"))
     ap.add_argument("--out", type=Path, default=Path("reports"))
     args = ap.parse_args(argv)
     res = run_evaluation(args.phish_dir, args.ham_dir, args.out)

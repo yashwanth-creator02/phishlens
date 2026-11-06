@@ -16,19 +16,23 @@ from app.ingestion.email_parser import parse_email
 
 from .synthetic import Sample
 
+_ARCHIVE_SUFFIXES = {".gz", ".bz2", ".zip", ".tar", ".tgz", ".xz", ".7z"}
+
 
 def _iter_raw(path: Path):
+    # Corpus files are not always named with an extension (SpamAssassin uses a hash suffix),
+    # so every non-archive file is a candidate and the parser decides.
     for f in sorted(path.rglob("*")):
-        if f.is_dir():
+        if f.is_dir() or f.name == "manifest.json" or f.suffix.lower() in _ARCHIVE_SUFFIXES:
             continue
-        if f.suffix.lower() == ".mbox" or f.name.lower().endswith("mbox"):
+        if f.name.lower().endswith("mbox"):
             for msg in mailbox.mbox(str(f)):
                 yield bytes(msg)
-        elif f.suffix.lower() in (".eml", ".txt", ""):
-            try:
-                yield f.read_bytes()
-            except OSError:
-                continue
+            continue
+        try:
+            yield f.read_bytes()
+        except OSError:
+            continue
 
 
 def load_dir(path: str | Path, label: int, limit: int | None = None) -> list[Sample]:
