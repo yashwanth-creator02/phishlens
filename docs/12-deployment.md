@@ -54,7 +54,7 @@ use them). `*` is rejected at startup because credentialed CORS would otherwise 
 | Production URL | https://phishlens-gules.vercel.app |
 | Vercel project | `phishlens` in team `yashwanth-creator02s-projects` (`team_Kgvgtk2aiYC50anZgBC0b94M`) |
 | Root Directory | `frontend` |
-| Environment variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (both `plain`, all targets) |
+| Environment variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL=https://phishlens-api-6esn.onrender.com` |
 | Deployment protection | Vercel Authentication and password protection disabled so the URL is publicly reachable |
 | Git auto-deploy | **not connected**; the Vercel GitHub App has no access to the private repo |
 
@@ -86,8 +86,9 @@ Postgres itself is still **not exercised in tests** (tests use SQLite). RLS isol
 Still manual in the dashboard: **Authentication -> URL Configuration** (Site URL
 `https://phishlens-gules.vercel.app` plus a redirect allow-list for the same host) and, for a demo that works without
 mail delivery, **Authentication -> Providers -> Email -> Confirm email** off (otherwise every signup needs a
-confirmation mail that Supabase's built-in SMTP rate-limits). The backend needs the database password or pooler
-connection string for `PHISHLENS_DATABASE_URL`; the MCP connection cannot read it.
+confirmation mail that Supabase's built-in SMTP rate-limits). The app has no sign-up screen, so demo accounts are
+created in **Authentication -> Users -> Add user** with **Auto Confirm User** ticked. The backend needs the database
+password or pooler connection string for `PHISHLENS_DATABASE_URL`; the MCP connection cannot read it.
 
 ## Inbound email
 Choose a provider that can deliver inbound mail to a webhook (Postmark inbound, Mailgun routes, SendGrid inbound parse, Cloudflare Email Routing + Worker). Point the bot domain's MX at it, set the webhook URL to
