@@ -201,3 +201,11 @@ the synthetic demo.
   upload-plus-SHAP analysis: 257 MB against Render's 512 MB free instance. `PHISHLENS_DATABASE_URL` accepts Supabase's
   bare `postgresql://` string because `app/db/session.py` rewrites it to `postgresql+psycopg://`
   (covered by `backend/tests/test_db_url.py`).
+
+- **Render boot failed on the database password, fixed in code (2026-11-06).** The first Render deploy died inside
+  `init_db()` with `psycopg.OperationalError: failed to resolve host 'h@i@s@h@_@aws-0-eu-west-1.pooler.supabase.com'`.
+  The Supabase password contains `@`, and libpq splits userinfo at the last `@`, so the tail of the password became the
+  host name. `app/db/session.py` now percent-encodes the password when the userinfo holds more than one `@`, and leaves
+  an already-encoded password alone, so the dashboard copy-paste stays valid. Two regression tests added
+  (`backend/tests/test_db_url.py`); suite 51 passed / 1 skipped. The Render MCP server is installed globally
+  (`opencode mcp add render --global --url https://mcp.render.com/mcp`) and awaits OAuth sign-in.
