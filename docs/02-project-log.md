@@ -146,7 +146,30 @@ Closed out the deployment-facing work.
   `AGENTS.md` (repository layout, verification checklist, known gaps).
 
 **Still open, and honestly so:** the Vercel deployment, the Hugging Face Space build, and Supabase sign-in need account
-credentials and were not exercised here. The real-corpus evaluation has not been run: `backend/data/raw/nazario` and
-`backend/data/raw/spamassassin` are empty in this working copy, so `training/evaluate.py` remains smoke-tested only and
-no detection metric is claimed anywhere.
+credentials and were not exercised here. No production model has been trained on real mail; the shipped model is still
+the synthetic demo.
+
+## 2026-11-06 (later) - Real-corpus download, loader fix, and the first measured result
+
+- **Fixed dead dataset sources.** `training/download_datasets.py` pointed at a 404 (`phish.tar.gz`) and at an HTML
+  directory listing for SpamAssassin, so a run "succeeded" while acquiring only phishing mail. It now pulls three
+  annual Nazario mboxes and two `old/publiccorpus` ham tarballs, is idempotent per source, records SHA-256 manifests,
+  and extracts with `filter="data"` so a crafted archive cannot escape the target directory.
+- **Fixed the silent class collapse.** `corpus.load_dir` and the manifest writer filtered on `.eml`/`.txt`, but
+  SpamAssassin stores messages under numeric hashes with no extension: 2,712 legitimate files were on disk and 2 were
+  loaded, which would have produced a phishing-only evaluation dressed up as a two-class one. Both modules now treat
+  every non-archive, non-manifest file as a candidate and let the parser decide.
+- **Fixed the working-directory assumption.** `training/evaluate.py` resolved dataset paths from the repo root, so the
+  documented `cd backend` command raised "No emails found". Paths now resolve against the project root or the active
+  directory.
+- **Ran the evaluation.** 1,390 Nazario phishing (819 groups) and 2,712 SpamAssassin legitimate (468 groups);
+  3,092 train / 1,010 test with campaign-URL-host and sender-domain groups kept whole. Grouped F1 0.948, precision
+  0.968, recall 0.930, PR-AUC 0.990, FPR 0.025, confusion TP 422 / FP 14 / FN 32 / TN 542; random-split F1 0.962.
+  The 1.4-point gap is the only argument here that the features work beyond campaign and sender identity, and one
+  split with no confidence interval does not support more than that.
+- **Verified.** Backend 47 passed, 1 live-only skip (`test_corpus_loading.py` and `test_download_datasets.py` added).
+- **Documentation.** Added `docs/17-real-corpus-evaluation.md`; corrected the final report, the risk list, the testing
+  page, the dataset card, `README.md`, `AGENTS.md` and `docs/FILE_INVENTORY.md`, all of which had said the real
+  evaluation had never been run.
+- **Right branch this time.** The work is on `feat/real-corpus-evaluation` (commit `4a861fb`), not on the UI branch.
 
