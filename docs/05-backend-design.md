@@ -34,7 +34,7 @@ backend/
 9. If band == LOW -> update the sender profile (never for MEDIUM/HIGH).
 
 ## Configuration (env, prefix `PHISHLENS_`)
-`DATABASE_URL`, `STORAGE_DIR`, `MODEL_DIR`, `AUTH_MODE` (`disabled`|`supabase`), `SUPABASE_JWT_SECRET`, `WEBHOOK_SECRET`, `ALIAS_DOMAIN`,
+`DATABASE_URL`, `STORAGE_DIR`, `MODEL_DIR`, `AUTH_MODE` (`disabled`|`supabase`), `SUPABASE_JWT_SECRET`, `WEBHOOK_SECRET`, `ALIAS_DOMAIN`, `ADMIN_TOKEN`, `RETENTION_DAYS`
 `CORS_ORIGINS`, `BAND_LOW_MAX`, `BAND_HIGH_MIN`, `TOP_K_REASONS`, `MIN_REASON_CONTRIBUTION`, `MIN_HISTORY_MESSAGES`, `RETENTION_DAYS`. See `.env.example`.
 
 ## Extension points
