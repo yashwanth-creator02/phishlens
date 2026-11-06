@@ -18,7 +18,10 @@ starts instead of waiting on a cold-start training run.
 
 1. Render -> **New -> Blueprint**, pick the repository, apply. Render reads `render.yaml`.
 2. When it asks for `PHISHLENS_DATABASE_URL`, paste the Supabase **Session pooler** URI. A bare `postgresql://`
-   string is rewritten to `postgresql+psycopg://` at startup, so the Connect panel's copy-paste works unchanged.
+   string is rewritten to `postgresql+psycopg://` at startup, so the Connect panel's copy-paste works unchanged. A raw
+   `@` in the password is percent-encoded automatically: without that, libpq splits userinfo at the last `@` and the
+   password ends up in the host name (`failed to resolve host '...@aws-0-...pooler.supabase.com'`). Passwords
+   containing `#`, `?`, or `/` still have to be percent-encoded by hand.
    Render generates `PHISHLENS_WEBHOOK_SECRET` and `PHISHLENS_ADMIN_TOKEN` itself.
 3. Note the service URL Render shows (`https://<service>.onrender.com`).
 4. Set `VITE_API_BASE_URL` on the Vercel project to that URL and redeploy.
