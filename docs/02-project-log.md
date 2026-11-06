@@ -209,3 +209,16 @@ the synthetic demo.
   an already-encoded password alone, so the dashboard copy-paste stays valid. Two regression tests added
   (`backend/tests/test_db_url.py`); suite 51 passed / 1 skipped. The Render MCP server is installed globally
   (`opencode mcp add render --global --url https://mcp.render.com/mcp`) and awaits OAuth sign-in.
+
+- **Corpora-trained model measured, artefact diagnosed, teammate guide written (2026-11-06).** Added Nazario
+  `phishing-2024` / `phishing-2025` (about 7,000 raw messages) to the fetcher, made downloads idempotent per source
+  file, and excluded the `spamassassin.taint.org` sender-domain artefact (633 legitimate messages) from both
+  `training/evaluate.py` and `training/train.py` so the report and the promoted model cover the same dataset.
+  Grouped-split evaluation: precision 0.987, recall 0.987, F1 0.987, PR-AUC 0.998, FPR 0.012, confusion
+  510/6/6/464 (3,275 train / 986 test). Promoted model `xgboost-corpus-20261106-s7` (xgboost, test F1 macro 0.983,
+  FPR 0.027) lives only in gitignored `backend/models/active/`. Diagnosed why it scores both `legit_*.eml` demo
+  samples at 1.0: `auth_missing` separates the corpora by 0.99 (2003 ham has no auth headers), `from_returnpath_mismatch`
+  is inverted on mailing-list ham, and `http_only` is an era signal - documented in
+  `docs/17-real-corpus-evaluation.md`, `docs/15-risks-and-limitations.md`, and the new
+  `docs/19-teammate-training-guide.md`. Render still bakes the synthetic demo model; promoting this one is the
+  open manual step in `docs/18-open-manual-actions.md`.

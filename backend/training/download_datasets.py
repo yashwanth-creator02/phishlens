@@ -30,11 +30,15 @@ DEFAULT_RAW_DIR = BACKEND_DIR / "data" / "raw"
 # name -> [(url, local filename)]. Nazario phishing mboxes + SpamAssassin ham tarballs.
 # monkey.org stopped publishing one tarball; the corpus is per-year mbox files now.
 # The 2018+ "private-phishing4" archive is deliberately excluded (donor privacy).
+# phishing-2024/phishing-2025 add ~7,000 real phishing messages from the last two years, so the phishing set
+# spans both the 2003-2007 mboxes above and contemporary campaigns instead of only historical mail.
 DATASETS: dict[str, list[tuple[str, str]]] = {
     "nazario": [
         ("https://monkey.org/~jose/phishing/phishing0.mbox", "phishing0.mbox"),
         ("https://monkey.org/~jose/phishing/phishing1.mbox", "phishing1.mbox"),
         ("https://monkey.org/~jose/phishing/phishing2.mbox", "phishing2.mbox"),
+        ("https://monkey.org/~jose/phishing/phishing-2024", "phishing-2024.mbox"),
+        ("https://monkey.org/~jose/phishing/phishing-2025", "phishing-2025.mbox"),
     ],
     "spamassassin": [
         ("https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham.tar.bz2", "easy_ham.tar.bz2"),
@@ -59,6 +63,15 @@ def _sha256(data: bytes) -> str:
 
 def _has_emails(d: Path) -> bool:
     return any(f.is_file() and _is_corpus_file(f) for f in d.rglob("*"))
+
+
+def _existing_for(filename: str, dest: Path) -> bool:
+    """An already-extracted file counts as present: 'phishing-2024.mbox' covers 'phishing-2024'."""
+    stem = filename.rsplit(".", 1)[0]
+    return any(
+        (dest / candidate).is_file() or (dest / candidate).is_dir()
+        for candidate in (filename, stem, stem + ".mbox")
+    )
 
 
 def _iter_email_files(root: Path):
@@ -106,24 +119,23 @@ def download_dataset(name: str, root: Path, dry_run: bool = False) -> dict:
     """Ensure ``root/<name>/`` holds the corpus; return its manifest."""
     dest = root / name
     dest.mkdir(parents=True, exist_ok=True)
-    if _has_emails(dest):
-        # Idempotent: existing corpus wins, never re-download.
-        return write_manifest(dest)
     sources = DATASETS[name]
     if dry_run:
         for url, filename in sources:
             print(f"[dry-run] would download {url} -> {dest / filename}")
         return {"count": 0, "total_bytes": 0, "files": [], "dry_run": True,
                 "urls": [url for url, _ in sources]}
-    for url, filename in sources:
-        archive = dest / filename
-        if archive.exists():
-            continue
-        _fetch(url, archive)
-        try:
-            _extract_archive(archive, dest)
-        except (tarfile.TarError, OSError):
-            pass  # mbox files are not archives; keep what was fetched
+    missing = [(url, filename) for url, filename in sources
+               if not (dest / filename).exists() and not _existing_for(filename, dest)]
+    if missing:
+        # fetch only the sources that are absent; never re-download or touch existing ones
+        for url, filename in missing:
+            archive = dest / filename
+            _fetch(url, archive)
+            try:
+                _extract_archive(archive, dest)
+            except (tarfile.TarError, OSError):
+                pass  # mbox files are not archives; keep what was fetched
     return write_manifest(dest)
 
 

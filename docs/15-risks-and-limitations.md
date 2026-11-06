@@ -2,8 +2,8 @@
 
 ## Known limitations of v0.1 (honest list)
 1. **The demo model is trained on generated data.** The app's own output is not validated against real mail; real
-   corpora are only used by the offline evaluation comparator (grouped-split F1 0.948 on 2003-2007 data, one split,
-   no confidence interval - see [17](17-real-corpus-evaluation.md)).
+   corpora are only used by the offline evaluation comparator (grouped-split F1 0.987 on 2003-2007 ham plus
+   2003-2025 phishing, one split, no confidence interval - see [17](17-real-corpus-evaluation.md)).
 2. **No real corpora are bundled.** You must download them (licences) with `training.download_datasets`, and their
    labels are corpus-of-origin rather than per-message adjudication.
 3. **Behavioural features** need trusted history. The bot sees only what users send it, so history comes from "known-good" uploads and LOW-risk results. Real value likely needs a mailbox connector (future). Evaluation is semi-synthetic.
@@ -14,6 +14,13 @@
 8. Calibration and selection share the validation split (optimistic); use nested CV for final numbers.
 9. Postgres/Supabase, Docker and a real inbound provider were **not tested** in the build environment.
 10. Security hardening list in [11](11-security-privacy.md) is not complete (encryption at rest, rate limits, signature verification).
+11. **Authentication headers separate the corpora.** SpamAssassin's 2003 ham has no `Authentication-Results`, so
+    `auth_missing` is near-constant for the legitimate class while Nazario phishing usually has passing headers;
+    `from_returnpath_mismatch` is likewise inverted (84% of ham mismatch vs 13% of phishing, because old ham is
+    mailing-list traffic). A model trained on these corpora treats present-and-passing headers and matching
+    return-paths as phishing signals, so it scores modern, fully-authenticated legitimate mail near 1.0.
+    Retraining on a modern ham corpus with real headers is the remedy, not threshold tuning. Full detail in
+    [17](17-real-corpus-evaluation.md) and the teammate guide, step 7.
 
 ## Project risks
 | Risk | Likelihood | Impact | Mitigation |

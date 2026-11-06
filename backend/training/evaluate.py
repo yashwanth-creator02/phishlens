@@ -39,6 +39,15 @@ def run_evaluation(phish_dir: Path, ham_dir: Path, out: Path) -> dict:
 
     X, y, groups = synthetic.samples_to_matrix(samples)
 
+    # Corpus hygiene: SpamAssassin rewrites some hostnames to spamassassin.taint.org, which lands 633+ messages in a
+    # single sender-domain group that the grouped split puts entirely in one partition. Excluding that one artificial
+    # group from the evaluation keeps the split meaningful; everything else is untouched.
+    taint = np.array([g == "legit-spamassassin.taint.org" for g in groups])
+    if taint.sum() > 0:
+        keep = ~taint
+        print(f"Excluding {int(taint.sum())} messages with sender domain spamassassin.taint.org (corpus artefact).")
+        X, y, groups = X[keep], y[keep], groups[keep]
+
     # 1) Grouped split (primary)
     gss = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=7)
     train_idx, test_idx = next(gss.split(X, y, groups=groups))

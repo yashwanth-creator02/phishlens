@@ -82,6 +82,14 @@ def main(argv=None) -> dict:
     X, y, groups = synthetic.samples_to_matrix(samples)
     print(f"dataset: {len(y)} emails, {int(y.sum())} phishing, {X.shape[1]} features, {len(set(groups))} groups")
 
+    # Corpus hygiene: SpamAssassin rewrites some hostnames to spamassassin.taint.org, which lands 633+ messages in a
+    # single sender-domain group that the grouped split puts entirely in one partition, inflating false positives.
+    taint = np.array([g == "legit-spamassassin.taint.org" for g in groups])
+    if taint.sum() > 0:
+        keep = ~taint
+        print(f"Excluding {int(taint.sum())} messages with sender domain spamassassin.taint.org (corpus artefact).")
+        X, y, groups = X[keep], y[keep], groups[keep]
+
     rest, test = split_groups(groups, 0.25, args.seed)
     fit_i, val_i = split_groups(groups[rest], 0.2, args.seed)
     fit, val = rest[fit_i], rest[val_i]

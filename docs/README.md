@@ -20,6 +20,7 @@
 | 16 | [Demo script](16-demo-script.md) | what to click during the review, and what to say |
 | 17 | [**Real-corpus evaluation**](17-real-corpus-evaluation.md) | **measured** numbers on Nazario + SpamAssassin, the grouped split, and what they do not prove |
 | 18 | [**Open manual actions**](18-open-manual-actions.md) | **what still needs you**: Space creation, Supabase auth settings, with exact values |
+| 19 | [**Teammate training guide**](19-teammate-training-guide.md) | exact commands to download the corpora, run evaluation, train and ship the real model |
 | - | [File inventory](FILE_INVENTORY.md) | what each tracked path is for |
 | - | [Dataset card](datasets/README.md) | corpus sources, licences, fetch command, split rules |
 | - | [Decision log (ADRs)](decisions/) | why each important choice was made |

@@ -121,6 +121,7 @@ legitimate bank alert.
 | `16-demo-script.md` | Review walkthrough with expected screens and fallbacks |
 | `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |
 | `18-open-manual-actions.md` | Dashboard/account steps that still need the user, with values and verification |
+| `19-teammate-training-guide.md` | Step-by-step corpora download, evaluation, training and promotion, with expected outputs and the header artefact caveat |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |

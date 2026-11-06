@@ -18,24 +18,46 @@ Corpus provenance and download details: [docs/datasets/README.md](datasets/READM
 
 | Class | Messages loaded | Split groups | Grouping key |
 |---|---|---|---|
-| Phishing (Nazario) | 1,390 | 819 | campaign / first URL host |
+| Phishing (Nazario) | 2,182 | 1,233 | campaign / first URL host |
 | Legitimate (SpamAssassin) | 2,712 | 468 | sender domain |
-| Total | 4,102 | 1,287 | |
+| Total loaded | 4,894 | 1,701 | |
+
+633 legitimate messages whose sender domain is `spamassassin.taint.org` are excluded before splitting (see
+"Artefacts" below), so the evaluated dataset is 4,261 messages.
 
 The corpus is skewed toward legitimate mail (2:1). Labels follow the corpus of origin, which is the usual
 labelling shortcut and the main reason these numbers cannot be read as production accuracy: Nazario is
 phishing-only by construction and SpamAssassin ham is 2003-era mailing-list traffic, so "legitimate" here means
 "not in a phishing corpus", not "a benign modern business email".
 
-Both corpora are old. SpamAssassin ham is dated 2003. The Nazario mbox files cover roughly 2003-2007. Header
+Both corpora are old. SpamAssassin ham is dated 2003. The Nazario mbox files cover roughly 2003-2007, plus the
+2024 and 2025 archives (~7,000 raw messages) which bring contemporary campaigns into the phishing set. Header
 habits, URL shorteners, HTML-only bodies, tracking pixels, and attachment patterns of 2020s mail are
 underrepresented, so the score measures the pipeline's feature extraction and the corpus separation, not today's
 attacker-vs-defender gap.
 
+## Artefacts
+
+Two corpus artefacts shape these numbers. Both are handled in code, and both are flagged here because a reader who
+only sees the F1 will over-read it.
+
+1. **`spamassassin.taint.org` (excluded).** SpamAssassin rewrites some hostnames to `spamassassin.taint.org`, which
+   lands 633 legitimate messages in one sender-domain group. That single group was about 40% of the test set and
+   85% of the false positives when kept, purely because the grouped split put it entirely in one partition.
+   `training/evaluate.py` and `training/train.py` exclude that one group and print the excluded count, so the
+   report and any promoted model cover the same dataset. The remaining 2,079 legitimate messages are untouched.
+2. **`auth_missing` separates the classes (not excluded, but load-bearing).** SpamAssassin's 2003-era ham has no
+   `Authentication-Results` headers, so `auth_missing = 1.0` for essentially all legitimate messages. Nazario
+   phishing usually does carry them, so `spf_pass` / `dkim_pass` / `dmarc_pass` are often 1.0 for phishing. The
+   model therefore learns "headers present and passing" as a phishing signal, which is the opposite of what a
+   modern reader expects. A modern legitimate email with full SPF/DKIM/DMARC pass lands in the phishing region and
+   is scored near 1.0. This is the single largest caveat on the result. The full walkthrough, with the demo
+   implications, is in `docs/19-teammate-training-guide.md` step 7.
+
 ## Split
 
 Primary result uses `GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=7)` with groups as above: no
-campaign host and no sender domain appears in both train and test. 3,092 train / 1,010 test.
+campaign host and no sender domain appears in both train and test. 3,275 train / 986 test.
 
 Because a grouped split holds out whole groups by definition, every test sample is a cold-start sample: the report's
 `cold_start_f1` is therefore identical to the headline F1, and its `cold_start_n` equals the test size. That is
@@ -54,19 +76,19 @@ in `backend/models/` (currently a synthetic-data Random Forest) is untouched, an
 
 | Metric | Grouped split (headline) | Random split (leaky baseline) |
 |---|---|---|
-| Precision | 0.968 | - |
-| Recall | 0.930 | - |
-| F1 | 0.948 | 0.962 |
-| PR-AUC | 0.990 | 0.994 |
-| FPR at decision threshold | 0.025 | - |
+| Precision | 0.987 | - |
+| Recall | 0.987 | - |
+| F1 | 0.987 | 0.986 |
+| PR-AUC | 0.998 | 0.999 |
+| FPR at decision threshold | 0.012 | - |
 
-Confusion counts behind grouped F1: 1,010 test samples, 968 precision and 930 recall at the tuned threshold
-implies roughly 28 false positives and 38 false negatives per 1,010 messages; the exact counts are in
-`evaluation.json`.
+Confusion counts behind grouped F1: 986 test samples, TP 464 / FP 6 / FN 6 / TN 510 (470 phishing in test); the
+exact counts are in `evaluation.json`.
 
-The gap between grouped and random F1 is 1.4 points. A model that had merely memorised campaign or sender
+The gap between grouped and random F1 is 0.1 points. A model that had merely memorised campaign or sender
 identity would show a much larger gap, which is the useful signal here: the features carry real signal beyond
-group identity. It does not mean the model generalises to modern mail.
+group identity. It does not mean the model generalises to modern mail, and the `auth_missing` artefact above is a
+large part of why the signal looks so clean.
 
 ## What this does and does not establish
 
@@ -81,7 +103,7 @@ Does not establish:
 
 - Production accuracy. Corpus labels are corpus-of-origin, the data is 15-20 years old, and there is no
   independent holdout from a third party.
-- Stability. One split, one seed, no confidence intervals or bootstrap. A single-split F1 of 0.948 has no error bar
+- Stability. One split, one seed, no confidence intervals or bootstrap. A single-split F1 of 0.987 has no error bar
   attached in this repository yet.
 - Anything about attachments, images, QR codes, or modern authentication-header failures, which the corpora barely
   contain.
@@ -100,3 +122,13 @@ same corpora reproduces these numbers bit-for-bit on the same library versions. 
 - No per-feature-group ablation (header vs URL vs text vs action) on real data.
 - No third-party holdout; every number here comes from the same two corpora used for tuning decisions.
 - Dataset licences fit academic use; redistribution and commercial use need upstream review.
+
+## Promoted serving model (measured the same way)
+
+`training.train --source corpus` on this dataset selected **xgboost** (`xgboost-corpus-20261106-s7`) with held-out
+test metrics after isotonic calibration: precision 0.971, recall 0.994, F1 macro 0.983, FPR 0.027, ROC-AUC 0.992,
+PR-AUC 0.984, Brier 0.014, confusion TN/FP/FN/TP = 502/14/3/467 on the 986-row test slice. The artefact is
+`backend/models/active/` (gitignored) and the run record is `backend/reports/training_report.md` (gitignored).
+It is **not** in the Docker image yet: Render still bakes the synthetic demo model. Shipping it is the manual step
+in `docs/18-open-manual-actions.md` item 1 and `docs/19-teammate-training-guide.md` step 8, and it comes with the
+`auth_missing` caveat above, which is why it is a decision and not a formality.

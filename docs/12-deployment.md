@@ -14,7 +14,9 @@ Disable auto-training and mount a real model directory for anything beyond demos
 ## Render (free backend)
 `render.yaml` defines one free Docker web service (`phishlens-api`) built from `backend/Dockerfile` with build context
 `backend/`. The image trains the synthetic demo model at build time, so `/api/health` answers as soon as the container
-starts instead of waiting on a cold-start training run.
+starts instead of waiting on a cold-start training run. Shipping the corpora-trained model instead is a two-part
+change (copy the model in the Dockerfile, set `PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml`) - see
+`docs/19-teammate-training-guide.md` step 8, including the reason to think twice before doing it.
 
 1. Render -> **New -> Blueprint**, pick the repository, apply. Render reads `render.yaml`.
 2. When it asks for `PHISHLENS_DATABASE_URL`, paste the Supabase **Session pooler** URI. A bare `postgresql://`

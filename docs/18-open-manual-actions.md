@@ -13,19 +13,25 @@ Rules for this file:
 
 **Why:** the Render service runs the synthetic demo model, so uploaded `.eml` files score against generated data, not
 the Nazario and SpamAssassin corpora your evaluation measured. Promoting the corpora-trained model into the image is
-the one remaining upgrade that changes what the live demo reports. The evaluation already exists; this is the promote
-step.
+the one remaining upgrade that changes what the live demo reports. The evaluation and the model already exist and are
+reproducible from `docs/19-teammate-training-guide.md`; this is the promote step.
+
+Read the warning in step 7 of that guide first: on the corpora-trained model the two `legit_*.eml` demo samples
+score HIGH, because SpamAssassin's 2003 ham has no `Authentication-Results` headers while those samples do. Decide
+whether to accept that for the demo or keep the demo on the synthetic model.
 
 **Steps**, in `backend/` with the venv from the README:
 
 ```powershell
-python -m training.download_datasets       # pulls the three Nazario and two SpamAssassin archives
-python -m training.evaluate --out reports  # reproduces the 0.948 grouped F1 / 0.990 PR-AUC report
-python -m training.train --source corpus --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin_ham --out models
+python -m training.download_datasets       # pulls the five Nazario mboxes and two SpamAssassin tarballs
+python -m training.evaluate --out reports  # reproduces the 0.987 grouped F1 / 0.998 PR-AUC report
+python -m training.train --source corpus --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin --out models --reports reports
 ```
 
-Then commit `backend/models` and push: Render rebuilds on `main`, the image no longer trains the demo model at build
-time, and `/api/health` will name the promoted model. Paste in chat only the final model ID.
+Then make the two-part change from step 8 of the guide (copy the model in `backend/Dockerfile`, set
+`PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml`), commit the model and both files, and push: Render rebuilds on
+`main`, the image no longer trains the demo model at build time, and `/api/health` will name the promoted model.
+Paste in chat only the final model ID.
 
 **Done when:** the site shows scores from the corpora-trained model; tell the agent and it will verify `/api/health`
 names that model.
