@@ -138,7 +138,7 @@ Closed out the deployment-facing work.
   locally, and a signed-in journey across dashboard, cases, model, how-it-works, status, settings, and case detail that
   skips unless `E2E_EMAIL`/`E2E_PASSWORD` are set. `E2E_BASE_URL` points it at a deployment. Vitest's `include` is now
   limited to `src/**` so the two runners cannot pick up each other's files.
-- **Verified.** Backend 37 passed, 1 live-only skip. Frontend 18 Vitest tests in 5 files. Playwright 1 passed, 1 skipped.
+- **Verified.** Backend 44 passed, 1 live-only skip. Frontend 18 Vitest tests in 5 files. Playwright 1 passed, 1 skipped.
   Production build type-checks and bundles. Chromium headless shell installed locally, so the smoke run needs no network.
 - **Documentation.** Added `docs/report/final-report.md` (the submission write-up) and `docs/16-demo-script.md` (what to
   click during the review and what to say, with fallbacks). Updated this log, the docs index, `README.md` (test counts,

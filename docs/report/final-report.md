@@ -94,7 +94,7 @@ Eight design decisions carry the system:
 
 | Check | Command | Result |
 |---|---|---|
-| Backend suite | `cd backend; python -m pytest -q` | 37 passed, 1 skipped (live-only Supabase RLS test requires credentials) |
+| Backend suite | `cd backend; python -m pytest -q` | 44 passed, 1 skipped (live-only Supabase RLS test requires credentials) |
 | Frontend unit tests | `cd frontend; npm test` | 18 passed in 5 files |
 | Frontend E2E smoke | `cd frontend; npm run test:e2e` | 1 passed; the signed-in journey skips without `E2E_EMAIL`/`E2E_PASSWORD` |
 | Production build | `cd frontend; npm run build` | Type-check and bundle pass (211 kB JS, 18 kB CSS before gzip) |
