@@ -27,19 +27,30 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_RAW_DIR = BACKEND_DIR / "data" / "raw"
 
-# name -> (url, archive filename). Nazario phishing + SpamAssassin ham.
-DATASETS: dict[str, tuple[str, str]] = {
-    "nazario": (
-        "https://monkey.org/~jose/phishing/phish.tar.gz",
-        "phish.tar.gz",
-    ),
-    "spamassassin": (
-        "https://spamassassin.apache.org/publiccorpus/",
-        "publiccorpus.tar.bz2",
-    ),
+# name -> [(url, local filename)]. Nazario phishing mboxes + SpamAssassin ham tarballs.
+# monkey.org stopped publishing one tarball; the corpus is per-year mbox files now.
+# The 2018+ "private-phishing4" archive is deliberately excluded (donor privacy).
+DATASETS: dict[str, list[tuple[str, str]]] = {
+    "nazario": [
+        ("https://monkey.org/~jose/phishing/phishing0.mbox", "phishing0.mbox"),
+        ("https://monkey.org/~jose/phishing/phishing1.mbox", "phishing1.mbox"),
+        ("https://monkey.org/~jose/phishing/phishing2.mbox", "phishing2.mbox"),
+    ],
+    "spamassassin": [
+        ("https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham.tar.bz2", "easy_ham.tar.bz2"),
+        ("https://spamassassin.apache.org/old/publiccorpus/20030228_hard_ham.tar.bz2", "hard_ham.tar.bz2"),
+    ],
 }
 
 EMAIL_SUFFIXES = {".eml", ".txt", ""}
+# Corpus files are not always named with an extension: SpamAssassin ships
+# "0001.217ba49e4b19f7dad40f9526b1a2b1ba", whose suffix is a hash. So the rule is
+# "every file is corpus content unless it is an archive or the manifest".
+ARCHIVE_SUFFIXES = {".gz", ".bz2", ".zip", ".tar", ".tgz", ".xz", ".7z"}
+
+
+def _is_corpus_file(f: Path) -> bool:
+    return f.name != "manifest.json" and f.suffix.lower() not in ARCHIVE_SUFFIXES
 
 
 def _sha256(data: bytes) -> str:
@@ -47,20 +58,12 @@ def _sha256(data: bytes) -> str:
 
 
 def _has_emails(d: Path) -> bool:
-    return any(
-        f.is_file() and (f.suffix.lower() in EMAIL_SUFFIXES or f.name.lower().endswith("mbox"))
-        for f in d.rglob("*")
-    )
+    return any(f.is_file() and _is_corpus_file(f) for f in d.rglob("*"))
 
 
 def _iter_email_files(root: Path):
     for f in sorted(root.rglob("*")):
-        if not f.is_file():
-            continue
-        if f.suffix.lower() in EMAIL_SUFFIXES or f.name.lower().endswith("mbox"):
-            # skip the manifest itself: it lives beside the corpus, never inside it
-            if f.name == "manifest.json":
-                continue
+        if f.is_file() and _is_corpus_file(f):
             yield f
 
 
@@ -95,7 +98,8 @@ def _fetch(url: str, dest: Path) -> None:
 def _extract_archive(archive: Path, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
     with tarfile.open(archive) as tf:
-        tf.extractall(dest)
+        # data filter rejects absolute paths, traversal, and device members from the corpus tarballs
+        tf.extractall(dest, filter="data")
 
 
 def download_dataset(name: str, root: Path, dry_run: bool = False) -> dict:
@@ -105,16 +109,21 @@ def download_dataset(name: str, root: Path, dry_run: bool = False) -> dict:
     if _has_emails(dest):
         # Idempotent: existing corpus wins, never re-download.
         return write_manifest(dest)
-    url, archive_name = DATASETS[name]
+    sources = DATASETS[name]
     if dry_run:
-        print(f"[dry-run] would download {url} -> {dest / archive_name}")
-        return {"count": 0, "total_bytes": 0, "files": [], "dry_run": True, "url": url}
-    archive = dest / archive_name
-    _fetch(url, archive)
-    try:
-        _extract_archive(archive, dest)
-    except (tarfile.TarError, OSError):
-        pass  # not an archive (e.g. a listing page); keep what was fetched
+        for url, filename in sources:
+            print(f"[dry-run] would download {url} -> {dest / filename}")
+        return {"count": 0, "total_bytes": 0, "files": [], "dry_run": True,
+                "urls": [url for url, _ in sources]}
+    for url, filename in sources:
+        archive = dest / filename
+        if archive.exists():
+            continue
+        _fetch(url, archive)
+        try:
+            _extract_archive(archive, dest)
+        except (tarfile.TarError, OSError):
+            pass  # mbox files are not archives; keep what was fetched
     return write_manifest(dest)
 
 

@@ -1,8 +1,11 @@
 # 15 - Risks and limitations
 
 ## Known limitations of v0.1 (honest list)
-1. **The demo model is trained on generated data.** No claim about real phishing detection can be made yet.
-2. **No real corpora are bundled.** You must download them (licences) and re-train.
+1. **The demo model is trained on generated data.** The app's own output is not validated against real mail; real
+   corpora are only used by the offline evaluation comparator (grouped-split F1 0.948 on 2003-2007 data, one split,
+   no confidence interval - see [17](17-real-corpus-evaluation.md)).
+2. **No real corpora are bundled.** You must download them (licences) with `training.download_datasets`, and their
+   labels are corpus-of-origin rather than per-message adjudication.
 3. **Behavioural features** need trusted history. The bot sees only what users send it, so history comes from "known-good" uploads and LOW-risk results. Real value likely needs a mailbox connector (future). Evaluation is semi-synthetic.
 4. **Inline forwarding loses SPF/DKIM/DMARC.** Handled as *missing*; recommend "forward as attachment".
 5. **Domain age** is not fetched (no WHOIS/RDAP yet) -> features are "missing" at serving time; the model was trained with ~50% availability to cope.

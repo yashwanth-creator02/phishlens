@@ -116,19 +116,24 @@ Two evaluation paths exist in the repository:
   random-split baseline for comparison. `backend/training/download_datasets.py` fetches the corpora and records
   SHA-256 manifests.
 
-The real evaluation has **not** been run for this submission: the corpora are not present in this working copy
-(`backend/data/raw/nazario` and `backend/data/raw/spamassassin` are empty). The harness was smoke-run on a
-40-email sample only to prove the code path executes end to end; those numbers carry no meaning and are not quoted
-here. Running it is a single documented command:
+The real evaluation **has** been run. `python -m training.download_datasets` fetched 1,390 Nazario phishing
+messages (819 campaign/host groups) and 2,712 SpamAssassin legitimate messages (468 sender-domain groups);
+`python -m training.evaluate` then trained a throwaway XGBoost comparator on the production 57-feature matrix and
+scored it on a campaign-and-sender-grouped split (3,092 train / 1,010 test):
 
-```bash
-cd backend
-python -m training.download_datasets --out data/raw
-python -m training.evaluate --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin --reports reports
-```
+| Metric | Grouped split (headline) | Random split (leaky baseline) |
+|---|---|---|
+| Precision | 0.968 | - |
+| Recall | 0.930 | - |
+| F1 | 0.948 | 0.962 |
+| PR-AUC | 0.990 | 0.994 |
+| FPR at threshold | 0.025 | - |
 
-Until that runs, the correct statement is: PhishLens demonstrates an explainable triage pipeline; its detection
-quality is unmeasured.
+The 1.4-point grouped-vs-random gap is the evidence that the features carry signal beyond campaign and sender
+identity. It is **not** evidence of production accuracy: labels are corpus-of-origin, the corpora are 2003-2007
+traffic, there is one split with no confidence interval, and the comparator is not the shipped model. The shipped
+model remains the synthetic demo model, and its 0.959 calibrated macro-F1 is still a synthetic hold-out number.
+Method and caveats: `docs/17-real-corpus-evaluation.md`.
 
 ## 6. Security and privacy
 
@@ -159,7 +164,9 @@ require account credentials.
 
 ## 8. Limitations
 
-1. No real-corpus metric yet; the bundled model is trained on generated data.
+1. Detection quality is measured only on 2003-2007 research corpora (grouped-split F1 0.948, single split, no
+   confidence interval); the shipped model is the synthetic demo model, so nothing in the app's own output has been
+   validated against real mail.
 2. Behavioural features need history the system only sees for senders the user has already forwarded; cold start is
    neutral by design.
 3. Inline forwarding loses the original authentication headers.
@@ -171,11 +178,14 @@ require account credentials.
 
 ## 9. Future work
 
-1. Run `evaluate.py` on the real corpora and report grouped-split F1, PR-AUC, calibration, and cold-start results.
-2. Add Gmail IMAP ingestion so a user can forward without leaving their client.
-3. Add domain-age and reputation enrichment behind the existing feature interface.
-4. Run the user study in `docs/14-user-study.md` to test whether verified reasons change user decisions.
-5. Add explanation-faithfulness measures (deletion test, stability across paraphrases) rather than only
+1. Add bootstrap confidence intervals and a second seed to the real-corpus evaluation, plus a third-party holdout; one
+   split cannot support a claim that two configurations differ.
+2. Train the serving model on the real corpus (the documented `training.train --source corpus` path) once a holdout
+   strategy beyond the two research corpora exists, so the app's own output stops being synthetic-pipeline demo.
+3. Add Gmail IMAP ingestion so a user can forward without leaving their client.
+4. Add domain-age and reputation enrichment behind the existing feature interface.
+5. Run the user study in `docs/14-user-study.md` to test whether verified reasons change user decisions.
+6. Add explanation-faithfulness measures (deletion test, stability across paraphrases) rather than only
    evidence-verification.
 
 ## 10. Reading path
