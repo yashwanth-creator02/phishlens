@@ -1,0 +1,27 @@
+# Render blueprint: free Docker web service for the FastAPI backend.
+# Create it once with Render -> New -> Blueprint -> this repository. Render asks for the one
+# `sync: false` secret (the Supabase pooler URL) and generates the two random secrets itself.
+services:
+  - type: web
+    name: phishlens-api
+    runtime: docker
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: PHISHLENS_AUTH_MODE
+        value: supabase
+      - key: PHISHLENS_SUPABASE_JWKS_URL
+        value: https://vmbtdrmevlovvvfvtqmd.supabase.co/auth/v1/.well-known/jwks.json
+      - key: PHISHLENS_CORS_ORIGINS
+        value: https://phishlens-gules.vercel.app
+      - key: PHISHLENS_AUTO_TRAIN_DEMO
+        value: "true"
+      # Supabase -> Connect -> Session pooler URI; a bare postgresql:// is normalized to psycopg3.
+      - key: PHISHLENS_DATABASE_URL
+        sync: false
+      - key: PHISHLENS_WEBHOOK_SECRET
+        generateValue: true
+      - key: PHISHLENS_ADMIN_TOKEN
+        generateValue: true

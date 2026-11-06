@@ -15,7 +15,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `AGENTS.md` | Agent instructions, commands, invariants, verification checklist, known gaps |
 | `Makefile` | Cross-platform convenience targets (`setup`, `train-demo`, `backend`, `frontend`, `test`, `build`, `up`) |
 | `docker-compose.yml` | API + UI container stack (untested in this environment) |
-| `Dockerfile.space` | Container for the Hugging Face Space build |
+| `render.yaml` | Render blueprint: one free Docker web service for the backend, with its env vars |
 | `backend.ps1` / `frontend.ps1` | Windows launchers; `backend.ps1` refuses a Python older than 3.11 |
 | `.env.example` | Compose-level environment template (Docker paths, not local paths) |
 | `.gitignore` | Excludes virtualenvs, models, storage, DBs, Playwright output, graphify cache |
@@ -139,8 +139,6 @@ legitimate bank alert.
 | Path | Purpose |
 |---|---|
 | `.github/workflows/ci.yml` | Backend tests plus frontend build on push |
-| `.github/workflows/deploy-space.yml` | Upload to the Space, then fail unless `/api/health` reports the model loaded |
 | `scripts/send_sample.py` | Simulates a forwarded-email webhook |
 | `scripts/purge_old.py` | Retention purge helper |
-| `deploy/space/README.md` | Space configuration and secrets |
 | `graphify-out/` | Code knowledge graph (regenerate with `graphify extract . --code-only`) |

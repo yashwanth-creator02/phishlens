@@ -11,20 +11,35 @@ See the root README: `pip install -r backend/requirements-dev.txt`, train the de
 **Not tested here** (no Docker engine in the build environment); the Dockerfiles are straightforward but expect small fixes on first run.
 Disable auto-training and mount a real model directory for anything beyond demos.
 
-## Hugging Face Space (free backend)
-`Dockerfile.space` builds the backend with build context `backend/`:
-```powershell
-docker build -f Dockerfile.space -t phishlens-space backend
-docker run --rm -p 7860:7860 phishlens-space
-```
-The Space runs `uvicorn` on port 7860, stores SQLite and raw mail on ephemeral local disk, and trains the synthetic demo model on first start. A real model directory must be mounted or baked in for anything beyond a demo.
+## Render (free backend)
+`render.yaml` defines one free Docker web service (`phishlens-api`) built from `backend/Dockerfile` with build context
+`backend/`. The image trains the synthetic demo model at build time, so `/api/health` answers as soon as the container
+starts instead of waiting on a cold-start training run.
 
-`.github/workflows/deploy-space.yml` uploads `backend/` to the Space, writes `Dockerfile.space` as the Space `Dockerfile`, and requires `HF_TOKEN` and `HF_SPACE_ID` secrets. It fails if `/api/health` does not report `model_loaded: true`. The Space is public by default; never send real personal email to it.
+1. Render -> **New -> Blueprint**, pick the repository, apply. Render reads `render.yaml`.
+2. When it asks for `PHISHLENS_DATABASE_URL`, paste the Supabase **Session pooler** URI. A bare `postgresql://`
+   string is rewritten to `postgresql+psycopg://` at startup, so the Connect panel's copy-paste works unchanged.
+   Render generates `PHISHLENS_WEBHOOK_SECRET` and `PHISHLENS_ADMIN_TOKEN` itself.
+3. Note the service URL Render shows (`https://<service>.onrender.com`).
+4. Set `VITE_API_BASE_URL` on the Vercel project to that URL and redeploy.
+
+Free plan limits that matter: one instance, 512 MB RAM, 0.1 CPU, no persistent disk, and it sleeps after 15 idle
+minutes (the next request waits roughly a minute for the wake). Measured peak RSS for one `/api/analyses/upload` call
+on the demo model is ~257 MB, so 512 MB fits with headroom. Raw-email files in `storage/` are ephemeral; the analyses
+themselves are rows in Supabase.
+
+Rebuild the image locally with:
+```powershell
+docker build -f backend/Dockerfile -t phishlens-api backend
+docker run --rm -p 8000:8000 phishlens-api
+```
+The container is public; never send real personal email to it, and expect the synthetic demo model's output, not a
+security verdict.
 
 ## Vercel frontend (free)
 `frontend/vercel.json` builds the Vite app and rewrites unknown paths to `index.html` so client routes such as `/cases`
 work on refresh. Import the GitHub repository in Vercel, set **Root Directory** to `frontend`, and add
-`VITE_API_BASE_URL=https://<space-host>` plus `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as Production and Preview
+`VITE_API_BASE_URL=https://<backend-host>` plus `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as Production and Preview
 environment variables. `VITE_API_BASE_URL` is read at build time, so changing it requires a redeploy.
 On the backend, set `PHISHLENS_CORS_ORIGINS` to the exact Vercel origins (production domain first, preview domains if you
 use them). `*` is rejected at startup because credentialed CORS would otherwise mirror any origin.
@@ -47,7 +62,7 @@ vercel deploy --prod --yes --scope yashwanth-creator02s-projects
 ```
 
 `vercel link` writes `frontend/.vercel/` (gitignored) plus a `frontend/.env.local` holding a short-lived OIDC token; neither is committed.
-Once the backend Space exists, add `VITE_API_BASE_URL` to the Vercel project and redeploy; the build embeds it.
+Once the backend host exists, add `VITE_API_BASE_URL` to the Vercel project and redeploy; the build embeds it.
 To restore push-to-deploy, install the Vercel GitHub App on `yashwanth-creator02/phishlens` and run `vercel git connect`.
 
 ## Supabase
@@ -76,7 +91,11 @@ Choose a provider that can deliver inbound mail to a webhook (Postmark inbound, 
 `https://<backend>/api/webhooks/inbound` and the shared secret. Write an adapter if the payload is not raw MIME. Gmail API push (OAuth + Pub/Sub) is the later alternative (ADR-002).
 
 ## Hosting options (provider not fixed)
-Railway / Render / Fly.io (least ceremony for two containers + managed Postgres) or one VM with Docker Compose + Caddy for TLS (cheapest, most control). CI: `.github/workflows/ci.yml` runs backend tests and the frontend build; add an image-build/deploy job once a host is chosen.
+Free tiers are the constraint, not the tooling. Hugging Face is out: custom Docker Spaces need a paid plan, and ZeroGPU
+Spaces need an account at least 30 days old (both rejected with HTTP 402 on this account). Render's free web service
+needs no card, runs the same Dockerfile, and is the current choice. Alternatives: Railway / Fly.io (both want a card),
+Koyeb (512 MB, sleeps after an hour), or one VM with Docker Compose + Caddy for TLS (cheapest, most control). CI:
+`.github/workflows/ci.yml` runs backend tests and the frontend build; add an image-build/deploy job once a host is chosen.
 
 ## Scaling and the async path
 Watch p95 time from "webhook received" to "analysis stored". If SHAP + inference exceed a few seconds under load: webhook enqueues (Redis) and returns 202; a Celery worker runs `analyze`; the UI polls or subscribes via Supabase Realtime. No feature/model/explanation code changes.
