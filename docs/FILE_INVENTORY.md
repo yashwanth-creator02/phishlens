@@ -120,6 +120,7 @@ legitimate bank alert.
 | `01`-`15` | Topic docs: overview, project log, plan, architecture, backend, frontend, data model, ML, explainability, API, security, deployment, testing, user study, risks |
 | `16-demo-script.md` | Review walkthrough with expected screens and fallbacks |
 | `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |
+| `18-open-manual-actions.md` | Dashboard/account steps that still need the user, with values and verification |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |

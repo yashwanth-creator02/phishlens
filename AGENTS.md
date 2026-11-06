@@ -115,6 +115,7 @@ Root `make` targets: `setup`, `train-demo`, `backend`, `frontend`, `test`, `buil
 - Create a branch for every feature, fix, or refactor. Do not commit directly to `main` after the initial import. Do not merge into `main` without explicit user approval; use `git merge --no-ff` when approved.
 - Commit and push completed work. If no remote exists, stop and report that rather than inventing one.
 - Update `README.md` and the relevant `docs/` files in the same change as code. Keep documentation honest about what is tested and what is not.
+- Keep `docs/18-open-manual-actions.md` current: it lists only work blocked on the user. Add an item when a step needs an account, dashboard, or password the agent cannot reach; delete it the moment it is done; never leave a completed item in the list.
 - Add or update tests for behavior changes; keep the existing suite green.
 - Prefer deterministic scripts over ad-hoc manual steps. Put temporary artifacts in `.tmp/` and never commit them.
 - No emojis in code, comments, logs, UI, documentation, or commit messages.
