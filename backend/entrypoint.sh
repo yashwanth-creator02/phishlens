@@ -7,4 +7,4 @@ if [ ! -f "$MODEL_DIR/active/meta.json" ] && [ "${PHISHLENS_AUTO_TRAIN_DEMO:-fal
   echo "[entrypoint] no model found -> training demo model on SYNTHETIC data"
   python -m training.train --source synthetic --n 2400 --out "$MODEL_DIR" --reports ./reports
 fi
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"

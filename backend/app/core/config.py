@@ -16,12 +16,18 @@ class Settings(BaseSettings):
 
     # authentication: "disabled" (local development, single dev user) or "supabase" (verify Supabase JWT)
     auth_mode: str = "disabled"
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
     supabase_jwt_secret: str = ""
+    supabase_jwks_url: str = ""
     dev_user_id: str = "dev-user"
 
     # inbound webhook protection (shared secret sent in the X-Webhook-Secret header)
     webhook_secret: str = "change-me"
     alias_domain: str = "phishlens.example"    # forwarding alias: u-<token>@alias_domain
+
+    # admin purge endpoint (X-Admin-Token header). Empty = disabled (503).
+    admin_token: str = ""
 
     cors_origins: str = "http://localhost:5173"
 
@@ -39,7 +45,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        # Starlette mirrors any origin when "*" meets allow_credentials, which is worse than it looks.
+        if "*" in origins:
+            raise ValueError("CORS_ORIGINS must list explicit origins; '*' cannot be combined with credentials")
+        return origins
 
 
 @lru_cache

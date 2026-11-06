@@ -22,5 +22,11 @@ Note: in the SHAP table, some features show contributions that look odd (e.g. a 
 model (legitimate synthetic mail also fails SPF sometimes); it is exactly the kind of thing to examine with real data. Reasons only use risk-*raising* contributions.
 
 ## Next UI work
-Reason wording review; "report as phishing / mark as safe" feedback buttons (also feeds sender history); history filters; mobile layout polish; accessibility pass;
-Supabase password reset flow; browser add-on reuse of `api/client.ts`.
+Reason wording review; "report as phishing / mark as safe" feedback buttons (also feeds sender history); Supabase password reset flow; browser add-on reuse of `api/client.ts`.
+
+Completed in v0.1 UI polish:
+- History search and risk-band filtering controls.
+- Mobile layout polish with responsive wrapping for headers, stat cards, and evidence tables.
+- WCAG AA contrast compliance and accessibility pass (focus visible outlines, `role="status"` on loaders, skip links).
+- Honest stat strip reporting loaded counts and capping limits.
+- Bounded, high-contrast typography and design token system.

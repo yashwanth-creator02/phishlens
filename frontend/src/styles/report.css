@@ -1,0 +1,236 @@
+/* Task 9 report chrome — uses existing design tokens from styles.css. No raw colors. */
+
+.report-verdict {
+  margin-top: 16px;
+}
+
+.report-verdict-meta {
+  font-size: 0.95rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 16px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+/* Verified reasons */
+
+.reason-card {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.reason-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.reason-rank {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.reason-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Evidence panels */
+
+.evidence-panel {
+  margin: 0;
+  min-width: 0;
+}
+
+.evidence-panel h3 {
+  margin-top: 0;
+}
+
+.evidence-panel .section-gap {
+  margin-top: 20px;
+}
+
+/* Feature table */
+
+.feature-table caption {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--muted);
+  caption-side: top;
+  padding: 12px 16px 8px;
+}
+
+.raw-headers caption {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--muted);
+  caption-side: top;
+  padding: 12px 16px 8px;
+}
+
+/* Model card */
+
+.model-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .model-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.metric-table caption {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--muted);
+  caption-side: top;
+  padding: 12px 16px 8px;
+}
+
+.threshold-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .threshold-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.threshold-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-width: 0;
+  background: var(--surface);
+}
+
+.threshold-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-top: 6px;
+}
+
+/* How it works */
+
+.how-steps {
+  padding-left: 20px;
+  margin: 12px 0 8px;
+}
+
+.how-steps li {
+  margin: 14px 0;
+  line-height: 1.55;
+  min-width: 0;
+}
+
+.how-steps h3,
+.how-steps p {
+  margin: 0 0 4px;
+}
+
+.feature-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .feature-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .feature-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.group-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-width: 0;
+}
+
+.group-card h3 {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.group-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* Confirm dialog */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 26, 28, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.dialog-panel {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.dialog-panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}

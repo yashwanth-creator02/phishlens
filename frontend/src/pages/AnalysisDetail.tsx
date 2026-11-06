@@ -2,116 +2,276 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import BandBar from "../components/BandBar";
+import EvidencePanel from "../components/EvidencePanel";
+import FeatureTable from "../components/FeatureTable";
+import ReasonCard from "../components/ReasonCard";
 import RiskBadge from "../components/RiskBadge";
 import type { AnalysisDetail, FeatureRow } from "../types";
+import "../styles/report.css";
 
-const GROUP_LABEL: Record<string, string> = {
-  header: "Sender / headers", url: "Links", text: "Wording", action: "Requested action",
-  attachment: "Attachments", behaviour: "Sender history", model: "Overall pattern",
+const SCOPE_LABEL: Record<string, string> = {
+  direct: "Uploaded directly",
+  forward_attachment: "Forwarded as attachment",
+  forward_inline: "Forwarded inline",
 };
+
+function buildSummary(a: AnalysisDetail) {
+  const lines = [
+    `PhishLens analysis: ${a.subject || "(no subject)"}`,
+    `Risk: ${a.risk_band} (${a.risk_score}/100)`,
+    `From: ${a.sender_name ? `${a.sender_name} ` : ""}<${a.sender_address}>`,
+    `Model: ${a.model_version}`,
+    `Guidance: ${a.guidance}`,
+    "",
+    "Verified reasons:",
+    ...(a.reasons.length === 0
+      ? ["- No individual warning signs were triggered by evidence rules."]
+      : a.reasons.map((r) => `- ${r.sentence}`)),
+    "",
+    `Links: ${a.links.length} · Attachments: ${a.attachments.length} · History: ${a.history_message_count} trusted message(s)`,
+  ];
+  return lines.join("\n");
+}
 
 export default function AnalysisDetailPage() {
   const { id = "" } = useParams();
   const nav = useNavigate();
   const [a, setA] = useState<AnalysisDetail | null>(null);
   const [features, setFeatures] = useState<FeatureRow[] | null>(null);
+  const [featureError, setFeatureError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     api.get(id).then(setA).catch((e) => setError((e as Error).message));
   }, [id]);
 
-  if (error) return <p className="error">{error}</p>;
-  if (!a) return <p className="muted">Loading…</p>;
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmDelete(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [confirmDelete]);
+
+  if (error) {
+    return (
+      <>
+        <p>
+          <Link to="/">Back to dashboard</Link>
+        </p>
+        <div className="card high">
+          <p className="error" role="alert">
+            Failed to load analysis: {error}
+          </p>
+          <button
+            className="secondary"
+            onClick={() => window.location.reload()}
+            style={{ marginTop: "12px" }}
+            type="button"
+          >
+            Retry loading
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  if (!a) return <p className="muted pad" role="status">Loading analysis report...</p>;
 
   const title = a.risk_band === "LOW" ? "Minor signals noticed" : "Why this message looks suspicious";
+  const scopeLabel = SCOPE_LABEL[a.scope] ?? a.scope.replace("_", " ");
+  const headerEntries = Object.entries(a.headers);
+
+  const copySummary = async () => {
+    await navigator.clipboard.writeText(buildSummary(a));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <>
-      <p><Link to="/">← All analyses</Link></p>
-      <div className={`card ${a.risk_band.toLowerCase()}`}>
+      <p style={{ marginBottom: "20px" }}>
+        <Link to="/">Back to dashboard</Link>
+      </p>
+
+      <div className={`card report-verdict ${a.risk_band.toLowerCase()}`}>
         <div className="row">
           <h1>{a.subject || "(no subject)"}</h1>
           <RiskBadge band={a.risk_band} score={a.risk_score} />
         </div>
         <BandBar score={a.risk_score} band={a.risk_band} />
         <p className="guidance">{a.guidance}</p>
-        <p className="muted">
-          From {a.sender_name} &lt;{a.sender_address}&gt; · {a.scope.replace("_", " ")}
-          {a.forwarded_by ? ` by ${a.forwarded_by}` : ""} · model {a.model_version}
-        </p>
+        <div className="report-verdict-meta">
+          <span>
+            From: <strong>{a.sender_name ? `${a.sender_name} ` : ""}</strong>
+            <span className="mono">&lt;{a.sender_address}&gt;</span>
+          </span>
+          <span>Scope: {scopeLabel}{a.forwarded_by ? ` by ${a.forwarded_by}` : ""}</span>
+          <span>Model: <span className="mono">{a.model_version}</span></span>
+          <span>Timestamp: {new Date(a.created_at + "Z").toLocaleString()}</span>
+        </div>
+        <div className="report-actions">
+          <button className="secondary" onClick={() => void copySummary()} type="button">
+            {copied ? "Summary copied" : "Copy summary"}
+          </button>
+          <span className="muted" role="status">{copied ? "Copied to clipboard." : ""}</span>
+        </div>
       </div>
 
       <h2>{title}</h2>
+      <p className="muted" style={{ fontSize: "0.95rem" }}>
+        Each reason below was checked against evidence in this email. Only verified reasons are shown.
+      </p>
       {a.reasons.length === 0 ? (
-        <p className="muted">No individual warning signs were found.</p>
+        <p className="muted">No individual warning signs were triggered by evidence rules.</p>
       ) : (
-        <ol className="reasons">
-          {a.reasons.map((r) => (
-            <li key={r.rule_key}>
-              <span className="tag">{GROUP_LABEL[r.group] ?? r.group}</span> {r.sentence}
-            </li>
-          ))}
-        </ol>
+        <div>
+          <ol className="plain" style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
+            {a.reasons.map((r, i) => (
+              <li key={r.rule_key}>
+                <ReasonCard reason={r} index={i} />
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
+
       {a.scope === "forward_inline" && (
-        <p className="note">
-          This email was forwarded inline, so the original SPF/DKIM/DMARC results are not available. Forwarding it
-          “as attachment” gives a more reliable check.
-        </p>
+        <div className="note">
+          This email was forwarded inline, so original SPF, DKIM, and DMARC authentication headers are not available.
+          Forwarding as an attachment provides a more reliable verification result.
+        </div>
       )}
-      <p className="muted">
-        Sender history: {a.history_message_count === 0 ? "no earlier trusted messages from this sender" : `${a.history_message_count} earlier trusted message(s)`}.
+
+      <p className="muted" style={{ marginTop: "16px" }}>
+        Sender history: {a.history_message_count === 0 ? "no earlier trusted messages recorded from this sender." : `${a.history_message_count} earlier trusted message(s) on file.`}
       </p>
 
-      <h2>Evidence</h2>
-      <div className="grid2">
-        <div>
-          <h3>Links ({a.links.length})</h3>
-          {a.links.length === 0 ? <p className="muted">None</p> : (
-            <ul className="plain">{a.links.map((l, i) => (
-              <li key={i}><code>{l.href}</code>{l.text && <div className="muted">shown as “{l.text}”</div>}</li>
-            ))}</ul>
-          )}
-          <h3>Attachments ({a.attachments.length})</h3>
-          {a.attachments.length === 0 ? <p className="muted">None</p> : (
-            <ul className="plain">{a.attachments.map((x, i) => (
-              <li key={i}>{x.filename || "(unnamed)"} <span className="muted">{x.content_type}, {x.size} bytes</span></li>
-            ))}</ul>
-          )}
-        </div>
-        <div>
-          <h3>Authentication</h3>
-          <ul className="plain">{Object.entries(a.auth).map(([k, v]) => <li key={k}>{k.toUpperCase()}: <strong>{v}</strong></li>)}</ul>
-          <h3>Message preview</h3>
-          <pre className="preview">{a.text_preview || "(no text)"}</pre>
-        </div>
-      </div>
+      <h2>Evidence summary</h2>
+      <EvidencePanel analysis={a} />
 
-      <h2>How the model decided</h2>
+      <h2>Model decision process</h2>
+      {featureError && <p className="error" role="alert">{featureError}</p>}
       {features === null ? (
-        <button onClick={() => api.features(id).then(setFeatures).catch((e) => setError((e as Error).message))}>
-          Show feature contributions
+        <button
+          className="secondary"
+          onClick={() => {
+            setFeatureError(null);
+            api.features(id)
+              .then(setFeatures)
+              .catch((e) => setFeatureError((e as Error).message));
+          }}
+          type="button"
+        >
+          Load feature contributions (SHAP)
         </button>
       ) : (
-        <table className="list small">
-          <thead><tr><th>Feature</th><th>Group</th><th>Value</th><th>Contribution (SHAP)</th></tr></thead>
+        <>
+          <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "8px" }}>
+            Positive values push toward phishing, negative values push away. Showing the 20 largest absolute contributions.
+          </p>
+          <FeatureTable rows={features} />
+        </>
+      )}
+
+      <h2>Raw headers</h2>
+      {headerEntries.length === 0 ? (
+        <p className="muted">No raw headers recorded.</p>
+      ) : (
+        <table className="list small raw-headers">
+          <caption>Headers stored from the parsed email, exactly as received</caption>
+          <thead>
+            <tr>
+              <th>Header</th>
+              <th>Value</th>
+            </tr>
+          </thead>
           <tbody>
-            {features.filter((f) => Math.abs(f.contribution) > 1e-6).slice(0, 20).map((f) => (
-              <tr key={f.name}>
-                <td><code>{f.name}</code></td><td className="muted">{f.group}</td>
-                <td>{f.value.toFixed(2)}</td>
-                <td className={f.contribution > 0 ? "pos" : "neg"}>{f.contribution > 0 ? "+" : ""}{f.contribution.toFixed(3)}</td>
+            {headerEntries.map(([k, v]) => (
+              <tr key={k}>
+                <td className="muted mono">{k}</td>
+                <td className="mono" style={{ overflowWrap: "break-word" }}>{v}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
-      <p className="danger-zone">
-        <button className="danger" onClick={async () => { await api.remove(a.id); nav("/"); }}>Delete this analysis</button>
-        <span className="muted"> removes the stored email and its results.</span>
-      </p>
+      <div className="danger-zone">
+        <DeleteSection
+          analysisId={a.id}
+          nav={nav}
+          confirmOpen={confirmDelete}
+          onConfirmChange={setConfirmDelete}
+        />
+      </div>
+    </>
+  );
+}
+
+function DeleteSection({
+  analysisId,
+  nav,
+  confirmOpen,
+  onConfirmChange,
+}: {
+  analysisId: string;
+  nav: (to: string) => void;
+  confirmOpen: boolean;
+  onConfirmChange: (open: boolean) => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const doDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.remove(analysisId);
+      nav("/");
+    } catch (e) {
+      setError((e as Error).message);
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <button className="danger" disabled={deleting} onClick={() => onConfirmChange(true)} type="button">
+        Delete analysis
+      </button>
+      <span className="muted">Permanently removes the stored email record and triage results.</span>
+      {error && <p className="error" role="alert" style={{ width: "100%", marginTop: "8px" }}>Failed to delete analysis: {error}</p>}
+
+      {confirmOpen && (
+        <div className="dialog-overlay" role="presentation" onClick={() => !deleting && onConfirmChange(false)}>
+          <div
+            className="dialog-panel"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+            aria-describedby="delete-desc"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="delete-title">Delete this analysis?</h2>
+            <p id="delete-desc" className="muted" style={{ margin: 0 }}>
+              This permanently removes the stored email record and triage results for this case.
+              This cannot be undone.
+            </p>
+            <div className="dialog-actions">
+              <button className="secondary" disabled={deleting} onClick={() => onConfirmChange(false)} type="button">
+                Cancel
+              </button>
+              <button className="danger" disabled={deleting} onClick={() => void doDelete()} type="button">
+                {deleting ? "Deleting..." : "Delete permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

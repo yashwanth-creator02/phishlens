@@ -114,3 +114,39 @@ Node 24.19.0, npm 11.17.0. No Docker available.
 
 **Not changed by this run:** Docker Compose, real-corpus training, Supabase auth, and the frontend audit findings remain
 unverified or unresolved.
+
+## 8. Run shortcuts
+Added `backend.ps1` and `frontend.ps1` at the repository root so the app starts with `.\backend.ps1` and
+`.\frontend.ps1` without changing directories. `backend.ps1` checks that `backend\.venv` uses Python 3.11 or newer
+and exits with a clear message otherwise; a 3.10 venv fails on `websockets` and `datetime.UTC`.
+
+## 9. Supabase RLS contract
+Added the RLS/service-role distinction to `docs/11-security-privacy.md` and idempotent auth hardening in `supabase/migrations/0002_auth_hardening.sql`. `backend/tests/test_rls_contract.py` skips without live Supabase credentials; `backend/scripts/verify_rls.py` checks isolation in both directions when two user JWTs and two analysis IDs are supplied. The local suite still passes with one live-only skip.
+
+
+## 10. Auth, deployment, and frontend foundation
+Supabase JWT verification now supports HS256 or JWKS behind `AUTH_MODE=supabase`; disabled local mode is unchanged. Added `Dockerfile.space` and a GitHub Actions upload/health workflow for a free Hugging Face Space; Docker is not installed here, so the image build remains unverified. The frontend now has `apiFetch` with `VITE_API_BASE_URL`, a session provider, `RequireAuth`, and two Vitest tests. Backend suite is 37 passed plus one live-only RLS skip; frontend test and production build pass.
+
+## 11. CORS hardening, browser smoke test, and submission docs
+Closed out the deployment-facing work.
+
+- **CORS.** `frontend/vercel.json` exists (Vite framework, SPA rewrite), and `backend/tests/test_cors.py` pins the
+  contract: the configured origin is echoed, an unknown origin gets no CORS header, and `CORS_ORIGINS=*` is rejected at
+  configuration time because Starlette would otherwise mirror the caller while credentials are allowed.
+- **Browser smoke test.** Installed `@playwright/test`, added `frontend/playwright.config.ts` and
+  `frontend/e2e/smoke.spec.ts`. The suite is split so it is useful in both modes: an unauthenticated check that passes
+  locally, and a signed-in journey across dashboard, cases, model, how-it-works, status, settings, and case detail that
+  skips unless `E2E_EMAIL`/`E2E_PASSWORD` are set. `E2E_BASE_URL` points it at a deployment. Vitest's `include` is now
+  limited to `src/**` so the two runners cannot pick up each other's files.
+- **Verified.** Backend 44 passed, 1 live-only skip. Frontend 18 Vitest tests in 5 files. Playwright 1 passed, 1 skipped.
+  Production build type-checks and bundles. Chromium headless shell installed locally, so the smoke run needs no network.
+- **Documentation.** Added `docs/report/final-report.md` (the submission write-up) and `docs/16-demo-script.md` (what to
+  click during the review and what to say, with fallbacks). Updated this log, the docs index, `README.md` (test counts,
+  frontend test commands), `docs/13-testing-and-evaluation.md` (frontend matrix and the real-data harness), and
+  `AGENTS.md` (repository layout, verification checklist, known gaps).
+
+**Still open, and honestly so:** the Vercel deployment, the Hugging Face Space build, and Supabase sign-in need account
+credentials and were not exercised here. The real-corpus evaluation has not been run: `backend/data/raw/nazario` and
+`backend/data/raw/spamassassin` are empty in this working copy, so `training/evaluate.py` remains smoke-tested only and
+no detection metric is claimed anywhere.
+

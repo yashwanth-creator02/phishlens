@@ -5,10 +5,11 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **plain-language reasons** behind it, in a web interface. Reasons come from **SHAP** feature contributions and are
 **verified against evidence actually found in the email** before they are shown.
 
-> Status: **v0.1 (initial version)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 28 passing tests. It ships with a **synthetic-data demo model for pipeline
-> checks only**. Real corpora, real inbound-email provider, real domain-age lookups and the user study are still to do
-> (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
+> Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
+> verified reasons -> API -> web UI) with 44 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
+> **synthetic-data demo model for pipeline checks only**. Real corpora, real inbound-email provider, real domain-age
+> lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and
+> [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
 
 BMSIT&M, Dept. of CSE - Mini Project (Batch 45), 2026-27 - Product Development category.
 
@@ -41,14 +42,27 @@ cd backend
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 python -m training.train --source synthetic --n 2400 --out models --reports reports   # DEMO model, ~60 s
-python -m pytest -q                                      # 28 tests
+python -m pytest -q                                      # 44 pass, 1 skipped (needs Supabase creds)
 python -m uvicorn app.main:app --reload --port 8000      # API docs: http://localhost:8000/docs
 
 # 2) frontend (second terminal)
 cd frontend
 npm install
+npm test                                                 # 18 Vitest tests
+npm run test:e2e                                         # Playwright smoke (signed-in part needs E2E_EMAIL/E2E_PASSWORD)
 npm run dev                                              # http://localhost:5173  (proxies /api to :8000)
 ```
+
+### Windows shortcuts
+
+From the repository root, the two scripts use the existing `.venv` and `node_modules`:
+
+```powershell
+.\backend.ps1    # API on http://localhost:8000
+.\frontend.ps1   # UI on http://localhost:5173
+```
+
+`backend.ps1` refuses to start if `.venv` was built with Python older than 3.11, because the training code needs it.
 
 Open http://localhost:5173, drop `backend/data/sample_emails/phish_paypal_direct.eml` on the upload box, and read the result.
 Try the other samples too (legitimate newsletter, bank alert, an inline-forwarded invoice phish).

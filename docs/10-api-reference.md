@@ -12,7 +12,7 @@ in `disabled` mode every call is the single dev user.
 | GET | `/api/analyses?limit&offset` | list (newest first) | own rows only |
 | GET | `/api/analyses/{id}` | detail with reasons, links, attachments, auth, preview | 404 for other users' ids |
 | GET | `/api/analyses/{id}/features` | 57 features with SHAP contributions, sorted by |contribution| | |
-| DELETE | `/api/analyses/{id}` | delete rows and the stored raw file | 204 |
+| POST | `/api/admin/purge` | delete analyses older than `retention_days` | header `X-Admin-Token`; 503 when `PHISHLENS_ADMIN_TOKEN` is empty, 401 on mismatch |
 | GET | `/api/me/alias` | personal forwarding address `u-<8 hex>@<alias_domain>` | created on first call |
 | POST | `/api/webhooks/inbound` | inbound email delivery | header `X-Webhook-Secret`; see below |
 

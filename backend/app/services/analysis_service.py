@@ -95,3 +95,44 @@ def analyze(db: Session, settings: Settings, bundle: ModelBundle, user_id: str, 
         repo.save_profile(db, user_id, sender, prof)
     db.commit()
     return a
+
+
+def delete_analysis(db: Session, user_id: str, analysis_id: str) -> bool:
+    """Delete one analysis (row + children), then remove the stored file. False = missing/other user."""
+    from sqlalchemy.orm import object_session
+
+    row = db.get(Analysis, analysis_id)
+    if row is None or row.user_id != user_id:
+        return False
+    storage_path = row.raw.storage_path if row.raw else None
+    db.delete(row)
+    db.commit()
+    if storage_path:
+        Path(storage_path).unlink(missing_ok=True)
+    return True
+
+
+def purge_expired(db: Session, before: datetime) -> int:
+    """Delete analyses older than `before` across all users, then remove stored files."""
+    count, paths = repo.purge_expired(db, before)
+    for p in paths:
+        Path(p).unlink(missing_ok=True)
+    return count
+
+
+def load_sender_profile(db: Session, user_id: str, sender: str) -> ProfileData:
+    """Neutral defaults when the sender has no history yet (cold start)."""
+    return repo.load_sender_profile(db, user_id, sender)
+
+
+def build_features(db: Session, settings: Settings, user_id: str, raw: bytes,
+                   domain_age: DomainAgeProvider | None = None, now: datetime | None = None) -> dict:
+    """Parse and extract the full feature dict for a raw email (cold-start neutral)."""
+    now = now or datetime.utcnow()
+    parsed = parse_email(raw)
+    sender = parsed.from_addr or "unknown"
+    profile = repo.load_sender_profile(db, user_id, sender)
+    ctx = ExtractionContext(domain_age=domain_age or NullDomainAge(), profile=profile,
+                            min_history=settings.min_history_messages, now=now)
+    fx = extract_all(parsed, ctx)
+    return fx.values

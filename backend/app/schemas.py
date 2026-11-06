@@ -57,6 +57,10 @@ class AnalysisList(BaseModel):
     total: int
 
 
+class PurgeOut(BaseModel):
+    deleted: int
+
+
 class ModelInfo(BaseModel):
     version_tag: str
     algorithm: str

@@ -22,3 +22,11 @@ Forwarded emails are someone else's correspondence. Treat everything the system 
 * Not stored: attachment contents, passwords/tokens, anything else.
 * Deletion: per analysis (UI), by retention job, or by removing the user's rows.
 * Local development uses SQLite and unencrypted files - never put real user mail in a development checkout.
+
+## Database isolation verification
+
+The Supabase schema enables Row-Level Security on `analyses`, `email_raw`, `feature_values`, `explanations`, `sender_profiles`, `user_aliases`, and `model_versions`. Policies restrict direct client reads to `user_id = auth.uid()::text`; child tables are restricted through their parent analysis.
+
+The FastAPI backend connects with a service-role or direct PostgreSQL connection, which bypasses RLS. It must therefore scope every repository query to the authenticated `user_id`. RLS is a second layer for direct client access, not a replacement for application scoping.
+
+`supabase/migrations/0002_auth_hardening.sql` re-asserts RLS and the child-table indexes idempotently. `backend/tests/test_rls_contract.py` skips without live credentials and otherwise checks that a user token cannot read another user's analysis. `backend/scripts/verify_rls.py` runs the same check in both directions against PostgREST.

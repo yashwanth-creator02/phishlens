@@ -17,7 +17,10 @@
 | 13 | [Testing and evaluation](13-testing-and-evaluation.md) | test suite, evaluation experiments E1-E8 |
 | 14 | [User study](14-user-study.md) | protocol to test whether explanations help |
 | 15 | [Risks and limitations](15-risks-and-limitations.md) | what can go wrong, what is not done |
+| 16 | [Demo script](16-demo-script.md) | what to click during the review, and what to say |
+| - | [File inventory](FILE_INVENTORY.md) | what each tracked path is for |
 | - | [Decision log (ADRs)](decisions/) | why each important choice was made |
+| - | [Final report](report/final-report.md) | submission write-up: objectives, what was built, verified results, limits |
 | - | [Project report (Markdown)](report/) | literature survey, problem, objectives, methodology (Word build still pending) |
 | - | [References](references.md) | 37 IEEE-style references |
 | - | [Review-1 slide deck](presentation/) | PhishLens_Review1.pptx + how it was derived |

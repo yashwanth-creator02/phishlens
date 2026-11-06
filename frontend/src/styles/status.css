@@ -1,0 +1,11 @@
+.facts { display: grid; gap: 10px; margin: 14px 0 0; }
+.facts > div { display: grid; grid-template-columns: minmax(120px, 0.6fr) 1.4fr; gap: 12px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.fact-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.fact-table th, .fact-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.fact-table thead th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.fact-table tbody th { font-weight: 500; color: var(--muted); }
+@media (max-width: 620px) {
+  .facts > div { grid-template-columns: 1fr; gap: 2px; }
+}

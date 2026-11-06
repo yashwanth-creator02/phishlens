@@ -19,9 +19,10 @@ Status: v0.1 working skeleton. The bundled model is trained on synthetic data an
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (28 tests) |
+| `backend/tests/` | Pytest suite (44 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
+| `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
 | `supabase/migrations/` | PostgreSQL schema and Row-Level-Security policies |
 | `docs/` | Project overview, architecture, API, ML, security, report, ADRs, diagrams, presentation |
 | `scripts/` | Webhook simulation and retention purge helpers |
@@ -88,6 +89,13 @@ Non-negotiable invariants:
 
 ## Commands
 
+From the repository root on Windows:
+
+```powershell
+.\backend.ps1   # API on :8000 (uses backend\.venv; requires Python 3.11+)
+.\frontend.ps1  # UI on :5173 (uses frontend\node_modules)
+```
+
 ```powershell
 # Train on a real corpus
 python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir C:\data\spamassassin_ham --out models
@@ -122,6 +130,8 @@ cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
 # GET /api/health must report model_loaded true
 cd ..\frontend
+npm test
+npm run test:e2e
 npm run build
 ```
 
@@ -131,7 +141,8 @@ Also upload at least one sample email through the UI or API and confirm a scored
 
 - No real corpus evaluation, real inbound-email provider, or domain-age lookup yet.
 - Docker Compose has not been exercised in this environment.
-- The frontend has no automated tests or linter.
+- The frontend has Vitest coverage for the API client, case helpers, shell, login, and feature table, and a Playwright
+  smoke suite whose signed-in journey needs seeded credentials; there is no linter.
 - `requirements.lock.txt` exists but is not used by install, CI, or Docker targets.
 - The report references `docs/original/synopsis_mini_project_phishlens.docx`, which is not present in the repository.
 - The frontend dependency audit reports known Vite, esbuild, and React Router advisories whose fixes are major-version upgrades.

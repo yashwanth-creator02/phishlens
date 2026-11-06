@@ -9,6 +9,7 @@ dist/
 backend/models/
 backend/storage/
 backend/reports/
+backend/data/raw/
 .pytest_cache/
 .tmp/
 notes.txt
@@ -18,3 +19,11 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .DS_Store
+graphify-out/cache/
+graphify-out/2026-*/
+graphify-out/*.tmp
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+.cortexkit/
