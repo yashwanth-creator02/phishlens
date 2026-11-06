@@ -45,7 +45,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        # Starlette mirrors any origin when "*" meets allow_credentials, which is worse than it looks.
+        if "*" in origins:
+            raise ValueError("CORS_ORIGINS must list explicit origins; '*' cannot be combined with credentials")
+        return origins
 
 
 @lru_cache

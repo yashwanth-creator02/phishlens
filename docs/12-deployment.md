@@ -21,6 +21,14 @@ The Space runs `uvicorn` on port 7860, stores SQLite and raw mail on ephemeral l
 
 `.github/workflows/deploy-space.yml` uploads `backend/` to the Space, writes `Dockerfile.space` as the Space `Dockerfile`, and requires `HF_TOKEN` and `HF_SPACE_ID` secrets. It fails if `/api/health` does not report `model_loaded: true`. The Space is public by default; never send real personal email to it.
 
+## Vercel frontend (free)
+`frontend/vercel.json` builds the Vite app and rewrites unknown paths to `index.html` so client routes such as `/cases`
+work on refresh. Import the GitHub repository in Vercel, set **Root Directory** to `frontend`, and add
+`VITE_API_BASE_URL=https://<space-host>` plus `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as Production and Preview
+environment variables. `VITE_API_BASE_URL` is read at build time, so changing it requires a redeploy.
+On the backend, set `PHISHLENS_CORS_ORIGINS` to the exact Vercel origins (production domain first, preview domains if you
+use them). `*` is rejected at startup because credentialed CORS would otherwise mirror any origin.
+
 ## Supabase
 1. Create a project. 2. Run `supabase/migrations/0001_init.sql` and `0002_auth_hardening.sql` in the SQL editor (tables + RLS). 3. Backend env: `PHISHLENS_DATABASE_URL=postgresql+psycopg://...` (install `requirements-postgres.txt`),
 `PHISHLENS_AUTH_MODE=supabase`, and either `PHISHLENS_SUPABASE_JWT_SECRET=<Project Settings -> API -> JWT secret>` (HS256) or `PHISHLENS_SUPABASE_JWKS_URL=https://<project>.supabase.co/auth/v1/.well-known/jwks.json` (RS256/ES256). 4. Frontend build args: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
