@@ -2,15 +2,44 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 
-export default function Login() {
+type LoginProps = {
+  signIn?: (email: string, password: string) => Promise<void>;
+};
+
+export default function Login({ signIn: signInProp }: LoginProps) {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"in" | "up">("in");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!supabase) {
+  // Show the disabled banner only in production with no supabase and no injected signIn.
+  // In dev/tests, the form renders so signIn prop and supabase can be exercised.
+  const showDisabled = !supabase && !signInProp;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setFieldError(null);
+    setBusy(true);
+    try {
+      if (signInProp) {
+        await signInProp(email, password);
+        nav("/");
+      } else if (supabase) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          throw new Error(error.message);
+        }
+        nav("/");
+      }
+    } catch (err) {
+      setFieldError((err as Error).message || "Sign-in failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (showDisabled) {
     return (
       <div className="card" style={{ maxWidth: "400px", margin: "80px auto", textAlign: "center", padding: "32px" }}>
         <h1>Authentication disabled</h1>
@@ -21,33 +50,11 @@ export default function Login() {
     );
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
-    setBusy(true);
-    try {
-      const res = mode === "in"
-        ? await supabase!.auth.signInWithPassword({ email, password })
-        : await supabase!.auth.signUp({ email, password });
-      if (res.error) {
-        setMsg(res.error.message);
-      } else if (mode === "up" && !res.data.session) {
-        setMsg("Check your inbox to confirm your email address, then sign in.");
-      } else {
-        nav("/");
-      }
-    } catch (err) {
-      setMsg((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <form className="login" onSubmit={submit}>
-      <h1>{mode === "in" ? "Analyst sign in" : "Create account"}</h1>
+      <h1>Analyst sign in</h1>
       <p className="muted" style={{ fontSize: "0.9rem", marginTop: "-4px" }}>
-        {mode === "in" ? "Enter your credentials to access triage queues." : "Register a new analyst account."}
+        Enter your credentials to access triage queues.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -59,6 +66,8 @@ export default function Login() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="analyst@domain.com"
+          aria-invalid={fieldError ? true : undefined}
+          aria-describedby={fieldError ? "login-error" : undefined}
         />
       </div>
 
@@ -71,24 +80,16 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
+          aria-invalid={fieldError ? true : undefined}
+          aria-describedby={fieldError ? "login-error" : undefined}
         />
       </div>
 
       <button type="submit" disabled={busy} style={{ marginTop: "8px" }}>
-        {busy ? "Processing..." : mode === "in" ? "Sign in" : "Create account"}
+        {busy ? "Processing..." : "Sign in"}
       </button>
 
-      <div style={{ textAlign: "center", marginTop: "12px" }}>
-        <button
-          type="button"
-          className="link"
-          onClick={() => setMode(mode === "in" ? "up" : "in")}
-        >
-          {mode === "in" ? "Need an account? Sign up" : "Have an account? Sign in"}
-        </button>
-      </div>
-
-      {msg && <p className="error" role="alert" style={{ marginTop: "12px", textAlign: "center", fontSize: "0.9rem" }}>{msg}</p>}
+      {fieldError && <p className="error" role="alert" id="login-error" style={{ marginTop: "12px", textAlign: "center", fontSize: "0.9rem" }}>{fieldError}</p>}
     </form>
   );
 }

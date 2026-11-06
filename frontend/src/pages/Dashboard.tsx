@@ -54,6 +54,8 @@ export default function Dashboard() {
     return true;
   });
 
+  const recentFive = filteredItems?.slice(0, 5);
+
   return (
     <>
       <div className="row" style={{ alignItems: "baseline", marginBottom: "16px" }}>
@@ -182,28 +184,33 @@ export default function Dashboard() {
               </button>
             </div>
           ) : (
-            <div className="analysis-list">
-              {filteredItems?.map((a) => (
-                <Link key={a.id} to={`/analyses/${a.id}`} className="analysis-row">
-                  <div>
-                    <RiskBadge band={a.risk_band} score={a.risk_score} />
-                  </div>
-                  <div>
-                    <div className="analysis-row-subject" title={a.subject || "(no subject)"}>{a.subject || "(no subject)"}</div>
-                    <div className="analysis-row-sender" title={`${a.sender_name ? `${a.sender_name} ` : ""}<${a.sender_address}>`}>
-                      {a.sender_name ? `${a.sender_name} ` : ""}
-                      <span className="mono">&lt;{a.sender_address}&gt;</span>
+            <>
+              <div className="analysis-list">
+                {recentFive?.map((a) => (
+                  <Link key={a.id} to={`/analyses/${a.id}`} className="analysis-row">
+                    <div>
+                      <RiskBadge band={a.risk_band} score={a.risk_score} />
                     </div>
-                  </div>
-                  <div className="muted" style={{ fontSize: "0.85rem" }}>
-                    {SCOPE_LABEL[a.scope] ?? a.scope}
-                  </div>
-                  <div className="analysis-row-meta">
-                    {new Date(a.created_at + "Z").toLocaleString()}
-                  </div>
-                </Link>
-              ))}
-            </div>
+                    <div>
+                      <div className="analysis-row-subject" title={a.subject || "(no subject)"}>{a.subject || "(no subject)"}</div>
+                      <div className="analysis-row-sender" title={`${a.sender_name ? `${a.sender_name} ` : ""}<${a.sender_address}>`}>
+                        {a.sender_name ? `${a.sender_name} ` : ""}
+                        <span className="mono">&lt;{a.sender_address}&gt;</span>
+                      </div>
+                    </div>
+                    <div className="muted" style={{ fontSize: "0.85rem" }}>
+                      {SCOPE_LABEL[a.scope] ?? a.scope}
+                    </div>
+                    <div className="analysis-row-meta">
+                      {new Date(a.created_at + "Z").toLocaleString()}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              <div style={{ marginTop: "16px", textAlign: "right" }}>
+                <Link to="/cases" className="secondary" style={{ textDecoration: "none" }}>View all cases</Link>
+              </div>
+            </>
           )}
         </>
       )}
