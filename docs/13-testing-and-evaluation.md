@@ -1,13 +1,41 @@
 # 13 - Testing and evaluation
 
-## Automated tests (`cd backend && python -m pytest -q`) - 28 passing
+## Automated tests (`cd backend && python -m pytest -q`) - 37 passing, 1 skipped
 | File | What it proves |
 |---|---|
 | `test_parser.py` | direct / forward-as-attachment / inline-forward parsing; inline forward marks authentication as **missing**; attachment metadata only |
 | `test_features.py` | 57 unique features in 6 groups; phishing sample triggers expected features; legitimate sample is quiet; double-extension attachment; behavioural features need >= 3 history messages and detect new return-path / reply-to / link domain |
 | `test_reasons_and_bands.py` | **a reason without evidence is discarded**; reasons use real values; negative contributions never become reasons; behavioural reasons suppressed on cold start; top-k with group diversity; band thresholds; generic fallback |
 | `test_api.py` | health; phishing -> MEDIUM/HIGH with verified reasons; legitimate -> LOW; inline forward; list/detail/features/delete; empty upload 400; **auth required and users isolated** (Supabase JWT mode); webhook secret/alias/JSON form; baseline builds history and HIGH risk does not pollute it; model endpoint |
-The API tests train a small synthetic model once per session (about 10 s). Frontend: `npm run build` type-checks; no component tests yet (add Vitest + Testing Library).
+The API tests train a small synthetic model once per session (about 10 s).
+
+### Frontend
+
+| Command | Scope | Result |
+|---|---|---|
+| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table | 18 tests in 5 files |
+| `cd frontend; npm run build` | type-check plus production bundle | passes |
+| `cd frontend; npm run test:e2e` | Playwright smoke against a dev server | 1 passed; signed-in journey skips without `E2E_EMAIL` / `E2E_PASSWORD` |
+
+The Playwright suite (`frontend/e2e/smoke.spec.ts`) is deliberately split: an unauthenticated check that runs in both
+auth modes, and a signed-in journey (dashboard, cases, model, how-it-works, status, settings, case detail) that needs a
+seeded Supabase user. Set `E2E_BASE_URL` to run it against a deployment instead of `localhost:5173`. The vitest
+`include` pattern is limited to `src/**`, so Playwright files are never picked up by the unit runner.
+
+### Real-data evaluation harness
+
+`backend/training/evaluate.py` runs the grouped-split experiment: URL host and sender domain are kept inside one fold,
+cold-start senders are measured separately, and a random-split baseline is reported alongside for comparison. It
+writes `reports/evaluation.json` and `reports/evaluation.md`.
+
+```bash
+cd backend
+python -m training.download_datasets --out data/raw        # Nazario + SpamAssassin, SHA-256 manifests recorded
+python -m training.evaluate --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin --reports reports
+```
+
+The harness has only been smoke-run on a 40-email sample to prove the code path executes; that output is not an
+evaluation and must not be quoted. No real-corpus result exists for this submission.
 
 ## Evaluation experiments (to run on REAL data)
 | ID | Experiment | Purpose |

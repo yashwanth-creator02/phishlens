@@ -22,3 +22,8 @@ htmlcov/
 graphify-out/cache/
 graphify-out/2026-*/
 graphify-out/*.tmp
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+.cortexkit/

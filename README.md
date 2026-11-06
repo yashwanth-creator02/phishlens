@@ -5,10 +5,11 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **plain-language reasons** behind it, in a web interface. Reasons come from **SHAP** feature contributions and are
 **verified against evidence actually found in the email** before they are shown.
 
-> Status: **v0.1 (initial version)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 28 passing tests. It ships with a **synthetic-data demo model for pipeline
-> checks only**. Real corpora, real inbound-email provider, real domain-age lookups and the user study are still to do
-> (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
+> Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
+> verified reasons -> API -> web UI) with 37 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
+> **synthetic-data demo model for pipeline checks only**. Real corpora, real inbound-email provider, real domain-age
+> lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and
+> [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
 
 BMSIT&M, Dept. of CSE - Mini Project (Batch 45), 2026-27 - Product Development category.
 
@@ -41,12 +42,14 @@ cd backend
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 python -m training.train --source synthetic --n 2400 --out models --reports reports   # DEMO model, ~60 s
-python -m pytest -q                                      # 28 tests
+python -m pytest -q                                      # 37 pass, 1 skipped (needs Supabase creds)
 python -m uvicorn app.main:app --reload --port 8000      # API docs: http://localhost:8000/docs
 
 # 2) frontend (second terminal)
 cd frontend
 npm install
+npm test                                                 # 18 Vitest tests
+npm run test:e2e                                         # Playwright smoke (signed-in part needs E2E_EMAIL/E2E_PASSWORD)
 npm run dev                                              # http://localhost:5173  (proxies /api to :8000)
 ```
 

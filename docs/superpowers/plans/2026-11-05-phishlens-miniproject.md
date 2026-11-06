@@ -63,7 +63,7 @@ Keep `user_id = auth.uid()::text` policies. Add an index on every child table th
 Run: `cd backend; $env:SUPABASE_URL="..."; .\.venv\Scripts\python.exe -m pytest tests/test_rls_contract.py -q`
 Expected: pass; user A sees zero rows for user B.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add supabase backend/scripts backend/tests docs/10-security.md
@@ -109,7 +109,7 @@ Use Nazario for phishing and SpamAssassin for ham. Dedupe by Message-ID and body
 Run: `cd backend; .\.venv\Scripts\python.exe -m pytest -q`
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/training backend/tests docs/datasets
@@ -154,7 +154,7 @@ Use `PyJWT` HS256 with `SUPABASE_JWT_SECRET` when set. Otherwise fetch JWKS from
 Run: `cd backend; .\.venv\Scripts\python.exe -m pytest -q`
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app backend/tests backend/requirements.txt
@@ -200,7 +200,7 @@ Make delete transactional. Remove the stored file only after the row deletes. Re
 Run: `cd backend; .\.venv\Scripts\python.exe -m pytest -q`
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend
@@ -221,7 +221,7 @@ git commit -m "feat: add retention and cold-start handling"
 - `GET /api/health` returns `model_loaded: true`.
 - GitHub Actions pushes `backend/`, the model, and `Dockerfile.space` to the Space on `main`.
 
-- [ ] **Step 1: Write the deployment check**
+- [x] **Step 1: Write the deployment check** (build passes)
 
 ```bash
 docker build -f Dockerfile.space -t phishlens-space .
@@ -243,7 +243,7 @@ Use `huggingface_hub` with `HF_TOKEN` from GitHub Secrets. Do not print the toke
 
 Run the workflow manually. Open the Space URL and check `/api/health`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Dockerfile.space deploy .github docs/12-deployment.md backend/app/main.py
@@ -290,7 +290,7 @@ Read `VITE_API_BASE_URL` and `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Thr
 Run: `cd frontend; npm run test; npm run build`
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend
@@ -336,7 +336,7 @@ Routes: `/`, `/cases`, `/cases/:id`, `/model`, `/how-it-works`, `/settings`, `/s
 Run: `cd frontend; npm run test; npm run build`
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src
@@ -382,7 +382,7 @@ Dashboard keeps the upload hero, stat strip, recent five cases, and links to `/c
 Run: `cd frontend; npm run test; npm run build`
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src
@@ -426,7 +426,7 @@ Detail page: verdict header, band bar, numbered verified reasons, evidence panel
 Run: `cd frontend; npm run test; npm run build`
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src
@@ -472,7 +472,7 @@ Make login the only public route. Add no signup link. Settings uses cards and co
 Run: `cd frontend; npm run test; npm run build`
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src
@@ -492,7 +492,7 @@ git commit -m "feat: add settings, login, and status"
 - `VITE_API_BASE_URL` points at the Space.
 - Backend CORS allows the Vercel production and preview domains only.
 
-- [ ] **Step 1: Write the deployment check**
+- [x] **Step 1: Write the deployment check** (build passes)
 
 ```bash
 cd frontend
@@ -502,19 +502,19 @@ npx vercel --prod
 
 Expected: a production URL that loads the login page.
 
-- [ ] **Step 2: Deploy**
+- [ ] **Step 2: Deploy** (blocked: needs your Vercel account)
 
 Import the GitHub repo in Vercel. Set root directory `frontend`. Add `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY` for Production and Preview.
 
-- [ ] **Step 3: Fix CORS**
+- [x] **Step 3: Fix CORS**
 
 Set `CORS_ORIGINS` to the Vercel domains. Reject `*` when credentials are used. Add a test that an unknown origin is rejected.
 
-- [ ] **Step 4: Verify live**
+- [ ] **Step 4: Verify live** (blocked: needs the deployed URL)
 
 Open the URL. Sign in with a seeded user. Upload a sample email. Confirm a scored case appears.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/vercel.json frontend/.env.example backend/app/main.py docs/12-deployment.md
@@ -526,7 +526,7 @@ git commit -m "feat: deploy frontend to Vercel"
 **Files:**
 - Create: `frontend/playwright.config.ts`
 - Create: `frontend/e2e/smoke.spec.ts`
-- Create: `docs/13-demo-script.md`
+- Create: `docs/16-demo-script.md` (13 is the testing doc)
 - Create: `docs/report/final-report.md`
 - Modify: `README.md`
 - Modify: `AGENTS.md`
@@ -536,11 +536,11 @@ git commit -m "feat: deploy frontend to Vercel"
 - E2E base URL comes from `E2E_BASE_URL`; credentials from `E2E_EMAIL` and `E2E_PASSWORD`.
 - Demo script covers sign-in, upload, report, delete confirm, model page, and status page.
 
-- [ ] **Step 1: Install Playwright**
+- [x] **Step 1: Install Playwright**
 
 Run: `cd frontend; npm install -D @playwright/test; npx playwright install chromium`.
 
-- [ ] **Step 2: Write the failing smoke test**
+- [x] **Step 2: Write the failing smoke test**
 
 ```ts
 test("signs in and opens a case", async ({ page }) => {
@@ -552,16 +552,16 @@ test("signs in and opens a case", async ({ page }) => {
 });
 ```
 
-- [ ] **Step 3: Run against the deployed URL**
+- [ ] **Step 3: Run against the deployed URL** (local run passes; deployed run needs E2E_BASE_URL)
 
 Run: `cd frontend; $env:E2E_BASE_URL="https://..."; npm run e2e`
 Expected: pass.
 
-- [ ] **Step 4: Write the report and demo script**
+- [x] **Step 4: Write the report and demo script**
 
 Record dataset counts, grouped metrics, calibration, cold-start results, limitations, and the free-tier setup. Do not claim real-world performance.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend docs README.md AGENTS.md
