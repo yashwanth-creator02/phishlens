@@ -173,3 +173,22 @@ the synthetic demo.
   evaluation had never been run.
 - **Right branch this time.** The work is on `feat/real-corpus-evaluation` (commit `4a861fb`), not on the UI branch.
 
+
+## 2026-11-06 (deployment) - Branches merged, frontend live on Vercel, Supabase provisioned
+
+- **Merged both lanes.** eat/dashboard-ui and eat/real-corpus-evaluation are on main via --no-ff merges
+  ( 3b0af8, 2e052ab) and pushed. The UI work, the mini-project pages, the corpus loader fix and the evaluation
+  report are no longer branch-only.
+- **Frontend deployed.** Vercel project phishlens (team yashwanth-creator02s-projects, Root Directory
+  rontend) serves https://phishlens-gules.vercel.app. Vercel Authentication was disabled at the project level so
+  the URL is public; VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set and baked into the bundle. Deploy with
+  `vercel deploy --prod --yes` from the repository root, because the project root directory is rontend.
+  Push-to-deploy is not connected: the Vercel GitHub App has no access to the private repo.
+- **Supabase provisioned.** Project mbtdrmevlovvvfvtqmd (phislens, eu-west-1, PostgreSQL 17) restored to
+  ACTIVE_HEALTHY, then  001_init.sql and  002_auth_hardening.sql applied through the management API: 7 tables,
+  RLS on all of them. Auth URL configuration and the email-confirmation toggle remain dashboard-only.
+- **Verified.** Live URL returns 200 with the app HTML; a Playwright pass against the deployment shows the expected
+  title, the "Analyst sign in" heading, three form controls, protected routes redirecting to sign-in, and no console
+  errors. Local suites stay green: backend 47 passed / 1 skipped, frontend 18 passed, production build clean.
+- **Still blocked on accounts.** The backend Space needs the Hugging Face account and HF_TOKEN/HF_SPACE_ID; the
+  Vercel MCP token can create no projects (403); the Supabase MCP cannot read the database password.

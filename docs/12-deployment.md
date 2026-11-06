@@ -29,11 +29,47 @@ environment variables. `VITE_API_BASE_URL` is read at build time, so changing it
 On the backend, set `PHISHLENS_CORS_ORIGINS` to the exact Vercel origins (production domain first, preview domains if you
 use them). `*` is rejected at startup because credentialed CORS would otherwise mirror any origin.
 
+### Current frontend deployment
+
+| Item | Value |
+|---|---|
+| Production URL | https://phishlens-gules.vercel.app |
+| Vercel project | `phishlens` in team `yashwanth-creator02s-projects` (`team_Kgvgtk2aiYC50anZgBC0b94M`) |
+| Root Directory | `frontend` |
+| Environment variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (both `plain`, all targets) |
+| Deployment protection | Vercel Authentication and password protection disabled so the URL is publicly reachable |
+| Git auto-deploy | **not connected**; the Vercel GitHub App has no access to the private repo |
+
+Deploy from the repository root, because `rootDirectory` is set on the project and the CLI resolves it relative to the uploaded tree:
+
+```powershell
+vercel deploy --prod --yes --scope yashwanth-creator02s-projects
+```
+
+`vercel link` writes `frontend/.vercel/` (gitignored) plus a `frontend/.env.local` holding a short-lived OIDC token; neither is committed.
+Once the backend Space exists, add `VITE_API_BASE_URL` to the Vercel project and redeploy; the build embeds it.
+To restore push-to-deploy, install the Vercel GitHub App on `yashwanth-creator02/phishlens` and run `vercel git connect`.
+
 ## Supabase
 1. Create a project. 2. Run `supabase/migrations/0001_init.sql` and `0002_auth_hardening.sql` in the SQL editor (tables + RLS). 3. Backend env: `PHISHLENS_DATABASE_URL=postgresql+psycopg://...` (install `requirements-postgres.txt`),
 `PHISHLENS_AUTH_MODE=supabase`, and either `PHISHLENS_SUPABASE_JWT_SECRET=<Project Settings -> API -> JWT secret>` (HS256) or `PHISHLENS_SUPABASE_JWKS_URL=https://<project>.supabase.co/auth/v1/.well-known/jwks.json` (RS256/ES256). 4. Frontend build args: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 5. Raw email files: v0.1 writes to local disk (`storage/`); move to Supabase Storage (private bucket) before real use.
 Postgres itself is still **not exercised in tests** (tests use SQLite). RLS isolation has a live-only contract test that skips without credentials; see `docs/11-security-privacy.md`.
+
+### Current Supabase project
+
+| Item | Value |
+|---|---|
+| Project ref | `vmbtdrmevlovvvfvtqmd` (display name `phislens`, region `eu-west-1`, PostgreSQL 17) |
+| API URL | https://vmbtdrmevlovvvfvtqmd.supabase.co |
+| Migrations | `0001_init.sql` then `0002_auth_hardening.sql` applied; 7 tables, RLS enabled on all of them |
+| Frontend keys | anon (legacy JWT) and `sb_publishable_...` both available; the deployment uses the anon JWT |
+
+Still manual in the dashboard: **Authentication -> URL Configuration** (Site URL
+`https://phishlens-gules.vercel.app` plus a redirect allow-list for the same host) and, for a demo that works without
+mail delivery, **Authentication -> Providers -> Email -> Confirm email** off (otherwise every signup needs a
+confirmation mail that Supabase's built-in SMTP rate-limits). The backend needs the database password or pooler
+connection string for `PHISHLENS_DATABASE_URL`; the MCP connection cannot read it.
 
 ## Inbound email
 Choose a provider that can deliver inbound mail to a webhook (Postmark inbound, Mailgun routes, SendGrid inbound parse, Cloudflare Email Routing + Worker). Point the bot domain's MX at it, set the webhook URL to

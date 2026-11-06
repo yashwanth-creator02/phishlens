@@ -146,6 +146,9 @@ Also upload at least one sample email through the UI or API and confirm a scored
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
   filter silently drops every legitimate sample.
 - Docker Compose has not been exercised in this environment.
+- The frontend is deployed on Vercel (https://phishlens-gules.vercel.app) and the Supabase schema is applied to project
+  `vmbtdrmevlovvvfvtqmd`, but the backend is not deployed anywhere: there is no `VITE_API_BASE_URL`, so the live UI can
+  sign in and render but every API call fails. Vercel pushes do not auto-deploy (the GitHub App lacks repo access).
 - The frontend has Vitest coverage for the API client, case helpers, shell, login, and feature table, and a Playwright
   smoke suite whose signed-in journey needs seeded credentials; there is no linter.
 - `requirements.lock.txt` exists but is not used by install, CI, or Docker targets.
