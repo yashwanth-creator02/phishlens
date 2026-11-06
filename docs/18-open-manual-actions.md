@@ -9,36 +9,36 @@ Rules for this file:
 - Last reviewed: 2026-11-06.
 - If an item is blocked on the agent instead of you, it does not belong here; it belongs in the project log.
 
-## 1. Supabase Auth settings and how to log in (5 minutes)
+## 1. Optional: send the demo through the real model (15 minutes, on your machine)
 
-**Why:** the deployed app has a sign-in screen but no sign-up screen (`Login.tsx` only calls
-`signInWithPassword`), and Supabase requires email confirmation by default, which would force every demo user
-through a rate-limited confirmation mail. Two different toggles matter:
+**Why:** the Render service runs the synthetic demo model, so uploaded `.eml` files score against generated data, not
+the Nazario and SpamAssassin corpora your evaluation measured. Promoting the corpora-trained model into the image is
+the one remaining upgrade that changes what the live demo reports. The evaluation already exists; this is the promote
+step.
 
-- **Enable Email provider = ON** (must stay on — turning this off disables email sign-in entirely)
-- **Confirm email = OFF** (for the demo; leave on if you later use a real SMTP provider)
+**Steps**, in `backend/` with the venv from the README:
 
-**Steps**, in project `vmbtdrmevlovvvfvtqmd` -> **Authentication**:
+```powershell
+python -m training.download_datasets       # pulls the three Nazario and two SpamAssassin archives
+python -m training.evaluate --out reports  # reproduces the 0.948 grouped F1 / 0.990 PR-AUC report
+python -m training.train --source corpus --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin_ham --out models
+```
 
-- **URL Configuration**: Site URL `https://phishlens-gules.vercel.app`; add the same host under Redirect URLs.
-- **Sign In / Providers -> Email**: Confirm email off.
-- **Users -> Add user**: email + password (minimum 6 characters), with **Auto Confirm User** ticked. Repeat for
-  each demo user (up to 10). There is no sign-up UI in the app, so accounts are created here, not on the site.
+Then commit `backend/models` and push: Render rebuilds on `main`, the image no longer trains the demo model at build
+time, and `/api/health` will name the promoted model. Paste in chat only the final model ID.
 
-**Done when:** signing in at https://phishlens-gules.vercel.app/login with the dashboard-created credentials lands
-you inside the app and an uploaded `.eml` scores. The Render backend already runs with `PHISHLENS_AUTH_MODE=supabase`
-and the JWKS URL, so it verifies the JWT Supabase issues with no further setup.
+**Done when:** the site shows scores from the corpora-trained model; tell the agent and it will verify `/api/health`
+names that model.
 
-## 2. Optional: let pushes deploy the frontend (2 minutes)
+## 2. Optional: restore push-to-deploy for the backend (2 minutes)
 
-**Why:** today the site updates only when the agent runs `vercel deploy --prod --yes`; the Vercel GitHub App has no
-access to the private repo.
+**Why:** the `phishlens-api` service already has `autoDeploy = yes` and the `main` push rebuilt it once; this is now
+just housekeeping. The one thing it cannot do is the first step, which is already done.
 
-**Steps:** install the Vercel GitHub App on `yashwanth-creator02/phishlens` (Vercel dashboard -> **Add New -> Project**
-shows the install link, or GitHub -> Settings -> GitHub Apps). Then tell the agent.
+**Steps:** none required. If the Render GitHub App ever loses repo access, re-install it at render.com ->
+**Add New -> Blueprint** and pick `yashwanth-creator02/phishlens`, branch `main`.
 
-**Done when:** a push to `main` produces a Vercel deployment on its own (the agent runs `vercel git connect` to finish
-the link).
+**Done when:** a push to `main` produces a new Render build on its own (it already does).
 
 ## 3. Fallback if Render ever refuses you
 
@@ -61,3 +61,6 @@ the tunnel are running, and the Vercel build has to be redeployed each time it c
 - **Frontend is wired to it**: Vercel project `phishlens` carries `VITE_API_BASE_URL=https://phishlens-api-6esn.onrender.com`
   and was redeployed on 2026-11-06; the served bundle references the Render host.
 - Render MCP is installed globally (API key via `{env:RENDER_API_KEY}`) and verified working.
+- **Vercel is linked to the repo** (user installed the GitHub App; pushes now deploy on their own).
+- **Supabase Auth is configured**: Site URL set, Confirm email off, demo users seeded from the dashboard, and the
+  deployed sign-in works end to end.
