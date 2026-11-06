@@ -27,3 +27,6 @@ graphify-out/*.tmp
 frontend/test-results/
 frontend/playwright-report/
 .cortexkit/
+
+# Vercel CLI link state
+.vercel/
