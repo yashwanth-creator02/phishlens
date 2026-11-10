@@ -68,3 +68,47 @@ def load_dir(path: str | Path, label: int, limit: int | None = None) -> list[Sam
         if limit and len(out) >= limit:
             break
     return out
+
+
+def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None) -> list[Sample]:
+    """Load messages from an mbox file or directory of mbox files (such as Google Takeout mailbox export),
+    skipping messages labeled as Spam or Trash via X-Gmail-Labels."""
+    out: list[Sample] = []
+    seen_raw: set[str] = set()
+    seen_msg_id: set[str] = set()
+    seen_body: set[str] = set()
+
+    mbox_path = Path(path)
+    if not mbox_path.exists():
+        return out
+
+    mbox_files = [mbox_path] if mbox_path.is_file() else list(mbox_path.rglob("*.mbox"))
+    for f in mbox_files:
+        try:
+            box = mailbox.mbox(str(f))
+        except Exception:
+            continue
+        for msg in box:
+            try:
+                labels = str(msg.get("X-Gmail-Labels", "")).lower()
+                if "spam" in labels or "trash" in labels:
+                    continue
+                raw = bytes(msg)
+                p = parse_email(raw)
+            except Exception:
+                continue
+
+            msg_id = (p.headers.get("message-id") or "").strip().lower()
+            body_hash = hashlib.sha256(p.text_body.encode("utf-8", errors="ignore")).hexdigest()
+            if p.raw_sha256 in seen_raw or (msg_id and msg_id in seen_msg_id) or body_hash in seen_body:
+                continue
+            seen_raw.add(p.raw_sha256)
+            if msg_id:
+                seen_msg_id.add(msg_id)
+            seen_body.add(body_hash)
+
+            group = f"legit-mailbox-{p.from_domain or 'unknown'}"
+            out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge()))
+            if limit and len(out) >= limit:
+                return out
+    return out

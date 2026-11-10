@@ -62,3 +62,45 @@ def test_load_dir_reads_mbox_next_to_loose_files(tmp_path: Path):
     assert len(samples) == 2, "both the mbox message and the loose .eml must load"
     assert {s.label for s in samples} == {1}
     assert all(s.group.startswith("phish-") for s in samples)
+
+
+def test_load_mailbox_filters_spam_and_trash(tmp_path: Path):
+    mbox_file = tmp_path / "Takeout.mbox"
+
+    ham_msg = (
+        b"From: friend@example.com\r\n"
+        b"X-Gmail-Labels: Inbox,Important\r\n"
+        b"Subject: Dinner\r\n"
+        b"Date: Mon, 1 Jan 2026 12:00:00 +0000\r\n"
+        b"Message-ID: <ham-mail@example.com>\r\n"
+        b"\r\n"
+        b"See you tonight.\r\n"
+    )
+    spam_msg = (
+        b"From: scam@example.net\r\n"
+        b"X-Gmail-Labels: Spam\r\n"
+        b"Subject: Win money\r\n"
+        b"Date: Mon, 1 Jan 2026 13:00:00 +0000\r\n"
+        b"Message-ID: <spam-mail@example.net>\r\n"
+        b"\r\n"
+        b"Click here.\r\n"
+    )
+    trash_msg = (
+        b"From: ad@example.org\r\n"
+        b"X-Gmail-Labels: Trash\r\n"
+        b"Subject: Sale\r\n"
+        b"Date: Mon, 1 Jan 2026 14:00:00 +0000\r\n"
+        b"Message-ID: <trash-mail@example.org>\r\n"
+        b"\r\n"
+        b"Buy now.\r\n"
+    )
+
+    content = b"From sender@example.com Mon Jan  1 00:00:00 2026\n" + ham_msg + \
+              b"\nFrom sender@example.net Mon Jan  1 00:00:00 2026\n" + spam_msg + \
+              b"\nFrom sender@example.org Mon Jan  1 00:00:00 2026\n" + trash_msg
+    mbox_file.write_bytes(content)
+
+    samples = corpus.load_mailbox(mbox_file, label=0)
+    assert len(samples) == 1, "only inbox ham must be loaded, spam and trash must be filtered out"
+    assert samples[0].label == 0
+    assert "friend@example.com" in samples[0].raw.decode("utf-8", errors="ignore")

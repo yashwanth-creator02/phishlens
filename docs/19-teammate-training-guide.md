@@ -290,6 +290,15 @@ You should get a scored analysis with a band and at least one verified reason. `
 curl; plain `curl` in PowerShell is an alias for `Invoke-WebRequest` and will fail on `-F`. Stop the server with
 `Ctrl+C`.
 
+## Step 8 - Ingesting modern mailbox data (avoiding era artifacts)
+
+Because SpamAssassin 2003 ham lacks modern authentication headers (`Authentication-Results`, SPF/DKIM/DMARC) and uses old URL conventions (`http://`), models trained purely on 2003 data can misclassify modern legitimate email. To train on modern data from your own inbox:
+
+1. Export your Gmail mailbox via Google Takeout (`All mail Including Spam and Trash.mbox`).
+2. Place the `.mbox` file into `backend/data/raw/mailbox/` (this path is gitignored).
+3. The corpus loader provides `corpus.load_mailbox()`, which automatically parses personal mbox exports and skips messages labeled as Spam or Trash (`X-Gmail-Labels`).
+4. You can combine modern mailbox ham with Nazario phishing to evaluate and train against contemporary email patterns without era skew.
+
 ### Known artefact - read before you are surprised
 
 The promoted model will score both `legit_*.eml` samples in `backend/data/sample_emails/` at the ceiling (raw
