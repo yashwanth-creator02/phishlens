@@ -25,13 +25,19 @@ Corpus provenance and download details: [docs/datasets/README.md](datasets/READM
 633 legitimate messages whose sender domain is `spamassassin.taint.org` are excluded before splitting (see
 "Artefacts" below), so the evaluated dataset is 4,261 messages.
 
+Dated note (2026-11-10): the fetcher now downloads every published Nazario year, which yields **4,306 phishing
+messages** and **7,018 messages in total** after dedupe. The table and every metric below describe the earlier,
+smaller fetch that the promoted model and the committed report were built from. They have not been recomputed on the
+expanded corpus; doing so changes the split sizes and, because the extra years are older campaigns, probably the
+feature distributions too.
+
 The corpus is skewed toward legitimate mail (2:1). Labels follow the corpus of origin, which is the usual
 labelling shortcut and the main reason these numbers cannot be read as production accuracy: Nazario is
 phishing-only by construction and SpamAssassin ham is 2003-era mailing-list traffic, so "legitimate" here means
 "not in a phishing corpus", not "a benign modern business email".
 
-Both corpora are old. SpamAssassin ham is dated 2003. The Nazario mbox files cover roughly 2003-2007, plus the
-2024 and 2025 archives (~7,000 raw messages) which bring contemporary campaigns into the phishing set. Header
+Both corpora are old. SpamAssassin ham is dated 2003. The Nazario mbox files cover roughly 2003-2007 and, in the
+expanded fetch, 2015-2025, which brings contemporary campaigns into the phishing set. Header
 habits, URL shorteners, HTML-only bodies, tracking pixels, and attachment patterns of 2020s mail are
 underrepresented, so the score measures the pipeline's feature extraction and the corpus separation, not today's
 attacker-vs-defender gap.

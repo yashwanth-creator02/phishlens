@@ -128,10 +128,11 @@ python -m training.download_datasets
 Two things happen:
 
 1. The fetcher downloads the corpora from their public mirrors into `backend/data/raw/<name>/`:
-   - `nazario/phishing0.mbox`, `phishing1.mbox`, `phishing2.mbox`, `phishing-2024.mbox`, `phishing-2025.mbox`
-     (~50 MB total). The upstream stopped shipping a single tarball, so the fetcher pulls the per-year mbox files,
-     including the 2024 and 2025 archives so the phishing set spans both the 2003-2007 mboxes and contemporary
-     campaigns. `private-phishing4` is deliberately excluded because it contains donor-private messages.
+   - `nazario/`: every published file - `phishing0.mbox`, `20051114.mbox`, `phishing1.mbox`, `phishing2.mbox`,
+     `phishing3.mbox`, and `phishing-2015` through `phishing-2025` (~124 MB total). Upstream stopped shipping a single
+     tarball, so the fetcher pulls the per-year files; the set spans the 2003-2007 research mboxes and contemporary
+     campaigns. `private-phishing4` is deliberately excluded because it contains donor-private messages, and
+     `20051114.mbox` overlaps the 2005 mboxes; the loader dedupes on raw hash, Message-ID, and body hash.
    - `spamassassin/20030228_easy_ham.tar.bz2` and `20030228_hard_ham.tar.bz2` (~2.5 MB), extracted into
      hash-named files with no extension.
 2. It writes `manifest.json` into each corpus directory: per-file SHA-256, total size and file count.
@@ -147,8 +148,13 @@ python -m training.download_datasets --names nazario  # one corpus only
 
 What you should end up with after deduplication and parsing (see `docs/datasets/README.md`):
 
-- `backend/data/raw/nazario/` - about 2,180 phishing messages in mbox files.
-- `backend/data/raw/spamassassin/` - about 2,710 legitimate messages as extensionless hash-named files.
+- `backend/data/raw/nazario/` - about 4,300 phishing messages in mbox files (measured 4,306 on 2026-11-10).
+- `backend/data/raw/spamassassin/` - about 2,710 legitimate messages as extensionless hash-named files (measured
+  2,712).
+
+The committed evaluation and model figures were produced on a smaller fetch (the 2024/2025 archives only: 2,182
+phishing, 4,261 messages total). With every year on disk the corpus is 7,018 messages, so both the split sizes and the
+metrics below will differ; read the table as the expected shape, not the exact digits.
 
 Two details that matter and that have bitten before:
 
@@ -175,7 +181,8 @@ What `training.evaluate` does:
   model always cover the same dataset. Everything else is untouched.
 - Splits with `GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=7)`. Phishing messages are grouped by
   campaign or first URL host; legitimate messages by sender domain. No campaign host and no sender domain appears in
-  both train and test - about 3,275 train, 986 test (4,261 messages in total).
+  both train and test - about 3,275 train, 986 test (4,261 messages in total) on the corpus that produced the
+  committed report; with every Nazario year downloaded the split scales with the corpus.
 - Trains a throwaway comparator (`XGBClassifier`, `n_estimators=100, max_depth=4, learning_rate=0.1, random_state=7`)
   and measures it. **It never touches `backend/models/`.** The serving model is untouched by this step.
 - Writes `backend/reports/evaluation.json` and `backend/reports/evaluation.md`.
@@ -186,8 +193,8 @@ sender identity across the split. That number is a comparison baseline only - ne
 
 ### Expected output
 
-On this corpus with these library versions, you should reproduce something close to what is committed in
-`backend/reports/evaluation.json`:
+On the 4,261-message corpus that produced the committed report, with these library versions, you should reproduce
+something close to what is committed in `backend/reports/evaluation.json`:
 
 | Metric | Grouped split (headline) |
 |---|---|

@@ -240,3 +240,14 @@ the synthetic demo.
   Suite 52 passed / 1 skipped. No reason rule references the eight new features yet, so verdicts driven by them
   fall back to the generic reason - recorded as a follow-up in
   `docs/report/2026-11-10-feature-expansion-report.md`.
+
+## 2026-11-10 - Full Nazario corpus fetch and a one-page project summary
+
+- **Every published Nazario year is now fetched.** `download_datasets` pulls `phishing0`, `20051114`, `phishing1`,
+  `phishing2`, `phishing3`, and `phishing-2015` … `phishing-2025` (15 files, 124 MB). Parsed and deduped: 4,306
+  phishing messages, up from 2,182; with 2,712 SpamAssassin legitimate messages the corpus is 7,018 messages.
+  The model was **not** retrained: `xgboost-corpus-20261110-s7` still reflects the 4,261-message fetch, and docs
+  17/19 plus the dataset card now say so explicitly.
+- **`docs/SUMMARY.md` added** as the three-minute read the other 20 docs cannot replace: the idea, the six pipeline
+  steps, what is built, the numbers with their caveats, the demo-versus-real model distinction, what is not done,
+  and a five-row reading guide. Linked from the root README and the docs index.

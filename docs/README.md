@@ -1,5 +1,8 @@
 # PhishLens documentation index
 
+New here, or short on time? Read [**PhishLens in one page**](SUMMARY.md) first - the whole project in about three
+minutes. The table below is the full set, for when you need the detail.
+
 | # | Document | Read it for |
 |---|---|---|
 | 01 | [Project overview](01-project-overview.md) | the idea, user flow, scope, tech stack |
@@ -26,7 +29,7 @@
 | - | [Dataset card](datasets/README.md) | corpus sources, licences, fetch command, split rules |
 | - | [Decision log (ADRs)](decisions/) | why each important choice was made |
 | - | [Final report](report/final-report.md) | submission write-up: objectives, what was built, verified results, limits |
-| - | [Feature expansion report](report/2026-11-10-feature-expansion-report.md) | 57 → 65 features, retrained model, ablation read, malformed-port fix |
+| - | [Feature expansion report](report/2026-11-10-feature-expansion-report.md) | 57 to 65 features, retrained model, ablation read, malformed-port fix |
 | - | [Project report (Markdown)](report/) | literature survey, problem, objectives, methodology (Word build still pending) |
 | - | [References](references.md) | 37 IEEE-style references |
 | - | [Review-1 slide deck](presentation/) | PhishLens_Review1.pptx + how it was derived |

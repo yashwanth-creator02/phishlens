@@ -117,6 +117,7 @@ legitimate bank alert.
 | Path | Purpose |
 |---|---|
 | `README.md` | Documentation index |
+| `SUMMARY.md` | One-page project summary: what it is, how it decides, what is built, the numbers with caveats, what is not done, where to read more |
 | `01`-`15` | Topic docs: overview, project log, plan, architecture, backend, frontend, data model, ML, explainability, API, security, deployment, testing, user study, risks |
 | `16-demo-script.md` | Review walkthrough with expected screens and fallbacks |
 | `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |

@@ -6,13 +6,16 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **verified against evidence actually found in the email** before they are shown.
 
 > Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 47 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
+> verified reasons -> API -> web UI) with 52 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
 > **synthetic-data demo model for pipeline checks only**; detection quality is measured offline on the Nazario and
 > SpamAssassin corpora (grouped-split F1 0.987, one split, no confidence interval - see
 > [docs/17-real-corpus-evaluation.md](docs/17-real-corpus-evaluation.md), including the corpus artefacts that
 > inflate that number). Real inbound-email provider, real domain-age
 > lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and
 > [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
+
+**New here?** [docs/SUMMARY.md](docs/SUMMARY.md) is the whole project in three minutes; every claim links to the
+detailed page behind it.
 
 BMSIT&M, Dept. of CSE - Mini Project (Batch 45), 2026-27 - Product Development category.
 
