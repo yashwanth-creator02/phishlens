@@ -22,7 +22,7 @@ BMSIT&M, Dept. of CSE - Mini Project (Batch 45), 2026-27 - Product Development c
 
 | Path | What |
 |---|---|
-| `backend/` | FastAPI service: ingestion, 6 feature modules (57 features), model registry, SHAP, reason engine, risk bands, DB layer, tests, training scripts |
+| `backend/` | FastAPI service: ingestion, 6 feature modules (65 features), model registry, SHAP, reason engine, risk bands, DB layer, tests, training scripts |
 | `frontend/` | React + TypeScript (Vite) web UI: dashboard, analysis detail, settings, optional Supabase login |
 | `supabase/migrations/` | PostgreSQL schema + Row-Level-Security policies |
 | `docs/` | **All documentation**: project log, plan, architecture, design docs, decisions (ADRs), the project report (Markdown), Review-1 slide deck, diagrams |

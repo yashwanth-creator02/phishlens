@@ -43,7 +43,7 @@ def test_list_detail_features_delete(client):
     lst = client.get("/api/analyses").json()
     assert lst["total"] == 2 and lst["items"][0]["subject"].startswith("Your weekly")   # newest first
     feats = client.get(f"/api/analyses/{a['id']}/features").json()
-    assert len(feats) == 57 and abs(feats[0]["contribution"]) >= abs(feats[-1]["contribution"])
+    assert len(feats) == 65 and abs(feats[0]["contribution"]) >= abs(feats[-1]["contribution"])
     assert client.get(f"/api/analyses/{a['id']}").json()["id"] == a["id"]
     assert client.delete(f"/api/analyses/{a['id']}").status_code == 204
     assert client.get(f"/api/analyses/{a['id']}").status_code == 404
@@ -98,4 +98,4 @@ def test_baseline_builds_history_and_high_risk_does_not_pollute_it(client):
 
 def test_model_endpoint(client):
     m = client.get("/api/model").json()
-    assert m["n_features"] == 57 and "synthetic" in m["data_source"]
+    assert m["n_features"] == 65 and "synthetic" in m["data_source"]

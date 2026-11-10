@@ -2,9 +2,12 @@
 
 ## What this project is
 
-PhishLens is an explainable phishing-triage prototype. A user forwards a suspicious email; the backend parses it, extracts 57 features in six groups, scores it with a calibrated tree/linear model, turns SHAP contributions into plain-language reasons, verifies each reason against evidence found in the email, and returns a Low / Medium / High risk band. The React UI shows the result and the supporting evidence.
+PhishLens is an explainable phishing-triage prototype. A user forwards a suspicious email; the backend parses it, extracts 65 features in six groups, scores it with a calibrated tree/linear model, turns SHAP contributions into plain-language reasons, verifies each reason against evidence found in the email, and returns a Low / Medium / High risk band. The React UI shows the result and the supporting evidence.
 
-Status: v0.1 working skeleton. The bundled model is trained on synthetic data and is a pipeline demo only. Its metrics are not evidence of real-world phishing detection.
+Status: v0.2 working skeleton. The extractor is 65 features and a corpora-trained XGBoost model
+(`xgboost-corpus-20261110-s7`, calibrated held-out F1 macro 0.978, PR-AUC 0.986) exists in the gitignored
+`backend/models/active/`. The Docker image and Render still bake the synthetic demo model, so the public deployment
+remains a pipeline demo. Neither model's metrics are evidence of real-world phishing detection.
 
 ## Stack
 
@@ -19,7 +22,7 @@ Status: v0.1 working skeleton. The bundled model is trained on synthetic data an
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (51 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (52 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
@@ -70,7 +73,7 @@ Settings come from environment variables with the `PHISHLENS_` prefix, loaded fr
 
 1. Parse the email (direct, forwarded inline, or forwarded as a `message/rfc822` attachment).
 2. Load the sender history profile.
-3. Extract the shared 57-feature vector from six groups: header, URL, text, action, attachment, behavioral.
+3. Extract the shared 65-feature vector from six groups: header, URL, text, action, attachment, behavioral.
 4. Predict with the active model and optional isotonic calibration.
 5. Convert probability to a 0-100 score and a band.
 6. Compute SHAP contributions.

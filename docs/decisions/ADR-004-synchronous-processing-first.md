@@ -3,7 +3,7 @@
 **Status:** accepted (v0.1)
 
 ## Context
-Typical analysis is fast (parse + 57 features + one tree model + one SHAP pass).
+Typical analysis is fast (parse + 65 features + one tree model + one SHAP pass).
 
 ## Decision
 Process in the request/webhook. Reserve the queue seam (Redis + Celery) for when p95 latency requires it.

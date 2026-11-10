@@ -8,7 +8,7 @@ Supabase dashboard. If you only want the demo model, use the commands in the roo
 
 ## What you are doing and why
 
-PhishLens scores suspicious emails with an ML model over 57 features extracted from six groups (header, URL, text,
+PhishLens scores suspicious emails with an ML model over 65 features extracted from six groups (header, URL, text,
 action, attachment, behavioral). The result is turned into a Low / Medium / High risk band, and SHAP contributions
 become plain-language reasons that are checked against evidence found in the email.
 
@@ -95,7 +95,7 @@ python -c "import sys, xgboost, sklearn, shap, joblib; print(sys.version)"
 python -m pytest -q
 ```
 
-Expected: `51 passed, 1 skipped`. The one skip is the live-only Supabase RLS test, which skips without credentials.
+Expected: `52 passed, 1 skipped`. The one skip is the live-only Supabase RLS test, which skips without credentials.
 If pytest errors on import, your venv is built with the wrong interpreter - delete `.venv` and redo this step.
 
 ## Step 3 - Train the synthetic demo model (plumbing check, five minutes)
@@ -167,7 +167,7 @@ python -m training.evaluate --phish-dir data/raw/nazario --ham-dir data/raw/spam
 
 What `training.evaluate` does:
 
-- Loads the corpora through the same parser and extractor used at serving time (57 features per email).
+- Loads the corpora through the same parser and extractor used at serving time (65 features per email).
 - **Excludes one corpus artefact before splitting**: SpamAssassin rewrites some hostnames to
   `spamassassin.taint.org`, which lands 633+ legitimate messages in a single sender-domain group that the grouped
   split puts entirely in one partition (about 40% of the test set belongs to one group). Both `training.evaluate`
@@ -230,7 +230,7 @@ python -m training.train --source corpus `
 
 What `training.train --source corpus` does:
 
-- Loads both corpora with the same parser, and the same 57-feature extractor, in the same feature names and order as
+- Loads both corpora with the same parser, and the same 65-feature extractor, in the same feature names and order as
   serving. The model registry rejects a model whose stored feature metadata does not match.
 - Applies the same `spamassassin.taint.org` exclusion as the evaluation, so the promoted model covers the same
   dataset the report describes, then splits by group with the same settings (fit/validation/test =
@@ -394,7 +394,7 @@ the demo stays on the synthetic model and the corpora run stays as the measured 
 | Download returns 404 or empty corpora | Upstream mirror change; the URLs live in `DATASETS` in `backend/training/download_datasets.py` | Update the URL there, or drop the files into `backend/data/raw/<name>/` yourself and rerun; the fetcher skips sources already on disk |
 | `ImportError: cannot import name 'Self'` / `datetime.UTC` | Virtualenv built with Python 3.10 | Delete `.venv`, recreate with `py -3.11 -m venv .venv` |
 | `psycopg.OperationalError: failed to resolve host '...@aws-0-...'` | The database password contains `@` and the URL was not encoded; `app/db/session.py` handles `@` automatically but `#`, `?`, `/` must be percent-encoded by hand | Percent-encode those characters in the connection string |
-| `health` shows `model_loaded: false` | No model in `backend/models/active/`, or the registry rejected the feature metadata | Retrain so `backend/models/active/meta.json` matches the extractor; confirm the 57 feature names and order |
+| `health` shows `model_loaded: false` | No model in `backend/models/active/`, or the registry rejected the feature metadata | Retrain so `backend/models/active/meta.json` matches the extractor; confirm the 65 feature names and order |
 | Test suite fails after retraining | The training run changed `meta.json` in a way the tests do not expect | Read the failing test; do not lower a threshold to make it pass |
 | Legitimate sample emails score HIGH | The `auth_missing` corpus artefact (step 7) | Expected with the corpora-trained model; use the phish samples for the demo, or stay on the synthetic model |
 | Render deploy fails, or health never turns green | The image still trains the demo model and the promoted artefact is not in the image | Follow step 8: copy the model in the Dockerfile and set `PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml` |

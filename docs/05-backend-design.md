@@ -25,12 +25,12 @@ backend/
 ## The pipeline (`services/analysis_service.analyze`)
 1. `parse_email(raw)` -> `ParsedEmail` (scope: direct / forward_attachment / forward_inline).
 2. Load the sender's `ProfileData` for (user, sender) or `None`.
-3. `extract_all(parsed, ctx)` -> 57 values + per-group *evidence* (the concrete things found: mismatching domains, phrases, file names...).
+3. `extract_all(parsed, ctx)` -> 65 values + per-group *evidence* (the concrete things found: mismatching domains, phrases, file names...).
 4. `bundle.predict(vector)` -> raw probability -> isotonic calibration -> `p_cal`.
 5. `score = round(100 p_cal)`; `band_for(score)`.
 6. `shap_engine.contributions` -> per-feature contributions to the phishing class.
 7. `build_reasons` -> verified reasons (<= `top_k_reasons`); if band != LOW and none verified -> generic fallback.
-8. Persist: analysis, raw file (`storage_dir/<user>/<id>.eml`), 57 feature rows (+ SHAP value), explanations.
+8. Persist: analysis, raw file (`storage_dir/<user>/<id>.eml`), 65 feature rows (+ SHAP value), explanations.
 9. If band == LOW -> update the sender profile (never for MEDIUM/HIGH).
 
 ## Configuration (env, prefix `PHISHLENS_`)

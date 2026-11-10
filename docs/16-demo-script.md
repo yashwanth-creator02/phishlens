@@ -27,7 +27,7 @@ step is obvious instead of being narrated over.
 | 6 | Back to the dashboard, upload the legitimate newsletter sample | Low band | "Low risk does not hide the analysis; the score and features are still recorded." |
 | 7 | Cases page | Search, band filter, sort, pagination | "Built for a queue, not a single lookup." |
 | 8 | Model page | Active model identity, feature count, training metrics with the synthetic-data caveat | "This model is trained on generated email for pipeline checks. The numbers are not a detection claim, and the page says so." |
-| 9 | How it works page | Six feature groups, pipeline stages | "57 features across header, URL, text, action, attachment, and behavioural groups; the same order at training and serving time." |
+| 9 | How it works page | Six feature groups, pipeline stages | "65 features across header, URL, text, action, attachment, and behavioural groups; the same order at training and serving time." |
 | 10 | Status page | API health, model loaded flag, last checked time | "Operational view: if the model failed to load, this page says it before a user trusts a score." |
 | 11 | Delete the uploaded case, confirm the dialog | Row disappears; toast confirms | "Deletion is transactional and scoped to the owner; retention purges expired rows on a schedule." |
 | 12 | Settings page | Forwarding alias, environment notices | "Alias-based forwarding works with a shared 32-bit alias; the webhook is secret-guarded." |

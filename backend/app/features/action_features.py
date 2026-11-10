@@ -7,7 +7,8 @@ from . import lexicons as lx
 from .common import ExtractionContext, count_hits
 
 GROUP = "action"
-NAMES = ["requests_click", "requests_credentials", "requests_payment", "requests_download", "requests_reply_info"]
+NAMES = ["requests_click", "requests_credentials", "requests_payment", "requests_download",
+         "requests_reply_info", "action_count"]
 GENERIC_ANCHORS = ("click", "here", "verify", "login", "log in", "sign in", "confirm", "update", "review", "view")
 
 
@@ -25,6 +26,7 @@ def extract(p: ParsedEmail, ctx: ExtractionContext) -> tuple[dict[str, float], d
         "requests_payment": float(bool(pay)),
         "requests_download": float(bool(dl)),
         "requests_reply_info": float(bool(rep)),
+        "action_count": sum(1 for v in (click or generic_anchor, cred, pay, dl, rep) if v) / 5.0,
     }
     ev = {"click": (click + generic_anchor)[:3], "credentials": cred[:3], "payment": pay[:3],
           "download": dl[:3], "reply_info": rep[:3]}

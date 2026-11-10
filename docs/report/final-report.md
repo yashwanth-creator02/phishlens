@@ -19,7 +19,7 @@ Guide: Dr. Shanthi D L
 
 Phishing warnings are either a binary verdict or a wall of indicators that a non-expert cannot act on. PhishLens
 returns a risk level and the reasons for it, where each reason is a plain-language sentence backed by evidence
-quoted from the email being analysed. The system parses a forwarded email, extracts 57 features in six groups,
+quoted from the email being analysed. The system parses a forwarded email, extracts 65 features in six groups,
 scores it with a calibrated tree/linear model, converts SHAP contributions into candidate reasons, and discards any
 reason whose evidence rule fails against the parsed message. The result is a Low / Medium / High band, a 0-100
 score, and a short, verifiable explanation. PhishLens is implemented as a FastAPI service and a React interface,
@@ -49,7 +49,7 @@ Objectives:
 ### 3.1 Pipeline
 
 ```
-forwarded email -> parser -> sender history -> 57-feature vector -> model + calibration
+forwarded email -> parser -> sender history -> 65-feature vector -> model + calibration
                 -> probability -> score 0-100 -> band -> SHAP contributions -> candidate reasons
                 -> evidence verification -> stored analysis + explanations
 ```
@@ -118,7 +118,7 @@ Two evaluation paths exist in the repository:
 
 The real evaluation **has** been run. `python -m training.download_datasets` fetched 1,390 Nazario phishing
 messages (819 campaign/host groups) and 2,712 SpamAssassin legitimate messages (468 sender-domain groups);
-`python -m training.evaluate` then trained a throwaway XGBoost comparator on the production 57-feature matrix and
+`python -m training.evaluate` then trained a throwaway XGBoost comparator on the production 65-feature matrix and
 scored it on a campaign-and-sender-grouped split (3,092 train / 1,010 test):
 
 | Metric | Grouped split (headline) | Random split (leaky baseline) |

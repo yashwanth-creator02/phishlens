@@ -8,7 +8,7 @@ Implemented in `backend/app/db/models.py` (SQLAlchemy), mirrored by `supabase/mi
 |---|---|---|
 | `analyses` | one row per analysed email | id, user_id, created_at, sender_address/name, subject, scope, forwarded_by, probability, risk_score, risk_band, model_version, auth (json), evidence (json) |
 | `email_raw` | where the raw email is stored + parsed extras | storage_path, sha256, headers (json), text_preview (2000 chars), links (json), attachments (json: name, type, size, SHA-256) |
-| `feature_values` | the 57 features and their SHAP contribution for this analysis | analysis_id, name, group, value, contribution |
+| `feature_values` | the 65 features and their SHAP contribution for this analysis | analysis_id, name, group, value, contribution |
 | `explanations` | the displayed reasons | analysis_id, rank, rule_key, group, contribution, sentence |
 | `model_versions` | models ever served | version_tag, algorithm, f1_macro, roc_auc, meta (json), trained_at, is_active |
 | `sender_profiles` | per (user, sender) baseline | message_count, first/last_seen, stats (json: urgency mean/M2, domain sets, text centroid) |

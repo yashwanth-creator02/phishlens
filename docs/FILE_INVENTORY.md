@@ -34,7 +34,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `db/repository.py` | Owner-scoped queries, transactional delete, retention purge |
 | `db/session.py` | Engine and session factory (SQLite locally, PostgreSQL in deployment) |
 | `ingestion/email_parser.py` | Direct, inline-forwarded, and `message/rfc822` attachment parsing; header normalisation |
-| `features/feature_vector.py` | The shared 57-feature vector used by training and serving |
+| `features/feature_vector.py` | The shared 65-feature vector used by training and serving |
 | `features/{header,url,text,action,attachment,behavioral}_features.py` | One module per feature group |
 | `features/{common,lexicons}.py` | Shared helpers and the urgency/credential word lists |
 | `ml/registry.py` | Model loading plus metadata validation (feature names and order) |
@@ -122,9 +122,11 @@ legitimate bank alert.
 | `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |
 | `18-open-manual-actions.md` | Dashboard/account steps that still need the user, with values and verification |
 | `19-teammate-training-guide.md` | Step-by-step corpora download, evaluation, training and promotion, with expected outputs and the header artefact caveat |
+| `20-model-parameters-and-features.md` | Canonical list of the 65 features, candidate hyperparameters, selection rule, calibration, bands and reason thresholds |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |
+| `report/2026-11-10-feature-expansion-report.md` | 57 → 65 feature expansion: new features, retrained metrics, ablation read, malformed-port fix, follow-ups |
 | `report/_sources/` | Generator scripts for the report chapters |
 | `diagrams/` | Mermaid sources plus rendered PNGs |
 | `screenshots/` | UI captures used in docs and the deck |

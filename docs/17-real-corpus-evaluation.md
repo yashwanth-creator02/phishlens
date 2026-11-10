@@ -69,8 +69,8 @@ sender identity across the split and is not a result.
 ## Model under evaluation
 
 `training/evaluate.py` trains a throwaway `XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1,
-random_state=7)` on the 57-feature matrix produced by the production extractor, then discards it. The serving model
-in `backend/models/` (currently a synthetic-data Random Forest) is untouched, and none of these numbers describe it.
+random_state=7)` on the 65-feature matrix produced by the production extractor, then discards it. The serving model
+in `backend/models/` is untouched, and none of these numbers describe it.
 
 ## Results
 
@@ -94,7 +94,7 @@ large part of why the signal looks so clean.
 
 Establishes:
 
-- The extractor runs end-to-end on real mbox/tarball corpora and produces a usable 57-feature matrix.
+- The extractor runs end-to-end on real mbox/tarball corpora and produces a usable 65-feature matrix.
 - Host- and sender-grouped separation is meaningful: performance holds when whole campaigns and whole sender
   domains are withheld.
 - Recall on unseen campaigns is high enough that the explainability layer has something worth explaining.
@@ -125,10 +125,34 @@ same corpora reproduces these numbers bit-for-bit on the same library versions. 
 
 ## Promoted serving model (measured the same way)
 
-`training.train --source corpus` on this dataset selected **xgboost** (`xgboost-corpus-20261106-s7`) with held-out
-test metrics after isotonic calibration: precision 0.971, recall 0.994, F1 macro 0.983, FPR 0.027, ROC-AUC 0.992,
-PR-AUC 0.984, Brier 0.014, confusion TN/FP/FN/TP = 502/14/3/467 on the 986-row test slice. The artefact is
-`backend/models/active/` (gitignored) and the run record is `backend/reports/training_report.md` (gitignored).
-It is **not** in the Docker image yet: Render still bakes the synthetic demo model. Shipping it is the manual step
-in `docs/18-open-manual-actions.md` item 1 and `docs/19-teammate-training-guide.md` step 8, and it comes with the
-`auth_missing` caveat above, which is why it is a decision and not a formality.
+`training.train --source corpus` on this dataset with the 65-feature extractor selected **xgboost**
+(`xgboost-corpus-20261110-s7`). Held-out test metrics after isotonic calibration (986 rows, fit 2,647 /
+validation 628 / test 986): precision 0.965, recall 0.989, F1 macro 0.978, FPR 0.033, ROC-AUC 0.993,
+PR-AUC 0.986, Brier 0.014, confusion TN/FP/FN/TP = 499/17/5/465. Before calibration the same model scored
+F1 macro 0.987 and PR-AUC 0.999.
+
+The 2026-11-06 run on the earlier 57-feature vector scored F1 macro 0.983 and PR-AUC 0.984 for the same
+procedure. The two runs differ in feature set, so this is not a controlled comparison; the whole-corpus
+`training/evaluate.py` comparator on the 65-feature matrix reports F1 0.987 and PR-AUC 0.999.
+
+The training artifact is `backend/models/active/` and the run record is `backend/reports/training_report.md`
+(both gitignored). It is **not** in the Docker image yet: Render still bakes the synthetic demo model. Shipping it
+is the manual step in `docs/18-open-manual-actions.md` and `docs/19-teammate-training-guide.md` step 8, and it comes
+with the `auth_missing` caveat above, which is why it is a decision and not a formality.
+
+### Per-group ablation (65 features, XGBoost)
+
+Dropping one group at a time and refitting, macro F1 on the same test slice:
+
+| Group dropped | Macro F1 | ROC-AUC |
+|---|---|---|
+| header | 0.972 | 0.996 |
+| url | 0.983 | 0.998 |
+| text | 0.981 | 0.997 |
+| action | 0.989 | 0.999 |
+| attachment | 0.985 | 0.999 |
+| behaviour | 0.987 | 0.998 |
+
+Header and URL remain the load-bearing groups; action and attachment add little on these corpora, which contain
+few executable attachments and little marketing-style mail. That is a property of the corpora, not evidence that
+those groups are useless on modern mail.

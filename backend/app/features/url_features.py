@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import urlparse
 
 from app.ingestion.email_parser import ParsedEmail
 
@@ -11,9 +12,9 @@ from .common import DOMAIN_TOKEN_RE, IP_RE, ExtractionContext, registered_domain
 GROUP = "url"
 NAMES = [
     "url_count", "unique_domain_count", "link_text_mismatch", "link_text_mismatch_count", "ip_in_host",
-    "uses_shortener", "punycode", "max_subdomain_depth", "max_url_length", "special_char_ratio",
-    "brand_in_subdomain_or_path", "suspicious_tld", "http_only", "landing_domain_age_days",
-    "landing_domain_age_missing",
+    "uses_shortener", "punycode", "max_subdomain_depth", "max_url_length", "max_path_depth", "has_port",
+    "percent_encoding_ratio", "special_char_ratio", "brand_in_subdomain_or_path", "suspicious_tld", "http_only",
+    "landing_domain_age_days", "landing_domain_age_missing",
 ]
 
 
@@ -29,8 +30,12 @@ def extract(p: ParsedEmail, ctx: ExtractionContext) -> tuple[dict[str, float], d
     max_depth = 0
     max_len = 0
     max_special = 0.0
+    max_path = 0
+    port_hit = False
+    max_encoded = 0.0
 
     for link in p.links:
+        parsed = urlparse(link.href)
         host, reg, sub = split_host(link.href)
         if not host:
             continue
@@ -39,6 +44,16 @@ def extract(p: ParsedEmail, ctx: ExtractionContext) -> tuple[dict[str, float], d
         max_len = max(max_len, len(link.href))
         special = len(re.findall(r"[@%\-_=&~]", link.href)) / max(1, len(link.href))
         max_special = max(max_special, special)
+        path_segments = [s for s in parsed.path.split("/") if s]
+        max_path = max(max_path, len(path_segments))
+        try:
+            port = parsed.port
+        except ValueError:  # unparseable or out-of-range port in a hostile href
+            port = -1
+        if port is not None and port not in (80, 443):
+            port_hit = True
+        encoded = len(re.findall(r"%[0-9a-f]{2}", link.href, re.I)) / max(1, len(link.href))
+        max_encoded = max(max_encoded, encoded)
         if IP_RE.match(host):
             ip_hosts.append(host)
         if reg in lx.URL_SHORTENERS:
@@ -74,6 +89,9 @@ def extract(p: ParsedEmail, ctx: ExtractionContext) -> tuple[dict[str, float], d
         "punycode": float(bool(puny)),
         "max_subdomain_depth": min(max_depth, 6) / 6.0,
         "max_url_length": min(max_len, 300) / 300.0,
+        "max_path_depth": min(max_path, 8) / 8.0,
+        "has_port": float(port_hit),
+        "percent_encoding_ratio": float(max_encoded),
         "special_char_ratio": float(max_special),
         "brand_in_subdomain_or_path": float(bool(brand_hits)),
         "suspicious_tld": float(bool(bad_tlds)),

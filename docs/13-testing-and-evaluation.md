@@ -1,10 +1,10 @@
 # 13 - Testing and evaluation
 
-## Automated tests (`cd backend && python -m pytest -q`) - 47 passing, 1 skipped
+## Automated tests (`cd backend && python -m pytest -q`) - 52 passing, 1 skipped
 | File | What it proves |
 |---|---|
 | `test_parser.py` | direct / forward-as-attachment / inline-forward parsing; inline forward marks authentication as **missing**; attachment metadata only |
-| `test_features.py` | 57 unique features in 6 groups; phishing sample triggers expected features; legitimate sample is quiet; double-extension attachment; behavioural features need >= 3 history messages and detect new return-path / reply-to / link domain |
+| `test_features.py` | 65 unique features in 6 groups; phishing sample triggers expected features; legitimate sample is quiet; double-extension attachment; behavioural features need >= 3 history messages and detect new return-path / reply-to / link domain |
 | `test_reasons_and_bands.py` | **a reason without evidence is discarded**; reasons use real values; negative contributions never become reasons; behavioural reasons suppressed on cold start; top-k with group diversity; band thresholds; generic fallback |
 | `test_api.py` | health; phishing -> MEDIUM/HIGH with verified reasons; legitimate -> LOW; inline forward; list/detail/features/delete; empty upload 400; **auth required and users isolated** (Supabase JWT mode); webhook secret/alias/JSON form; baseline builds history and HIGH risk does not pollute it; model endpoint |
 | `test_corpus_loading.py` | extensionless (hash-named) corpus files load; mbox plus loose files produce both classes |
