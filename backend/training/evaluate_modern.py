@@ -164,6 +164,26 @@ def leakage_check(meta: dict, since: datetime | None, until: datetime | None,
     return "overlap" if (lo < until_b and hi >= since_b) else "clear"
 
 
+def phish_leakage(meta: dict, eval_phish_dir: str, since: datetime | None, until: datetime | None) -> tuple[str, list[str]]:
+    """Is the evaluation phishing corpus disjoint from the archives the model trained on?
+
+    The split is by archive file, because the corpus dates are unreliable: some Nazario archives carry
+    dates from 1970 to 2038 and 65 messages in the 2015-2025 archives have no date at all, so a
+    date-based check admits holdout messages into training and then calls them held out.
+
+    Returns the status and the list of archive files that appear on both sides.
+    """
+    training = (meta or {}).get("training") or {}
+    trained_files = training.get("phish_files")
+    if trained_files is None:
+        return leakage_check(meta, since, until), []
+    eval_files = set(corpus.source_files(eval_phish_dir))
+    overlap = sorted(set(trained_files) & eval_files)
+    if overlap:
+        return "overlap", overlap
+    return "clear", []
+
+
 def ham_leakage(meta: dict, eval_mailbox: str, since: datetime | None, until: datetime | None) -> str:
     """Is the evaluation mailbox disjoint from the mailbox the model trained on?
 
@@ -176,7 +196,10 @@ def ham_leakage(meta: dict, eval_mailbox: str, since: datetime | None, until: da
     trained = training.get("legit_mailbox")
     if not trained:
         return "unknown"
-    if Path(trained).resolve() != Path(eval_mailbox).resolve():
+    trained_p = Path(trained).resolve()
+    eval_p = Path(eval_mailbox).resolve()
+    same_source = trained_p == eval_p or (eval_p.is_dir() and trained_p.parent == eval_p)
+    if not same_source:
         return "distinct"
     return leakage_check(meta, since, until, "legit_mailbox_min_date", "legit_mailbox_max_date")
 
@@ -319,9 +342,11 @@ def main(argv=None) -> dict:
 
     settings = Settings()
     bundle = load_model_dir(Path(args.model)) if args.model else load_active(Path(args.model_dir))
-    since, until = _cli_date(args.phish_since, "--phish-since")
-    m_since, m_until = _cli_date(args.mailbox_since, "--mailbox-since"), _cli_date(args.mailbox_until, "--mailbox-until")
-    phish_leak = leakage_check(bundle.meta, since, until)
+    since = _cli_date(args.phish_since, "--phish-since")
+    until = _cli_date(args.phish_until, "--phish-until")
+    m_since = _cli_date(args.mailbox_since, "--mailbox-since")
+    m_until = _cli_date(args.mailbox_until, "--mailbox-until")
+    phish_leak, phish_overlap_files = phish_leakage(bundle.meta, args.phish_dir, since, until)
     ham_leak = ham_leakage(bundle.meta, args.mailbox, m_since, m_until)
     leak_status = "overlap" if "overlap" in (phish_leak, ham_leak) else (
         "clear" if phish_leak == "clear" and ham_leak in ("clear", "distinct") else "unknown")
@@ -358,6 +383,7 @@ def main(argv=None) -> dict:
         "leakage": {
             "status": leak_status,
             "phish": {"status": phish_leak, "window": {"since": args.phish_since, "until": args.phish_until},
+                      "overlap_files": phish_overlap_files,
                       "model_min_date": training.get("phish_min_date"),
                       "model_max_date": training.get("phish_max_date")},
             "ham": {"status": ham_leak,

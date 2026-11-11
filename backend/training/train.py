@@ -187,6 +187,9 @@ def main(argv=None) -> dict:
         provenance["n_phish"] = len(phish)
         provenance["n_legit"] = len(legit)
         provenance["loader_drops"] = {"phish": phish_stats, "legit": legit_stats, "mailbox": mailbox_stats}
+        # The phishing split is by archive file, not by message date: the corpus dates are unreliable
+        # (some archives carry dates from 1970 to 2038), so the file list is what proves a holdout.
+        provenance["phish_files"] = corpus.source_files(args.phish_dir)
         provenance.update({
             "phish_min_date": corpus.date_range(phish)["min"],
             "phish_max_date": corpus.date_range(phish)["max"],

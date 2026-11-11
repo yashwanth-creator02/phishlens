@@ -1,7 +1,9 @@
 # 21 - Modern corpus evaluation plan
 
 **Last updated:** 2026-11-11
-**Status:** P0, P1 and P2 complete. P2 failed its gates, so H1 is rejected as sufficient and P3-P5 are blocked.
+**Status:** P0, P1 and P2 complete. P2 failed its gates, so H1 is rejected as sufficient and the ablation route to a
+candidate is closed. On 2026-11-11 the owner decided to use the personal mailbox as a modern legitimate-mail training
+source, which is the re-plan in section 13, option A.
 **Harness:** `backend/training/evaluate_modern.py`
 **Decision owner:** project owner for promotion and privacy; see section 10
 
@@ -9,9 +11,10 @@ This is a decision plan, not a results report. The only measured figures are the
 ablation in section 7.1, and the artifacts they cite. Every gate is a target, not a result.
 
 **Outcome so far:** the active model cannot be repaired by removing features. No ablation variant comes close to the
-FPR gates, so nothing is promoted; the corpora-trained model stays out of the live demo. The binding constraint is
-the absence of modern legitimate mail in the training data, and no free public corpus with real authentication
-headers exists. See sections 7.1 and 12.
+FPR gates, so nothing is promoted; the corpora-trained model stays out of the live demo. The binding constraint was
+the absence of modern legitimate mail in the training data. The owner resolved it on 2026-11-11 by allowing the
+personal mailbox to be used for training, under a privacy constraint; the next candidate is trained with it and must
+still clear every P4 gate. See sections 7.1, 12 and 13.
 
 ## 1. Purpose and scope
 
@@ -33,7 +36,8 @@ Out of scope:
 - Measuring phishing recall in the inbox. Gmail already filtered it; received mail is ham by construction.
 - Tuning the 29/70 band thresholds to make the numbers pass. Thresholds are product behavior; gates are defined at
   the current values.
-- Any use of mailbox content for training, model selection, calibration, or committed artifacts.
+- Any use of mailbox content for model selection, calibration, threshold tuning, or committed artifacts. Training use
+  is now permitted by owner decision (2026-11-11, section 3).
 
 Success is one of two outcomes: a candidate that passes every P4 gate and is promoted with approval, or a documented
 decision not to ship a modern-mail claim, with the failure mode and the next evidence requirement recorded.
@@ -54,17 +58,21 @@ one modern inbox. A fail is conclusive enough to block promotion, because the ob
 
 ## 3. Privacy boundary
 
-The mailbox is personal data and evaluation-only.
+The mailbox is personal data. Since 2026-11-11 the owner allows it to be used for training, under the constraint
+that no sensitive information or personal data may reach a committed artifact or the public deployment.
 
 - Path: `backend/data/raw/mailbox/All mail Including Spam and Trash.mbox` (148 MB). `backend/data/raw/` is
   gitignored, so the file is not tracked.
 - `corpus.load_mailbox` filters `X-Gmail-Labels` for Spam, Trash, Sent, Drafts, and Chat. Only received mail is
   loaded.
-- The mailbox must never be used for training, model selection, calibration, threshold tuning, or a committed
-  artifact. It is a test set.
+- The mailbox may be used as a modern legitimate-mail training source (owner decision, 2026-11-11). It must still not
+  be used for model selection, calibration, threshold tuning, or a committed artifact.
 - Do not print message bodies, subjects, addresses, or Message-IDs in reports, logs, notebooks, or chat. Reports
   contain aggregate counts, rates, and sender domains only.
-- Derived matrices in `.tmp/auth_cache/*.npz` are also personal-data derivatives. Delete them at P6.
+- A model trained on the mailbox is personal-data-derived. It stays local (`backend/models/` is gitignored) and must not
+  be baked into the Docker image or shipped to Render without a separate explicit owner decision.
+- Derived matrices in `.tmp/auth_cache/*.npz` are also personal-data derivatives. They were deleted on 2026-11-11;
+  delete any new ones at P6.
 - The mailbox owner is the data controller. Retention, deletion, and any change of use require their explicit
   approval; see D4.
 
@@ -142,7 +150,7 @@ The active model's modern-phish recall is contaminated.
 | Pre-2015 (`phishing0`, `phishing1`, `phishing2`) | Training (already seen) | Training only |
 | 2015-2023 | Unseen; clean modern-phish test | Unseen; clean modern-phish test |
 | 2024-2025 | Seen; in-sample, do not quote | Unseen if the candidate trains on pre-2015 only |
-| Mailbox 2020-2026 | Ham test only | Ham test only |
+| Mailbox 2020-2026 | Ham test only | Before 2024 may train; 2024 and later is held out |
 
 **Temporal holdout rule.** Adopt this for every future model:
 
@@ -217,8 +225,9 @@ Measured on 40 messages per class with the active model:
 | `subject_reply_without_history` | 0.55 | 0.00 | 0.08 |
 
 The classifier has never seen a message that looks like a modern legitimate message, so "modern legitimate" is not
-a region it can represent. The remedy is data, not a mask: modern legitimate mail has to be in the training set,
-and the one mailbox available here is evaluation-only by the owner's decision (section 3).
+a region it can represent. The remedy is data, not a mask: modern legitimate mail has to be in the training set.
+The owner allowed the personal mailbox to be used for exactly that on 2026-11-11 (section 3), with a temporal split:
+before 2024 trains, 2024 and later is held out.
 
 Two more measurements close the diagnosis:
 
@@ -237,17 +246,30 @@ P0 items that are implemented, with tests in `backend/tests/test_evaluate_modern
   sender domains plus the largest domain share, so a headline rate cannot hide behind one dominant sender.
 - Raw and calibrated probability summaries recorded side by side, so the calibration hypothesis is checkable in
   the tool rather than in a one-off script.
-- A leakage guard. `training.train` now records the phishing date range it trained on in `meta["training"]`; the
-  harness reads it and refuses to report a window the model was trained on, unless `--allow-training-overlap` is
-  passed. The default window is 2015-01-01 to 2024-01-01, which keeps the 2024-2025 archives as a holdout.
+- Explicit `fpr_at_0_29` and `recall_at_0_29` fields, so the gate table in section 9 can be read straight off the
+  report artifact instead of being reconstructed from the band boundary.
+- A leakage guard that fails closed. `training.train` records the phishing date range and the mailbox it trained
+  on in `meta["training"]`; the harness refuses to report a window the model trained on
+  (`--allow-training-overlap`), and also refuses a model that carries **no** provenance, because such a model
+  cannot be shown to be disjoint (`--allow-unknown-provenance`). This second case is not hypothetical: the
+  pre-provenance serving model trained on the full Nazario corpus, so a default run would have reported its
+  in-sample 2024-2025 recall as generalization.
+- The ham side of the guard compares mailbox identity, not only dates: a model trained on one mailbox file and
+  evaluated on another is recorded as `distinct`, because two files cannot share messages.
+- Fail loudly: a phishing window or a mailbox window that yields no messages exits with an error instead of
+  writing a ham-only report that looks successful, and a missing file is distinguished from an empty window.
 - `--model` points the harness at a candidate model directory, so a candidate is scored before it is promoted.
 - `--activate` gates promotion in `training.train`. Without it, a training run writes a candidate directory and
-  leaves `models/active` untouched, so an offline run cannot replace the serving model.
+  leaves `models/active` untouched, so an offline run cannot replace the serving model. The promotion copies to
+  `active.new` and swaps, so a failed copy leaves the previous model servable, and it refuses a model trained on
+  personal mail unless `--allow-personal-data` is passed.
 
-One P0 item is still open: the cross-split overlap check is not implemented. The corpus loader already
-deduplicates by raw hash, Message-ID and body hash within a load, which covers an exact copy of a message, but a
-campaign reworded across two files would not be caught. The grouped split by campaign host reduces the risk
-without proving it away.
+Two items remain open. The cross-split overlap check is not implemented: the corpus loader deduplicates by raw
+hash, Message-ID and body hash within a load, which covers an exact copy of a message, but a campaign reworded
+across two files would not be caught, and the same attacker domain can sit on both sides of the temporal cut. The
+second is that the corpus dates are noisy - some Nazario archives carry dates from 1970 to 2038 and 65 messages
+across the 2015-2025 archives have no `Date` at all, so they are dropped by both the cutoff and the window. Both
+caveats belong in any report that quotes a holdout number.
 
 ## 8. Plan phases
 
@@ -366,11 +388,14 @@ Pass gate for the diagnosis:
 - If no variant reaches all of these, H1 is not sufficient as stated. Stop and re-plan; do not promote.
 
 **Gate result: failed.** No variant is within an order of magnitude of the FPR limits (section 7.1). Per the last
-bullet, P3 does not start and nothing is promoted. The re-plan is in section 12.
+bullet, P3 does not start on this route and nothing is promoted. The re-plan is in section 13.
 
 ### P3 - Retrain and calibrate a candidate
 
 **Question:** can the winning variant become a model that the serving code can actually load?
+
+The winning variant does not exist: the P2 gate failed, so this phase restarts from the re-plan (section 13, option A)
+- retrain with the mailbox before 2024 as the modern legitimate-mail source, keeping all 65 features.
 
 Train on pre-2015 only, with the winning mask, into a scratch model directory:
 
@@ -500,10 +525,14 @@ Remove-Item -Recurse -Force .tmp\auth_cache
 Remove-Item -Force .tmp\auth_blind.out, .tmp\auth_blind.err
 ```
 
+Run on 2026-11-11: the derived cache was deleted on the owner's instruction, and the raw export stays on disk.
+
 - Keep or delete the raw mailbox only with the owner's instruction. Deleting it does not delete the gitignored
   reports that already contain aggregates.
 - Confirm `git status --porcelain` shows no data, model, or report artifact.
 - Record the deletion date and the approving owner in the decision log.
+- A model trained on the mailbox stays local and is not baked into the Docker image or shipped to Render without a
+  separate explicit owner decision.
 
 Pass gate: docs match the shipped behavior; no personal-data derivative remains without an approved retention
 reason.
@@ -529,22 +558,22 @@ is to record it cleanly.
 
 | ID | Decision | Options | Recommendation | Owner | Status |
 |---|---|---|---|---|---|
-| D1 | Promote a new model? | Promote only on a full P4 pass; keep the active model and publish the failure; stop the modern-mail claim | Gate-based only. No promotion on a partial pass, and no threshold change to force one. | Project owner | Open; blocked on P2/P4 |
-| D2 | Keep the synthetic demo model in Docker/Render? | Keep it until a candidate passes; replace it on promotion; keep it permanently as a plumbing demo | Keep it for now. A demo that flags every legitimate message is worse than an honest synthetic demo. | Project owner | Open; default keep |
-| D3 | Accept the auth-blind trade-off? | Accept if recall and historical F1 gates hold; reject and use era-normalized authentication features; keep authentication and fix the era problem another way | Do not accept a recall loss. Authentication is a real phishing signal; ignore it only if the measured cost is small and documented. | Project owner | Pending P2/P4 |
-| D4 | Who owns the privacy cleanup? | Mailbox owner approves and deletes; evaluator deletes under written instruction | The mailbox owner is the data controller; the evaluator executes and records the deletion. | Mailbox owner | Open |
+| D1 | Promote a new model? | Promote only on a full P4 pass; keep the active model and publish the failure; stop the modern-mail claim | Gate-based only. No promotion on a partial pass, and no threshold change to force one. | Project owner | Decided 2026-11-11: the corpora-trained model is **not promoted as it stands**; it stays a documented historical artefact. The owner allows the personal mailbox to be used as a modern legitimate-mail training source, so the next candidate is trained with it and still has to clear every P4 gate before promotion. |
+| D2 | Keep the synthetic demo model in Docker/Render? | Keep it until a candidate passes; replace it on promotion; keep it permanently as a plumbing demo | Keep it for now. A demo that flags every legitimate message is worse than an honest synthetic demo. | Project owner | Decided 2026-11-11: the synthetic demo model **stays live for now**. It is replaced only on a full P4 pass and an explicit promotion approval. |
+| D3 | Accept the auth-blind trade-off? | Accept if recall and historical F1 gates hold; reject and use era-normalized authentication features; keep authentication and fix the era problem another way | Do not accept a recall loss. Authentication is a real phishing signal; ignore it only if the measured cost is small and documented. | Project owner | Rejected 2026-11-11: the ablation gate failed (section 7.1), so the trade-off was never available - no variant reached the FPR gates at all. The remedy is data, not a feature mask. |
+| D4 | Who owns the privacy cleanup? | Mailbox owner approves and deletes; evaluator deletes under written instruction | The mailbox owner is the data controller; the evaluator executes and records the deletion. | Mailbox owner | Done 2026-11-11: on the owner's instruction the derived cache `.tmp/auth_cache` was deleted; the raw mbox export stays on disk. No message content is in any committed artifact. |
 | D5 | Change the 29/70 thresholds? | Keep; re-derive on validation data | Keep. The gates are defined at the current product thresholds, and changing them would invalidate the comparison. | Project owner | Proposed: keep; confirm at P5 |
 
 Open questions:
 
 - Is one inbox enough to block promotion? It is enough to reject the current model. It is not enough to certify a
   replacement; the gates are a floor.
-- What public modern ham corpus would satisfy the same gates? None is in the repository today. A public corpus with
-  authentication headers would also be eligible for training, which the mailbox is not.
+- What public modern ham corpus would satisfy the same gates? None is in the repository today. The owner's mailbox is
+  now eligible for training, so the candidate uses that; a public corpus would remove the personal-data constraint.
 - Does the product need an auth-blind mode, or only an era-balanced model? If auth-blind is diagnostic only, P3's
   shippability constraint changes.
-- How long may the mailbox and its derived matrices be retained? Owner decision; the default should be deletion at
-  P6.
+- How long may the mailbox and its derived matrices be retained? The owner decided on 2026-11-11 that the raw export
+  stays on disk and the derived cache is deleted. A new cache is deleted at P6.
 - Who signs the promotion, and by when? The project owner; no date is set.
 
 ## 11. Status
@@ -554,24 +583,30 @@ Open questions:
 | P0 Loaders, metrics, tests | Partly done | Harness at `backend/training/evaluate_modern.py`; tests at `backend/tests/test_evaluate_modern.py`. Done: domain-macro FPR with cluster bootstrap, sender-domain count and largest-domain share, raw and calibrated probability summaries, leakage guard, `--model` for candidates. Open: the cross-split overlap check. |
 | P1 Clean baseline | Done | `backend/reports/modern-holdout/` (2015-2023 clean window) and `backend/reports/modern-insample/` (2024-2025, labelled in-sample). Both are gitignored. |
 | P2 Auth-blind ablation | Done, gate failed | `.tmp/auth_blind_experiment.py` ran on 2026-11-11; results in `.tmp/auth_cache/results.json`, summarised in section 7.1. No variant approaches the FPR gates. H1 rejected as sufficient. |
-| P3 Retrain/calibrate | Not started | Blocked by the failed P2 gate: there is no winning variant to retrain. |
+| P3 Retrain/calibrate | Not started | The P2 ablation route is closed: there is no winning variant to retrain. The re-plan (section 13, option A) retrains with the mailbox before 2024 as the modern legitimate-mail source. |
 | P4 Candidate gates | Not started | Blocked on P3. |
 | P5 Promote or stop | Stop, pending owner sign-off | The evidence says do not promote the corpora-trained model: it flags 99.9% of modern legitimate mail. The synthetic demo model stays in the image. |
-| P6 Documentation/privacy cleanup | In progress | This plan, the risk list and the evaluation docs are updated. The mailbox-derived cache in `.tmp/auth_cache` is still present and needs the owner's decision (D4). |
+| P6 Documentation/privacy cleanup | In progress | This plan, the risk list and the evaluation docs are updated. The mailbox-derived cache `.tmp/auth_cache` was deleted on 2026-11-11 on the owner's instruction; the raw export stays on disk (D4). |
 
 ## 12. What would change the plan
 
 - Usable ham drops below 1,500, or the owner withdraws consent. Stop; no FPR claim; delete derived data.
 - **No P2 variant meets the FPR and recall gates together. This happened on 2026-11-11.** H1 is insufficient as
-  stated; do not promote. Re-plan around a public modern corpus or a feature redesign.
+  stated; do not promote. The owner then allowed the personal mailbox to be used for training, which is the re-plan in
+  section 13, option A.
 - A variant meets the FPR gates but held-out 2015-2023 recall falls below 0.90. The model is blind, not fixed.
   Reject the auth-blind trade-off and try era-normalized authentication features instead.
 - Historical grouped macro-F1 falls below 0.95 or Brier exceeds 0.02. The candidate is worse on the old
   distribution; the trade-off is not acceptable.
-- A public modern ham corpus with real authentication headers becomes available. It can enter training, unlike the
-  mailbox; re-run P2/P3 with a new cutoff and a new test window.
+- A public modern ham corpus with real authentication headers becomes available. It can enter training alongside the
+  approved mailbox slice and would remove the personal-data constraint; re-run P2/P3 with a new cutoff and a new test
+  window.
 - The active model is retrained on any 2024 or 2025 data. Those years become in-sample again; update the window
   role table before quoting any recall.
+- The 29/70 band thresholds change. Every gate is threshold-specific; re-derive the gates before evaluating, and
+  never change a threshold to pass a gate.
+- A consented production-traffic sample becomes available. It is a better FPR estimate than one inbox; add it as a
+  separate test set, not as a replacement for the gates.
 
 ## 13. Re-plan after the failed P2 gate (2026-11-11)
 
@@ -579,24 +614,30 @@ The failed gate sends the work down a different branch, so the remaining options
 
 | Option | What it buys | What it costs | Status |
 |---|---|---|---|
-| A. Get real modern ham into training | The only option that fixes the root cause: the model finally sees what modern legitimate mail looks like | Needs a corpus that is real, modern, licence-clean, and free of personal data. None exists today. The only real modern ham available is the owner's mailbox, which is evaluation-only by decision | Needs the owner's decision |
+| A. Get real modern ham into training | The only option that fixes the root cause: the model finally sees what modern legitimate mail looks like | Needs a corpus that is real and modern. No licence-clean public one exists today, so the source is the owner's personal mailbox, which makes the trained model personal-data-derived | **Chosen by the owner on 2026-11-11**, with a privacy constraint: no sensitive information or personal data may reach a committed artifact or the public deployment |
 | B. Synthetic modern augmentation | Cheap: the repository already generates synthetic mail. It would teach the model that authenticated modern mail is not automatically phishing | Synthetic mail cannot be evidence of real-world accuracy, and the published modern "spam/ham" datasets that claim realistic headers say on their own data card that they are generated | Rejected as a source of claims; possible as a labelled experiment |
 | C. Public mailing-list archives | Real modern mail with real authentication headers, free and no login | The traffic is human-to-human list mail, not marketing or notification mail, and it carries `List-*` headers that become their own artefact | Not attempted |
-| D. Keep the corpora model as a historical artefact and stop claiming modern-mail support | Honest, zero further work, and the strongest story for a viva: the pipeline, the reason engine, the security model and an honest evaluation with a measured failure | The product's headline metric stays a demo metric; no accuracy claim | **Recommended default** |
+| D. Keep the corpora model as a historical artefact and stop claiming modern-mail support | Honest, zero further work, and the strongest story for a viva: the pipeline, the reason engine, the security model and an honest evaluation with a measured failure | The product's headline metric stays a demo metric; no accuracy claim | Fallback if the option-A candidate fails the gates; the corpora model is not promoted either way |
 
 Searches run on 2026-11-11 that support the table: the SpamAssassin public corpus ends at `20050311` (the 2003
 archives are what the repository uses); the modern "spam/ham" datasets with 2024-2025 metadata describe themselves as
 generated, with no real emails; the public phishing datasets are pre-2008 research corpora or generated text.
 
-The decision itself belongs to the project owner (D1, D2 in section 10). The recommendation is D: keep the synthetic
-demo model in the deployment, keep the corpora model as a documented historical artefact, and do not publish any
-accuracy claim for modern mail.
-- The 29/70 band thresholds change. Every gate is threshold-specific; re-derive the gates before evaluating, and
-  never change a threshold to pass a gate.
-- A consented production-traffic sample becomes available. It is a better FPR estimate than one inbox; add it as a
-  separate test set, not as a replacement for the gates.
+**The decision (owner, 2026-11-11): option A.** The owner allows the personal Gmail Takeout mailbox to be used as a
+modern legitimate-mail training source. The constraint is privacy, not permission: no sensitive information or personal
+data may end up in committed artifacts or in the public deployment. Concretely, the trained model stays local
+(`backend/models/` is gitignored), it must not be baked into the Docker image or shipped to Render without a separate
+explicit decision, and reports and documentation may contain aggregate counts only, never message content, addresses,
+subjects or Message-IDs.
 
-## 13. How to reproduce
+The evaluation design that keeps the measurement honest is a temporal split on the mailbox itself: messages dated
+before 2024 may train the candidate, and 2024 and later are held out and never seen in training. A candidate that
+passes the gates on that holdout has demonstrated something the current model cannot.
+
+A personal-data-trained model must not be published to the public deployment. Until a candidate passes the P4 gates
+and the owner approves promotion, the synthetic demo model stays live (D1, D2 in section 10).
+
+## 14. How to reproduce
 
 All commands run from `backend/` on Windows PowerShell.
 
@@ -648,7 +689,7 @@ The harness defaults to `models` for `--model-dir` and to
 `data/raw/mailbox/All mail Including Spam and Trash.mbox` for `--mailbox`, so those flags can be omitted when
 running from `backend/`.
 
-## 14. Related documents
+## 15. Related documents
 
 - [17 - Real-corpus evaluation](17-real-corpus-evaluation.md): the grouped-split result and its caveats.
 - [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.

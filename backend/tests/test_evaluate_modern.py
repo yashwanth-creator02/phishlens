@@ -127,6 +127,15 @@ def test_guard_leakage_blocks_overlap_and_unknown_provenance():
     guard_leakage("clear", "xgboost-corpus-test", allow_overlap=False)
 
 
+def test_cli_date_reports_a_malformed_value_instead_of_crashing():
+    from training.evaluate_modern import _cli_date
+
+    assert _cli_date(None, "--phish-since") is None
+    assert _cli_date("2024-01-01", "--phish-since") == datetime(2024, 1, 1, tzinfo=timezone.utc)
+    with pytest.raises(SystemExit):
+        _cli_date("not-a-date", "--phish-since")
+
+
 def test_probability_summary_reports_the_threshold_shares():
     summary = probability_summary([0.05, 0.30, 0.60, 0.95])
 
@@ -138,6 +147,27 @@ def test_probability_summary_reports_the_threshold_shares():
 def test_default_window_keeps_the_newest_archive_as_holdout():
     assert DEFAULT_PHISH_SINCE == "2015-01-01"
     assert DEFAULT_PHISH_UNTIL == "2024-01-01"
+
+
+def test_phish_leakage_compares_archive_files_not_dates(tmp_path: Path):
+    from training.evaluate_modern import phish_leakage
+
+    train_dir = tmp_path / "train"
+    train_dir.mkdir()
+    (train_dir / "phishing-2023.mbox").write_text("")
+    eval_dir = tmp_path / "holdout"
+    eval_dir.mkdir()
+    (eval_dir / "phishing-2024.mbox").write_text("")
+
+    meta = {"training": {"phish_files": ["phishing-2023.mbox"], "phish_min_date": "1970-01-01T00:00:00+00:00",
+                          "phish_max_date": "2038-01-01T00:00:00+00:00"}}
+
+    status, overlap = phish_leakage(meta, str(eval_dir), None, None)
+    assert status == "clear" and overlap == []
+
+    meta["training"]["phish_files"] = ["phishing-2023.mbox", "phishing-2024.mbox"]
+    status, overlap = phish_leakage(meta, str(eval_dir), None, None)
+    assert status == "overlap" and overlap == ["phishing-2024.mbox"]
 
 
 def test_ham_leakage_is_distinct_for_a_different_mailbox_file(tmp_path: Path):

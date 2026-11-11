@@ -75,6 +75,16 @@ def _iter_raw(path: Path):
             continue
 
 
+def source_files(path: str | Path) -> list[str]:
+    """Names of the corpus files a loader would read from a directory, for split provenance."""
+    out = []
+    for f in sorted(Path(path).rglob("*")):
+        if f.is_dir() or f.name == "manifest.json" or f.suffix.lower() in _ARCHIVE_SUFFIXES:
+            continue
+        out.append(f.name)
+    return out
+
+
 def _gmail_labels(message) -> set[str]:
     """Label tokens of a Takeout message, normalised.
 
