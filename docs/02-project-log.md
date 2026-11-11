@@ -251,3 +251,29 @@ the synthetic demo.
 - **`docs/SUMMARY.md` added** as the three-minute read the other 20 docs cannot replace: the idea, the six pipeline
   steps, what is built, the numbers with their caveats, the demo-versus-real model distinction, what is not done,
   and a five-row reading guide. Linked from the root README and the docs index.
+
+## 2026-11-11 - Modern-mail evaluation: the corpora model fails on real inbox mail
+
+- **The corpora-trained model flags 99.9% of modern legitimate mail.** Scored against 2,216 received messages from a
+  real Gmail inbox (2020-2026, 133 sender domains, 87% with links, 99.7% with SPF): FPR 0.999 at probability 0.5
+  and at the LOW/MEDIUM boundary, 0.996 domain-macro, 95% CI 0.997-1.000, bands 2,202 HIGH / 12 MEDIUM / 2 LOW,
+  mean probability 0.996. On the clean 2015-2023 holdout (2,072 phishing messages it never trained on) recall is
+  0.994, so the model is neither blind nor weak on modern phishing; it is broken on modern legitimate mail.
+- **Three candidate causes were tested and rejected.** Auth-feature leakage: retraining without the 7
+  authentication features leaves FPR@0.29 at 0.971, and the 9-feature and header-group variants stay above 0.93.
+  Calibration: the uncalibrated probabilities already average 0.967 with 99.7% above 0.29, so only 0.18% of
+  messages cross the boundary because of calibration. Domain skew: the domain-macro rate (0.996) is as bad as the
+  message-level rate (0.999). The real cause is the training data - the only legitimate mail in it is SpamAssassin
+  2003, so the classifier has never seen a modern legitimate message. `docs/21-modern-corpus-evaluation-plan.md`
+  section 7.1 holds the ablation table and the feature-level comparison.
+- **The harness now enforces the temporal holdout rule.** `training.train` records the phishing date range and
+  sources it trained on in `meta["training"]`; `training/evaluate_modern.py` refuses to report a window the model
+  was trained on unless `--allow-training-overlap` is passed, defaults to the 2015-2024 window, and can score a
+  candidate with `--model`. `training.train` gained `--phish-until` (drop phishing dated on or after the cutoff and
+  undated phishing) and `--activate`, so an offline training run writes a candidate directory and never replaces
+  `models/active`; the four call sites that need promotion (Dockerfile, entrypoint.sh, both Makefiles) pass it.
+- **Consequence: the corpora model stays out of the live demo.** The synthetic demo model remains what Render
+  serves. `docs/18-open-manual-actions.md` now carries the decision the owner has to make (allow a modern ham
+  source for training, provide a licensed corpus, accept a synthetic-augmented model, or accept the honest
+  limitation) and the privacy cleanup of the mailbox-derived cache. Docs 15, 17, 19, SUMMARY, README and AGENTS.md
+  were updated to match. Suite: 67 passed, 1 skipped.

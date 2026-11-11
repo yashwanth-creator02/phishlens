@@ -18,6 +18,11 @@ starts instead of waiting on a cold-start training run. Shipping the corpora-tra
 change (copy the model in the Dockerfile, set `PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml`) - see
 `docs/19-teammate-training-guide.md` step 8, including the reason to think twice before doing it.
 
+**Do not ship the corpora-trained model.** Measured on 2,216 messages from a modern inbox it flags 99.9% of
+legitimate mail as phishing, because the only legitimate mail in the training corpora is SpamAssassin 2003. The
+evidence, and the alternatives that would make a corpora-trained model shippable, are in
+`docs/21-modern-corpus-evaluation-plan.md`. The synthetic demo model stays.
+
 1. Render -> **New -> Blueprint**, pick the repository, apply. Render reads `render.yaml`.
 2. When it asks for `PHISHLENS_DATABASE_URL`, paste the Supabase **Session pooler** URI. A bare `postgresql://`
    string is rewritten to `postgresql+psycopg://` at startup, so the Connect panel's copy-paste works unchanged. A raw

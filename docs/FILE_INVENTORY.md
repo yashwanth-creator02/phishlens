@@ -124,6 +124,7 @@ legitimate bank alert.
 | `18-open-manual-actions.md` | Dashboard/account steps that still need the user, with values and verification |
 | `19-teammate-training-guide.md` | Step-by-step corpora download, evaluation, training and promotion, with expected outputs and the header artefact caveat |
 | `20-model-parameters-and-features.md` | Canonical list of the 65 features, candidate hyperparameters, selection rule, calibration, bands and reason thresholds |
+| `21-modern-corpus-evaluation-plan.md` | Modern-mail evaluation plan and results: measured 99.9% FPR on a modern inbox, the auth-blind ablation that ruled out the obvious cause, promotion gates, and the open modelling decision |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |

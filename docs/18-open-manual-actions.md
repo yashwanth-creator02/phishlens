@@ -6,37 +6,67 @@ read. Each item states what to do, the exact values to paste, how to know it wor
 Rules for this file:
 
 - The agent keeps it current: an item is deleted the moment it is done, not marked complete.
-- Last reviewed: 2026-11-06.
+- Last reviewed: 2026-11-11.
 - If an item is blocked on the agent instead of you, it does not belong here; it belongs in the project log.
 
-## 1. Optional: send the demo through the real model (15 minutes, on your machine)
+## 1. Decide the modern-mail story (the only open modelling decision)
 
-**Why:** the Render service runs the synthetic demo model, so uploaded `.eml` files score against generated data, not
-the Nazario and SpamAssassin corpora your evaluation measured. Promoting the corpora-trained model into the image is
-the one remaining upgrade that changes what the live demo reports. The evaluation and the model already exist and are
-reproducible from `docs/19-teammate-training-guide.md`; this is the promote step.
+**Why:** the corpora-trained model was measured on 2,216 messages from your own inbox and flags **99.9%** of them
+as phishing (2,202 HIGH, 12 MEDIUM, 2 LOW). The cause is that the only legitimate mail in the training data is
+SpamAssassin 2003, which has no authentication headers at all, so the model reads "authenticated mail" as
+"phishing". Removing the authentication features does not fix it (measured: FPR@0.29 stays at 0.93-0.97 for every
+ablation variant). The full evidence is in [21](21-modern-corpus-evaluation-plan.md) section 7.1.
 
-Read the warning in step 7 of that guide first: on the corpora-trained model the two `legit_*.eml` demo samples
-score HIGH, because SpamAssassin's 2003 ham has no `Authentication-Results` headers while those samples do. Decide
-whether to accept that for the demo or keep the demo on the synthetic model.
+**Recommendation:** keep the synthetic demo model in the deployment, keep the corpora model as a documented
+historical artefact, and publish no accuracy claim for modern mail. That is honest, and it is the strongest story for
+a viva: a measured failure, its root cause, and the evidence that closing it needs data you do not have.
 
-**Steps**, in `backend/` with the venv from the README:
+**Your call, if you want the model to work on modern mail** - each option needs something only you can do:
+
+1. **Allow a modern legitimate-mail source for training.** The only real modern ham available is a mailbox export
+   like the Takeout file you already provided, which is currently evaluation-only. Say so explicitly and the
+   pipeline already knows how to read it. The risk to state in the report: the model would then be partly trained
+   on one person's mail.
+2. **Provide a public modern ham corpus** you have access to (a licensed export from a provider, a shared
+   research corpus). There is no free one: the SpamAssassin public corpus ends at 2005, and the modern
+   "spam/ham" datasets that claim realistic 2024-2025 headers state on their own data card that the mail is
+   generated, so they cannot be evidence of real-world accuracy.
+3. **Accept a synthetic-augmented model.** The repository can generate modern-looking legitimate mail and train on
+   it. It would stop the false alarms, but it cannot be used to claim accuracy, and it has to be labelled as such
+   everywhere.
+
+**Steps:** reply with the option you want, or with "recommendation". Nothing else is needed from you for the
+recommendation path.
+
+**Done when:** you have answered, and the agent updates [21](21-modern-corpus-evaluation-plan.md) section 13 and
+the risk list to match.
+
+## 2. Delete the mailbox-derived cache (2 minutes, on your machine)
+
+**Why:** the evaluation wrote matrices derived from your inbox into the working folder, and they are personal data.
+The raw export itself is at `backend/data/raw/mailbox/All mail Including Spam and Trash.mbox` and is gitignored, but
+it is still on disk.
+
+**Steps**, from the repository root:
 
 ```powershell
-python -m training.download_datasets       # pulls the five Nazario mboxes and two SpamAssassin tarballs
-python -m training.evaluate --out reports  # reproduces the 0.987 grouped F1 / 0.998 PR-AUC report
-python -m training.train --source corpus --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin --out models --reports reports
+Remove-Item -Recurse -Force .tmp\auth_cache
+Remove-Item -Force .tmp\auth_blind.out, .tmp\auth_blind.err
 ```
 
-Then make the two-part change from step 8 of the guide (copy the model in `backend/Dockerfile`, set
-`PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml`), commit the model and both files, and push: Render rebuilds on
-`main`, the image no longer trains the demo model at build time, and `/api/health` will name the promoted model.
-Paste in chat only the final model ID.
+Keep or delete `backend/data/raw/mailbox/All mail Including Spam and Trash.mbox` as you prefer; deleting it does not
+remove the aggregate numbers already written into the docs, because no message content was ever recorded there.
 
-**Done when:** the site shows scores from the corpora-trained model; tell the agent and it will verify `/api/health`
-names that model.
+**Done when:** tell the agent, and it verifies `git status --porcelain` shows no data or report artifact.
 
-## 2. Optional: restore push-to-deploy for the backend (2 minutes)
+## 3. Do not promote the corpora-trained model to the live demo (no action needed, for the record)
+
+This used to be item 1 in this list. It is not an action any more: promoting the corpus model would put a model that
+flags every legitimate message behind the live demo, so the recommendation is to leave the synthetic demo model in
+the image. If you later decide to promote anyway, the steps are in [19](19-teammate-training-guide.md) step 8, and
+the training command now needs `--activate`, which is explicit.
+
+## 4. Optional: restore push-to-deploy for the backend (2 minutes)
 
 **Why:** the `phishlens-api` service already has `autoDeploy = yes` and the `main` push rebuilt it once; this is now
 just housekeeping. The one thing it cannot do is the first step, which is already done.
@@ -46,7 +76,7 @@ just housekeeping. The one thing it cannot do is the first step, which is alread
 
 **Done when:** a push to `main` produces a new Render build on its own (it already does).
 
-## 3. Fallback if Render ever refuses you
+## 5. Fallback if Render ever refuses you
 
 If Render asks for a card or blocks the account, say so and the agent will instead expose the local backend through a
 cloudflared quick tunnel for the demo. Trade-off: the URL changes on every restart, exists only while your machine and

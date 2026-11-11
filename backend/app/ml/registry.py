@@ -51,6 +51,28 @@ _lock = threading.Lock()
 _cache: dict[str, tuple[float, ModelBundle]] = {}
 
 
+def load_model_dir(d: Path) -> ModelBundle:
+    """Load a model directory that holds meta.json.
+
+    Works for the active model and for a candidate model directory written by training/train.py,
+    so a candidate can be evaluated before it is promoted.
+    """
+    d = Path(d)
+    meta_path = d / "meta.json"
+    if not meta_path.exists():
+        raise ModelNotAvailable(
+            f"No trained model found in {d}. Run `make train-demo` (synthetic data) or training/train.py.")
+    meta = json.loads(meta_path.read_text())
+    if meta["feature_names"] != FEATURE_NAMES:
+        raise ModelNotAvailable(
+            "The model was trained with a different feature set than the running code "
+            "(train/serve skew). Retrain the model.")
+    model = joblib.load(d / "model.joblib")
+    cal = joblib.load(d / "calibrator.joblib") if (d / "calibrator.joblib").exists() else None
+    bg = np.load(d / "background.npy") if (d / "background.npy").exists() else None
+    return ModelBundle(model=model, calibrator=cal, meta=meta, background=bg)
+
+
 def load_active(model_dir: Path) -> ModelBundle:
     d = Path(model_dir) / "active"
     meta_path = d / "meta.json"
@@ -62,15 +84,7 @@ def load_active(model_dir: Path) -> ModelBundle:
         hit = _cache.get(str(d))
         if hit and hit[0] == mtime:
             return hit[1]
-        meta = json.loads(meta_path.read_text())
-        if meta["feature_names"] != FEATURE_NAMES:
-            raise ModelNotAvailable(
-                "The model was trained with a different feature set than the running code "
-                "(train/serve skew). Retrain the model.")
-        model = joblib.load(d / "model.joblib")
-        cal = joblib.load(d / "calibrator.joblib") if (d / "calibrator.joblib").exists() else None
-        bg = np.load(d / "background.npy") if (d / "background.npy").exists() else None
-        bundle = ModelBundle(model=model, calibrator=cal, meta=meta, background=bg)
+        bundle = load_model_dir(d)
         _cache[str(d)] = (mtime, bundle)
         return bundle
 

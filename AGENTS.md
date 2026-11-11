@@ -7,7 +7,9 @@ PhishLens is an explainable phishing-triage prototype. A user forwards a suspici
 Status: v0.2 working skeleton. The extractor is 65 features and a corpora-trained XGBoost model
 (`xgboost-corpus-20261110-s7`, calibrated held-out F1 macro 0.978, PR-AUC 0.986) exists in the gitignored
 `backend/models/active/`. The Docker image and Render still bake the synthetic demo model, so the public deployment
-remains a pipeline demo. Neither model's metrics are evidence of real-world phishing detection.
+remains a pipeline demo. Neither model's metrics are evidence of real-world phishing detection: measured on 2,216
+messages from a modern inbox, the corpora-trained model flags 99.9% of legitimate mail as phishing, so it stays out
+of the deployment (see `docs/21-modern-corpus-evaluation-plan.md`).
 
 ## Stack
 
@@ -22,7 +24,7 @@ remains a pipeline demo. Neither model's metrics are evidence of real-world phis
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (52 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (67 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
@@ -103,6 +105,9 @@ From the repository root on Windows:
 # Train on a real corpus
 python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir C:\data\spamassassin_ham --out models
 
+# Score a model on modern mail (evaluation only; never writes a model)
+python -m training.evaluate_modern --model-dir models --phish-dir data/raw/nazario --out reports/modern
+
 # Run the suite
 python -m pytest -q
 
@@ -148,14 +153,19 @@ Also upload at least one sample email through the UI or API and confirm a scored
 
 - Real-corpus evaluation is measured on 2003-2007 research corpora with one grouped split and no confidence interval
   (grouped F1 0.948, PR-AUC 0.990; see `docs/17-real-corpus-evaluation.md`). It does not validate the shipped model.
+- The corpora-trained model **does not work on modern legitimate mail**: FPR 0.999 on 2,216 received messages from a
+  real 2020-2026 inbox, and removing the era features does not fix it. Cause, ablation and options are in
+  `docs/21-modern-corpus-evaluation-plan.md`; do not promote that model and do not quote an accuracy claim for
+  modern mail.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
   filter silently drops every legitimate sample.
 - Docker Compose has not been exercised in this environment.
-- The frontend is deployed on Vercel (https://phishlens-gules.vercel.app) and the Supabase schema is applied to project
-  `vmbtdrmevlovvvfvtqmd`, but the backend is not deployed anywhere: there is no `VITE_API_BASE_URL`, so the live UI can
-  sign in and render but every API call fails. Vercel pushes do not auto-deploy (the GitHub App lacks repo access).
+- The frontend is live on Vercel (https://phishlens-gules.vercel.app) with `VITE_API_BASE_URL` pointing at the Render
+  backend, and the backend is live on Render (`phishlens-api`, https://phishlens-api-6esn.onrender.com). Both
+  auto-deploy on a push to `main`. The deployed backend serves the **synthetic** demo model, deliberately: the
+  corpora-trained model would flag every legitimate message.
 - Hugging Face hosting is ruled out: Docker Spaces need a paid plan and free ZeroGPU Spaces need a 30-day-old account
   (HTTP 402 on both). The backend target is now Render's free Docker web service via `render.yaml` (512 MB, 0.1 CPU,
   sleeps after 15 idle minutes). Peak RSS for one demo analysis measured ~257 MB locally.

@@ -1,0 +1,661 @@
+# 21 - Modern corpus evaluation plan
+
+**Last updated:** 2026-11-11
+**Status:** P0, P1 and P2 complete. P2 failed its gates, so H1 is rejected as sufficient and P3-P5 are blocked.
+**Harness:** `backend/training/evaluate_modern.py`
+**Decision owner:** project owner for promotion and privacy; see section 10
+
+This is a decision plan, not a results report. The only measured figures are the baseline in section 4, the P2
+ablation in section 7.1, and the artifacts they cite. Every gate is a target, not a result.
+
+**Outcome so far:** the active model cannot be repaired by removing features. No ablation variant comes close to the
+FPR gates, so nothing is promoted; the corpora-trained model stays out of the live demo. The binding constraint is
+the absence of modern legitimate mail in the training data, and no free public corpus with real authentication
+headers exists. See sections 7.1 and 12.
+
+## 1. Purpose and scope
+
+The active model (`xgboost-corpus-20261110-s7`, 65 features, isotonic calibration) scores almost every legitimate
+message in a modern Gmail mailbox as phishing: FPR 0.999 at probability 0.5 and at the LOW/MEDIUM boundary, over
+2,216 ham messages. The purpose of this plan is to decide, on evidence, whether a model can be made usable on modern
+mail, and to define the gates that must pass before any such model is promoted.
+
+In scope:
+
+- A clean, leakage-free baseline of the active model on modern ham.
+- A diagnosis of why the model fails, starting with era-feature leakage.
+- A bounded set of candidate fixes (feature ablation, retraining, calibration) measured against fixed gates.
+- A promotion, stop, or re-plan decision, with the documentation and privacy work that follows either way.
+
+Out of scope:
+
+- A production-accuracy claim. One inbox is not a population.
+- Measuring phishing recall in the inbox. Gmail already filtered it; received mail is ham by construction.
+- Tuning the 29/70 band thresholds to make the numbers pass. Thresholds are product behavior; gates are defined at
+  the current values.
+- Any use of mailbox content for training, model selection, calibration, or committed artifacts.
+
+Success is one of two outcomes: a candidate that passes every P4 gate and is promoted with approval, or a documented
+decision not to ship a modern-mail claim, with the failure mode and the next evidence requirement recorded.
+
+## 2. What this evaluation can and cannot prove
+
+| Question | Can this evaluation answer it? | Why |
+|---|---|---|
+| Does the active model over-flag modern legitimate mail? | Yes, directionally | 2,216 received messages, same extractor as serving, FPR 0.999. The effect is far too large to be sampling noise. |
+| Is the failure caused by era features such as authentication presence? | Yes, by ablation | The P2 variants remove the suspect features and re-measure; the comparison isolates their contribution. |
+| Will a fixed model work on modern mail in general? | No | One inbox, one provider, one person, one point in time. Domain-macro FPR and a CI bound the optimism but do not remove it. |
+| Will it catch modern phishing? | Partly | Held-out Nazario 2015-2023 is clean for the active model, but it is still a research corpus, not live traffic. |
+| Is the 2024-2025 phishing recall real? | No | The active model trained on those years. That number is in-sample and must not be quoted as generalization. |
+| Is the false-positive rate acceptable in production? | No | A mailbox is a convenience sample with heavy sender skew; production needs traffic or a multi-user consented sample. |
+
+Two consequences follow. A pass is a floor, not a certification: it says the model is no longer obviously broken on
+one modern inbox. A fail is conclusive enough to block promotion, because the observed failure is not marginal.
+
+## 3. Privacy boundary
+
+The mailbox is personal data and evaluation-only.
+
+- Path: `backend/data/raw/mailbox/All mail Including Spam and Trash.mbox` (148 MB). `backend/data/raw/` is
+  gitignored, so the file is not tracked.
+- `corpus.load_mailbox` filters `X-Gmail-Labels` for Spam, Trash, Sent, Drafts, and Chat. Only received mail is
+  loaded.
+- The mailbox must never be used for training, model selection, calibration, threshold tuning, or a committed
+  artifact. It is a test set.
+- Do not print message bodies, subjects, addresses, or Message-IDs in reports, logs, notebooks, or chat. Reports
+  contain aggregate counts, rates, and sender domains only.
+- Derived matrices in `.tmp/auth_cache/*.npz` are also personal-data derivatives. Delete them at P6.
+- The mailbox owner is the data controller. Retention, deletion, and any change of use require their explicit
+  approval; see D4.
+
+If the owner withdraws consent, stop the evaluation, delete derived artifacts, and keep only aggregate numbers
+already approved for publication.
+
+## 4. Baseline data profile
+
+Measured with the active model and the current harness:
+
+| Item | Value |
+|---|---|
+| Mailbox file | `backend/data/raw/mailbox/All mail Including Spam and Trash.mbox`, 148 MB |
+| Loaded messages | 2,216 |
+| Scored messages | 2,216 |
+| Date range | 2020-10-21 to 2026-09-12 |
+| SPF present | 2,210 (99.7%) |
+| DKIM present | 2,205 (99.5%) |
+| DMARC present | 1,985 (89.6%) |
+| Messages with at least one link | 1,929 (87.0%) |
+| FPR at probability 0.5 | 0.999 |
+| FPR at the LOW/MEDIUM boundary (reported as 0.29) | 0.999 |
+| FPR at the boundary, domain-macro | 0.996 |
+| 95% CI (pooled, cluster bootstrap over sender domains) | 0.997 - 1.000 |
+| Sender domains | 133 |
+| Largest single sender | 701 messages (31.6%) |
+| Next three senders | 180, 122, 96 |
+| Top four sender domains | about 50% of the scored mailbox |
+
+`backend/reports/modern-holdout/evaluation.md` records 2,202 HIGH, 12 MEDIUM, and 2 LOW, so 2,214 of 2,216 cross the
+band boundary. The two remaining messages are the only legitimate ones the model does not flag.
+
+Reconciliation note: an earlier count of 2,220 loaded came from a loader state without body-hash deduplication. The
+current loader deduplicates by raw hash, Message-ID and body hash and yields 2,216 loaded and scored, which is the
+number to quote. The date range above is the one the current harness reports.
+
+## 5. Why domain-macro FPR and a bootstrap CI
+
+A message-level FPR of 0.999 is already unambiguous, but the next model will be judged near 0.05, where the
+denominator and the sender mix matter.
+
+- **Domain skew.** One sender domain is 32% of the mailbox and the top four are about half. A message-level rate is
+  mostly a rate over those domains. If a candidate fixes the top domain and leaves the rest broken, the
+  message-level number improves while the experience for every other sender does not.
+- **Domain-macro FPR.** Compute FPR per sender domain, then average the per-domain rates with equal weight. This
+  answers "on a typical sender domain, how often is legitimate mail flagged?" and stops the largest domain from
+  setting the headline.
+- **Cluster bootstrap.** Resample sender domains with replacement, 1,000 times, seed 7, and report the 2.5th and
+  97.5th percentiles of the domain-macro rate. Messages inside a domain are correlated, so a message-level interval
+  would be too narrow. The interval is a stability check on one inbox, not a population interval.
+
+The macro average is sensitive to small domains: a domain with one message contributes a 0.0 or 1.0 rate with the
+same weight as a domain with 701. Report the number of domains and the share of messages in domains with fewer than
+five messages. Do not silently drop small domains; if a minimum is applied, state it and the excluded count.
+
+One definition: the LOW/MEDIUM boundary is `score > 29`, and `to_score` rounds `100 * p`. This plan reports that
+boundary as FPR@0.29. P0 records both the probability threshold and the band boundary so the two cannot drift apart.
+
+## 6. Leakage analysis
+
+The active model's modern-phish recall is contaminated.
+
+- `backend/models/active/meta.json` names `xgboost-corpus-20261110-s7`; the training corpus includes Nazario
+  `phishing-2024` and `phishing-2025`.
+- `backend/reports/modern/evaluation.json` scores 787 phish messages from 2024-01-01 to 2026-01-01 and reports
+  recall 0.999. The model trained on 2024 and 2025. That 0.999 is memorization of campaigns it already saw, not
+  generalization.
+- The clean modern-phish window for this model is 2015-2023: nine years it never trained on. That is the only
+  modern-phish recall this plan may use as evidence.
+- The same logic applies to any future retrain. If a new model trains on 2024-2025, those years stop being a test
+  set.
+
+| Window | Role for the active model | Role for a P3 candidate |
+|---|---|---|
+| Pre-2015 (`phishing0`, `phishing1`, `phishing2`) | Training (already seen) | Training only |
+| 2015-2023 | Unseen; clean modern-phish test | Unseen; clean modern-phish test |
+| 2024-2025 | Seen; in-sample, do not quote | Unseen if the candidate trains on pre-2015 only |
+| Mailbox 2020-2026 | Ham test only | Ham test only |
+
+**Temporal holdout rule.** Adopt this for every future model:
+
+1. Choose a cutoff date before training. Everything before it may train; everything after it is test.
+2. Never train on a message dated on or after the cutoff, including through a near-duplicate campaign.
+3. Record the cutoff, the source files, and the message counts in `meta.json` and the training report.
+4. Deduplicate by raw hash, Message-ID, and body hash before splitting; a campaign copied into two files is still
+   one campaign.
+5. If a new corpus arrives, assign it to train or test by date first, not by convenience.
+6. Evaluate on the same fixed test windows across runs so results stay comparable.
+
+For the current work the cutoff is 2015-01-01: pre-2015 trains, 2015-2023 tests. The 2024-2025 archive is an
+additional unseen window only if the candidate does not train on it.
+
+## 7. Hypotheses
+
+| ID | Hypothesis | Why it is plausible | Evidence that confirms it | Evidence that rejects it | Status |
+|---|---|---|---|---|---|
+| H1 | Era-feature leakage is the primary cause. The model learned "authentication missing" as legitimate because 2003 SpamAssassin ham has `auth_missing=1` on nearly 100% of messages, while only about 1.1% of modern Nazario phishing does. On modern mail, legitimate messages pass authentication, so they land in the phishing region. | The inversion is measured in [19](19-teammate-training-guide.md) and [15](15-risks-and-limitations.md); related era features are `from_returnpath_mismatch` and `http_only`. | A P2 variant that removes the 7 authentication features, or the 9 era features, cuts modern FPR to the P4 gates while held-out 2015-2023 recall stays at or above 0.90 and historical grouped macro-F1 stays at or above 0.95. | FPR stays above the gates after ablation, or recall/F1 collapses, or the full model and the ablated model rank modern ham similarly. | Rejected as sufficient (measured 2026-11-11, section 7.1): dropping the 7 authentication features leaves FPR@0.29 at 0.971, and the 9-feature and header-group variants stay above 0.93. The inversion is real but it is not the cause. |
+| H2 | Calibration is a secondary contributor. The calibrated probability, not the ranking, pushes scores over 0.29. | Isotonic calibration is monotone, so it cannot create separation; it can only move the threshold crossing. If raw scores are mostly below 0.29 and calibrated scores are above, recalibration is a partial fix. | Raw and calibrated distributions differ at the 0.29 boundary for the same messages; refitting the calibrator on era-matched data reduces FPR without a recall loss. | Raw probabilities are already near 1.0 for the same messages; recalibration changes almost nothing. | Rejected (measured 2026-11-11): on the 2,216 mailbox messages the uncalibrated probabilities average 0.967 and 99.7% are already above 0.29; calibration moves only 0.18% of messages across the boundary. |
+| H3 | Domain skew distorts the headline. A few high-volume senders dominate the message-level FPR. | the largest sender is 32% of the mailbox; the top four domains are about half. | Domain-macro FPR is materially lower than message-level FPR, and the failures concentrate in a small number of domains. | Domain-macro FPR is close to the message-level rate; failures are spread across domains. | Rejected (measured): domain-macro FPR@0.29 is 0.996 against a message-level 0.999, and the ten worst sender domains are each at 1.000. The failures are spread, not concentrated. |
+
+H1 is the primary hypothesis because the feature statistics invert between the training era and modern mail. H2 and
+H3 are checked so that a fix is not credited to the wrong cause. A fourth possibility, a pipeline or labeling bug, is
+covered by P0 and is not treated as a hypothesis.
+
+The 7-feature mask drops pass, fail, and missing together. The era signal is the joint distribution of all of them,
+not one column. The 9-feature mask adds `from_returnpath_mismatch` and `http_only`.
+
+### 7.1 P2 result - the ablation, measured
+
+The diagnostic is `.tmp/auth_blind_experiment.py`; it trains on pre-2015 Nazario phishing plus SpamAssassin ham
+(633 `spamassassin.taint.org` messages excluded, grouped split by campaign host and sender domain, seed 7), holds out
+2015-2023 and 2024-2025 phishing, and scores the same mailbox with the same 65-feature extractor. It writes only into
+`.tmp/auth_cache`; the variant models are never copied to `models/active`.
+
+| Variant | Historical macro-F1 | Mailbox FPR@0.5 | Mailbox FPR@0.29 | 2015-2023 recall@0.29 | 2024-2025 recall@0.29 |
+|---|---:|---:|---:|---:|---:|
+| `full_65` (no drop) | 0.935 | 0.964 | 0.967 | 0.924 | 0.901 |
+| `no_auth_7` | 0.930 | 0.968 | 0.971 | 0.930 | 0.913 |
+| `no_auth_mismatch_8` | 0.954 | 0.929 | 0.938 | 0.885 | 0.863 |
+| `no_auth_era_9` | 0.928 | 0.968 | 0.971 | 0.927 | 0.903 |
+| `no_header_group` (ceiling test) | 0.905 | 0.866 | 0.955 | 0.959 | 0.975 |
+
+Gate comparison for the P2 pass criteria: mailbox FPR@0.5 <= 0.05, FPR@0.29 <= 0.12, 2015-2023 recall@0.29 >= 0.90,
+historical grouped macro-F1 >= 0.95.
+
+- **FPR gate: failed by every variant.** The best variant reaches 0.938 against a gate of 0.12, roughly eight times
+  the limit. Dropping all seven authentication features does not move it (0.971); dropping the whole header group
+  (which also removes genuine signals such as `received_hops` and reply-to mismatch) still leaves 0.955.
+- **Recall gate: met by four of five variants**, so the failure is not a blind model. `no_auth_mismatch_8` keeps
+  0.885, which is the only recall regression, and it buys the smallest FPR improvement of any variant.
+- **Historical macro-F1 >= 0.95: met by `no_auth_mismatch_8` only** (0.954), and only because it trades recall.
+- **Brier was not computed per variant** in this run, so that gate is unmeasured rather than failed. The macro-FPR
+  gate is likewise unmeasured per variant; the harness computes it for the served path (section 7.2).
+
+**Verdict: the P2 gate is failed, therefore H1 is rejected as stated.** Authentication-header leakage is real and
+measurable in the feature statistics, but it is not the cause of the failure. The diagnosis from the same run is
+that modern legitimate mail differs from 2003 ham on many features at once, not only on the authentication columns.
+Measured on 40 messages per class with the active model:
+
+| Feature | 2003 SpamAssassin ham | Modern mailbox ham | Nazario phishing 2015-2023 |
+|---|---:|---:|---:|
+| `spf_pass` | 0.00 | 0.98 | 0.00 |
+| `dkim_pass` | 0.00 | 0.98 | 0.05 |
+| `dmarc_pass` | 0.00 | 0.98 | 0.00 |
+| `auth_missing` | 1.00 | 0.03 | 0.10 |
+| `http_only` | 0.93 | 0.10 | 0.80 |
+| `from_returnpath_mismatch` | 0.65 | 0.15 | 0.43 |
+| `requests_click` | 0.00 | 0.55 | 0.75 |
+| `max_url_length` | 0.16 | 0.86 | 0.39 |
+| `subject_reply_without_history` | 0.55 | 0.00 | 0.08 |
+
+The classifier has never seen a message that looks like a modern legitimate message, so "modern legitimate" is not
+a region it can represent. The remedy is data, not a mask: modern legitimate mail has to be in the training set,
+and the one mailbox available here is evaluation-only by the owner's decision (section 3).
+
+Two more measurements close the diagnosis:
+
+- **The model is not blind.** On the clean 2015-2023 holdout (2,072 phishing messages it never trained on) recall at
+  the LOW/MEDIUM boundary is 0.994. The combined macro-F1 over that window plus the 2,216 legitimate messages is
+  0.649, and every point of the shortfall is the legitimate side.
+- **Calibration is not the cause.** On the same 2,216 legitimate messages the uncalibrated probabilities average
+  0.967, 99.7% of them are already above 0.29, and only 0.18% cross the boundary because of calibration. The ranking
+  itself places modern legitimate mail in the phishing region, so refitting the calibrator cannot fix it.
+
+### 7.2 What is now built into the harness
+
+P0 items that are implemented, with tests in `backend/tests/test_evaluate_modern.py`:
+
+- Domain-macro FPR with a cluster bootstrap over sender domains (1,000 resamples, seed 7) and the number of
+  sender domains plus the largest domain share, so a headline rate cannot hide behind one dominant sender.
+- A leakage guard. `training.train` now records the phishing date range it trained on in `meta["training"]`; the
+  harness reads it and refuses to report a window the model was trained on, unless `--allow-training-overlap` is
+  passed. The default window is 2015-01-01 to 2024-01-01, which keeps the 2024-2025 archives as a holdout.
+- `--model` points the harness at a candidate model directory, so a candidate is scored before it is promoted.
+- `--activate` gates promotion in `training.train`. Without it, a training run writes a candidate directory and
+  leaves `models/active` untouched, so an offline run cannot replace the serving model.
+
+Two P0 items are still open: the harness does not record raw and calibrated probabilities side by side (H2 was
+answered once with a separate script, `.tmp/h2_calibration_check.py`, and the harness should carry it), and the
+cross-split overlap check is not implemented (the corpus loader already deduplicates by raw hash, Message-ID and
+body hash, which covers the common case).
+
+## 8. Plan phases
+
+### P0 - Loaders, metrics, and tests
+
+**Question:** is the measurement trustworthy before it is used to decide anything?
+
+Work:
+
+- Add domain-macro FPR to `backend/training/evaluate_modern.py`, computed from the existing `legit-mailbox-<domain>`
+  groups, with per-domain totals beside it.
+- Add a cluster bootstrap over sender domains (1,000 resamples, seed 7, 2.5/97.5 percentiles) for the domain-macro
+  rate.
+- Record raw and calibrated probabilities separately, so H2 can be tested. The harness currently writes only
+  calibrated values.
+- Record the role of each phish window in the report (`clean_holdout`, `in_sample`, `train`) instead of relying on a
+  filename.
+- Fail loudly when `--phish-dir` exists but yields zero in-window messages. Today the phish block is silently
+  omitted, which produces a ham-only report that looks successful.
+- Account for the 2,220 loaded vs 2,216 scored gap and record the reason.
+- Add a cross-split overlap check: no raw SHA-256, Message-ID, or body hash may appear in both a training split and a
+  test split. Report the overlap count for train-old vs 2015-2023 and vs 2024-2025.
+- Add tests in `backend/tests/test_evaluate_modern.py` using synthetic arrays only: domain-macro math, bootstrap
+  determinism and interval shape, zero-in-window behavior, raw/calibrated fields. Do not put mailbox content in a
+  test fixture. Keep `backend/tests/test_corpus_loading.py` green; it protects the extensionless-file and
+  Gmail-label filters.
+
+Command:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest tests\test_evaluate_modern.py tests\test_corpus_loading.py -q
+```
+
+Outputs: updated harness and tests; a report schema that contains `n`, `fpr_at_0_5`, `fpr_at_0_29`,
+`domain_macro_fpr_at_0_29`, `domain_macro_ci`, `raw_probability_summary`, `window_role`.
+
+Pass gate:
+
+- Tests green.
+- A report from a known input carries every field above.
+- The cross-split overlap count is 0 for both windows; any nonzero value is reported and resolved before P1.
+- No raw mail, address, or body text in the report or the tests.
+
+### P1 - Clean baseline
+
+**Question:** what does the active model actually do on modern ham and on the clean 2015-2023 phish window?
+
+Commands, from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -m training.evaluate_modern `
+  --model-dir models `
+  --phish-dir ..\.tmp\nazario-test-2015-2023 `
+  --phish-since 2015-01-01 --phish-until 2024-01-01 `
+  --out reports\modern-holdout
+
+.\.venv\Scripts\python.exe -m training.evaluate_modern `
+  --model-dir models `
+  --phish-dir ..\.tmp\nazario-test-2024-2025 `
+  --phish-since 2024-01-01 --phish-until 2026-01-01 `
+  --out reports\modern-insample
+```
+
+The second run is labeled in-sample on purpose. Its recall is not evidence; it exists to show the size of the
+leakage.
+
+Outputs: `backend/reports/modern-holdout/evaluation.{json,md}` and
+`backend/reports/modern-insample/evaluation.{json,md}`. Both are gitignored.
+
+Pass gate:
+
+- The mailbox count and FPR reproduce the section 4 baseline within rounding.
+- The clean 2015-2023 recall is recorded with `window_role: clean_holdout`.
+- Domain-macro FPR and its interval are present.
+- The in-sample run is marked as such.
+- No threshold is changed in this phase. The baseline is expected to fail the P4 FPR gates; that is the finding, not
+  a reason to tune.
+
+### P2 - Auth-blind ablation
+
+**Question:** does removing the suspect features fix the FPR, and at what recall cost?
+
+The diagnostic exists at `.tmp/auth_blind_experiment.py`. It trains on pre-2015 phishing plus SpamAssassin ham,
+holds out 2015-2023 and 2024-2025, and compares variants: `full_65`, `no_auth_7`, `no_auth_mismatch_8`,
+`no_auth_era_9`, and `no_header_group`. **It was run on 2026-11-11; the measured table and the verdict are in
+section 7.1.**
+
+Run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe ..\.tmp\auth_blind_experiment.py
+```
+
+Before treating the output as evidence:
+
+- Add a Brier score per variant. The script's `bootstrap_fpr` already resamples sender-domain clusters, but it
+  pools messages inside each resample, so it intervals the message-level rate. Add a separate domain-macro FPR and
+  its interval; the two answer different questions (section 5).
+- Confirm the historical split is grouped by campaign and sender domain, and that the taint exclusion is applied.
+- Confirm the variant model is never written to `models/active`.
+- Treat `no_header_group` as a ceiling test, not a candidate. It removes genuine header signals such as
+  `received_hops` and reply-to mismatch.
+- Delete the cache after the run; it contains personal-mail-derived matrices.
+
+Done on 2026-11-11: the split is grouped by campaign host and sender domain, the 633 taint messages are excluded, and
+no variant is written outside `.tmp/auth_cache`. Brier per variant and the per-variant domain-macro interval were
+not added; both are open.
+
+Pass gate for the diagnosis:
+
+- At least one variant reaches modern FPR@0.5 <= 0.05, FPR@0.29 <= 0.12, and domain-macro FPR@0.29 <= 0.10 on the
+  mailbox.
+- The same variant keeps held-out 2015-2023 recall@0.29 >= 0.90.
+- Its historical grouped macro-F1 is >= 0.95 and Brier <= 0.02.
+- If no variant reaches all of these, H1 is not sufficient as stated. Stop and re-plan; do not promote.
+
+**Gate result: failed.** No variant is within an order of magnitude of the FPR limits (section 7.1). Per the last
+bullet, P3 does not start and nothing is promoted. The re-plan is in section 12.
+
+### P3 - Retrain and calibrate a candidate
+
+**Question:** can the winning variant become a model that the serving code can actually load?
+
+Train on pre-2015 only, with the winning mask, into a scratch model directory:
+
+```powershell
+.\.venv\Scripts\python.exe -m training.train `
+  --source corpus `
+  --phish-dir ..\.tmp\nazario-train-old `
+  --legit-dir data\raw\spamassassin `
+  --drop-features spf_pass,spf_fail,dkim_pass,dkim_fail,dmarc_pass,dmarc_fail,auth_missing,from_returnpath_mismatch,http_only `
+  --out models\candidate-era-blind `
+  --reports reports\candidate-era-blind
+```
+
+`--drop-features` does not exist yet. P3 adds it, or applies the mask in a reviewed scratch script. The command
+shows the 9-feature variant; substitute the exact P2 winner. Do not add or remove a feature after seeing the modern
+result.
+
+**Shippability constraint.** `app/ml/registry.py` rejects a model whose `meta["feature_names"]` differs from the live
+`FEATURE_NAMES`. A training-only drop therefore cannot be served. P3 must choose one honest path:
+
+- Preferred: keep all 65 names and neutralize the era features to documented constants in a versioned serving
+  transform, recorded in `meta.json` as a feature mode. The model, the SHAP background, and the serving vector then
+  live in the same space.
+- Alternative: reduce `FEATURE_NAMES` itself and update the extractor, tests, SHAP, and docs in one change. This
+  removes the authentication signal for every future model and is not reversible without another retrain.
+
+A diagnostic drop that is never served is acceptable in P2. It is not acceptable in P3.
+
+Calibration:
+
+- Default: fit isotonic on the historical validation split, as `training.train` already does.
+- Do not fit the calibrator on the evaluation mailbox. A model tuned to one inbox is not a general model, and
+  calibrating on the gate slice leaks the test.
+- If H2 is confirmed and a calibration change is still wanted, calibrate on a public modern ham corpus, or split
+  the mailbox by time with pre-2024 for calibration and 2024+ for the gate. The second option is a last resort and
+  must be documented as a one-inbox fit.
+
+Outputs: `backend/models/candidate-era-blind/<tag>/` and `.../active/`,
+`backend/reports/candidate-era-blind/training_report.{json,md}`. The scratch model directory is gitignored.
+
+Pass gate:
+
+- Training completes with 65 names (preferred path) or the reduced set (alternative path), and the registry loads it.
+- The candidate's saved metadata records the cutoff, the source files, the feature mode, and the mask.
+- The historical test metrics are written before any modern test is run.
+
+### P4 - Candidate gates
+
+**Question:** does the candidate pass every gate at once?
+
+Run the harness against the candidate, not the active model:
+
+```powershell
+.\.venv\Scripts\python.exe -m training.evaluate_modern `
+  --model-dir models\candidate-era-blind `
+  --phish-dir ..\.tmp\nazario-test-2015-2023 `
+  --phish-since 2015-01-01 --phish-until 2024-01-01 `
+  --out reports\candidate-era-blind\modern
+```
+
+Numeric gates, all mandatory:
+
+| Gate | Threshold | Measured on |
+|---|---|---|
+| Usable ham | >= 1,500 messages | Mailbox, after filtering |
+| Modern FPR@0.5 | <= 0.05 | Mailbox ham |
+| Modern FPR@0.29 | <= 0.12 | Mailbox ham |
+| Modern domain-macro FPR@0.29 | <= 0.10 | Mailbox ham, equal domain weight |
+| Held-out modern-phish recall@0.29 | >= 0.90 | Nazario 2015-2023 |
+| Historical grouped macro-F1 | >= 0.95 | Pre-2015 phish + SpamAssassin ham, P3 training report |
+| Brier | <= 0.02 | Historical calibrated test, P3 training report |
+| Demo samples | `legit_*.eml` score <= 29 | API or direct scoring |
+| Backend tests | All pass | `python -m pytest -q` |
+
+The sample check, from `backend/` with the candidate as the model directory:
+
+```powershell
+$env:PHISHLENS_MODEL_DIR = "models\candidate-era-blind"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8001
+curl.exe -X POST http://localhost:8001/api/analyses/upload `
+  -F "file=@data/sample_emails/legit_newsletter.eml"
+curl.exe -X POST http://localhost:8001/api/analyses/upload `
+  -F "file=@data/sample_emails/legit_bank_alert.eml"
+```
+
+Check the `score` field, not the band alone. Stop the server and release the port afterwards. If the API path is
+inconvenient, score the two files directly through the same extractor and registry; do not bypass either. These are
+demo files, not evidence about real mail; they are a smoke test that the era inversion is gone.
+
+Pass gate: every row passes in the same run. A partial pass is a fail.
+
+### P5 - Promote or stop
+
+If every P4 gate passes:
+
+- Present the baseline, the P2 table, and the P4 table together. The comparison is the evidence, not the
+  candidate's headline FPR alone.
+- Ask the project owner for explicit approval to promote. This plan does not authorize a merge or a deployment.
+- Promote by retraining with `--out models` using the same seed and data, or by copying the candidate tag to
+  `models/active`. The previous tag stays under `models/` as the rollback.
+- Update the Docker and Render path only if the deployment is in scope; see [19](19-teammate-training-guide.md).
+- Verify `/api/health` reports the new `version_tag` and `model_loaded: true`.
+
+If any gate fails:
+
+- Do not promote, do not lower a threshold, and do not re-run variants until one passes. That is gate shopping.
+- Record the failing gate, the observed value, and the closest variant in the decision log.
+- Choose the next evidence: a public modern ham corpus, a new feature, or a decision to stop claiming modern-mail
+  support.
+
+### P6 - Documentation and privacy cleanup
+
+Documentation:
+
+- Update [15](15-risks-and-limitations.md) with the measured modern FPR and the outcome.
+- Update [17](17-real-corpus-evaluation.md) with the in-sample warning and the temporal holdout rule.
+- Update [20](20-model-parameters-and-features.md) if the feature mode or the feature set changes.
+- Update [19](19-teammate-training-guide.md) so the documented training command matches the served feature mode.
+- Add this page to [README.md](README.md) and [FILE_INVENTORY.md](FILE_INVENTORY.md).
+- Add an ADR under `decisions/` if a model is promoted or the auth-blind mode is adopted.
+- Update [18](18-open-manual-actions.md) only for actions that need the user; remove an item when it is done.
+
+Privacy:
+
+```powershell
+Remove-Item -Recurse -Force .tmp\auth_cache
+Remove-Item -Force .tmp\auth_blind.out, .tmp\auth_blind.err
+```
+
+- Keep or delete the raw mailbox only with the owner's instruction. Deleting it does not delete the gitignored
+  reports that already contain aggregates.
+- Confirm `git status --porcelain` shows no data, model, or report artifact.
+- Record the deletion date and the approving owner in the decision log.
+
+Pass gate: docs match the shipped behavior; no personal-data derivative remains without an approved retention
+reason.
+
+## 9. Gate summary
+
+| Gate | Value | Phase | Applies to |
+|---|---:|---|---|
+| Usable ham | >= 1,500 | P0/P4 | Mailbox |
+| FPR@0.5 | <= 0.05 | P4 | Candidate, mailbox |
+| FPR@0.29 | <= 0.12 | P4 | Candidate, mailbox |
+| Domain-macro FPR@0.29 | <= 0.10 | P4 | Candidate, mailbox |
+| Held-out phish recall@0.29 | >= 0.90 | P4 | Candidate, Nazario 2015-2023 |
+| Historical grouped macro-F1 | >= 0.95 | P4 | Candidate, pre-2015 + SpamAssassin |
+| Brier | <= 0.02 | P4 | Candidate, historical calibrated test |
+| `legit_*.eml` score | <= 29 | P4 | Candidate, both samples |
+| Backend tests | all pass | P4 | Repository |
+
+The baseline in section 4 fails the FPR gates by a wide margin. That is expected and is not a P1 failure; P1's job
+is to record it cleanly.
+
+## 10. Decision log and open questions
+
+| ID | Decision | Options | Recommendation | Owner | Status |
+|---|---|---|---|---|---|
+| D1 | Promote a new model? | Promote only on a full P4 pass; keep the active model and publish the failure; stop the modern-mail claim | Gate-based only. No promotion on a partial pass, and no threshold change to force one. | Project owner | Open; blocked on P2/P4 |
+| D2 | Keep the synthetic demo model in Docker/Render? | Keep it until a candidate passes; replace it on promotion; keep it permanently as a plumbing demo | Keep it for now. A demo that flags every legitimate message is worse than an honest synthetic demo. | Project owner | Open; default keep |
+| D3 | Accept the auth-blind trade-off? | Accept if recall and historical F1 gates hold; reject and use era-normalized authentication features; keep authentication and fix the era problem another way | Do not accept a recall loss. Authentication is a real phishing signal; ignore it only if the measured cost is small and documented. | Project owner | Pending P2/P4 |
+| D4 | Who owns the privacy cleanup? | Mailbox owner approves and deletes; evaluator deletes under written instruction | The mailbox owner is the data controller; the evaluator executes and records the deletion. | Mailbox owner | Open |
+| D5 | Change the 29/70 thresholds? | Keep; re-derive on validation data | Keep. The gates are defined at the current product thresholds, and changing them would invalidate the comparison. | Project owner | Proposed: keep; confirm at P5 |
+
+Open questions:
+
+- Is one inbox enough to block promotion? It is enough to reject the current model. It is not enough to certify a
+  replacement; the gates are a floor.
+- What public modern ham corpus would satisfy the same gates? None is in the repository today. A public corpus with
+  authentication headers would also be eligible for training, which the mailbox is not.
+- Does the product need an auth-blind mode, or only an era-balanced model? If auth-blind is diagnostic only, P3's
+  shippability constraint changes.
+- How long may the mailbox and its derived matrices be retained? Owner decision; the default should be deletion at
+  P6.
+- Who signs the promotion, and by when? The project owner; no date is set.
+
+## 11. Status
+
+| Phase | Status | Evidence |
+|---|---|---|
+| P0 Loaders, metrics, tests | Partly done | Harness at `backend/training/evaluate_modern.py`; tests at `backend/tests/test_evaluate_modern.py`. Done: domain-macro FPR with cluster bootstrap, sender-domain count and largest-domain share, leakage guard, `--model` for candidates. Open: raw and calibrated probabilities recorded separately, cross-split overlap check, window-role field. |
+| P1 Clean baseline | Done | `backend/reports/modern-holdout/` (2015-2023 clean window) and `backend/reports/modern-insample/` (2024-2025, labelled in-sample). Both are gitignored. |
+| P2 Auth-blind ablation | Done, gate failed | `.tmp/auth_blind_experiment.py` ran on 2026-11-11; results in `.tmp/auth_cache/results.json`, summarised in section 7.1. No variant approaches the FPR gates. H1 rejected as sufficient. |
+| P3 Retrain/calibrate | Not started | Blocked by the failed P2 gate: there is no winning variant to retrain. |
+| P4 Candidate gates | Not started | Blocked on P3. |
+| P5 Promote or stop | Stop, pending owner sign-off | The evidence says do not promote the corpora-trained model: it flags 99.9% of modern legitimate mail. The synthetic demo model stays in the image. |
+| P6 Documentation/privacy cleanup | In progress | This plan, the risk list and the evaluation docs are updated. The mailbox-derived cache in `.tmp/auth_cache` is still present and needs the owner's decision (D4). |
+
+## 12. What would change the plan
+
+- Usable ham drops below 1,500, or the owner withdraws consent. Stop; no FPR claim; delete derived data.
+- **No P2 variant meets the FPR and recall gates together. This happened on 2026-11-11.** H1 is insufficient as
+  stated; do not promote. Re-plan around a public modern corpus or a feature redesign.
+- A variant meets the FPR gates but held-out 2015-2023 recall falls below 0.90. The model is blind, not fixed.
+  Reject the auth-blind trade-off and try era-normalized authentication features instead.
+- Historical grouped macro-F1 falls below 0.95 or Brier exceeds 0.02. The candidate is worse on the old
+  distribution; the trade-off is not acceptable.
+- A public modern ham corpus with real authentication headers becomes available. It can enter training, unlike the
+  mailbox; re-run P2/P3 with a new cutoff and a new test window.
+- The active model is retrained on any 2024 or 2025 data. Those years become in-sample again; update the window
+  role table before quoting any recall.
+
+## 13. Re-plan after the failed P2 gate (2026-11-11)
+
+The failed gate sends the work down a different branch, so the remaining options are listed with what each one costs.
+
+| Option | What it buys | What it costs | Status |
+|---|---|---|---|
+| A. Get real modern ham into training | The only option that fixes the root cause: the model finally sees what modern legitimate mail looks like | Needs a corpus that is real, modern, licence-clean, and free of personal data. None exists today. The only real modern ham available is the owner's mailbox, which is evaluation-only by decision | Needs the owner's decision |
+| B. Synthetic modern augmentation | Cheap: the repository already generates synthetic mail. It would teach the model that authenticated modern mail is not automatically phishing | Synthetic mail cannot be evidence of real-world accuracy, and the published modern "spam/ham" datasets that claim realistic headers say on their own data card that they are generated | Rejected as a source of claims; possible as a labelled experiment |
+| C. Public mailing-list archives | Real modern mail with real authentication headers, free and no login | The traffic is human-to-human list mail, not marketing or notification mail, and it carries `List-*` headers that become their own artefact | Not attempted |
+| D. Keep the corpora model as a historical artefact and stop claiming modern-mail support | Honest, zero further work, and the strongest story for a viva: the pipeline, the reason engine, the security model and an honest evaluation with a measured failure | The product's headline metric stays a demo metric; no accuracy claim | **Recommended default** |
+
+Searches run on 2026-11-11 that support the table: the SpamAssassin public corpus ends at `20050311` (the 2003
+archives are what the repository uses); the modern "spam/ham" datasets with 2024-2025 metadata describe themselves as
+generated, with no real emails; the public phishing datasets are pre-2008 research corpora or generated text.
+
+The decision itself belongs to the project owner (D1, D2 in section 10). The recommendation is D: keep the synthetic
+demo model in the deployment, keep the corpora model as a documented historical artefact, and do not publish any
+accuracy claim for modern mail.
+- The 29/70 band thresholds change. Every gate is threshold-specific; re-derive the gates before evaluating, and
+  never change a threshold to pass a gate.
+- A consented production-traffic sample becomes available. It is a better FPR estimate than one inbox; add it as a
+  separate test set, not as a replacement for the gates.
+
+## 13. How to reproduce
+
+All commands run from `backend/` on Windows PowerShell.
+
+```powershell
+cd backend
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Build the temporal split. The directories are gitignored and may already exist on the evaluation machine; these
+commands rebuild them from the downloaded corpora.
+
+```powershell
+New-Item -ItemType Directory -Force ..\.tmp\nazario-train-old, ..\.tmp\nazario-test-2015-2023, ..\.tmp\nazario-test-2024-2025 | Out-Null
+
+Copy-Item data\raw\nazario\phishing0.mbox, data\raw\nazario\phishing1.mbox, data\raw\nazario\phishing2.mbox `
+  -Destination ..\.tmp\nazario-train-old
+
+Copy-Item data\raw\nazario\phishing-201*.mbox, data\raw\nazario\phishing-202[0-3].mbox `
+  -Destination ..\.tmp\nazario-test-2015-2023
+
+Copy-Item data\raw\nazario\phishing-2024.mbox, data\raw\nazario\phishing-2025.mbox `
+  -Destination ..\.tmp\nazario-test-2024-2025
+```
+
+Do not copy `20051114.mbox` into the training split; it overlaps the 2005 mboxes and is already deduplicated by the
+loader.
+
+Clean baseline:
+
+```powershell
+.\.venv\Scripts\python.exe -m training.evaluate_modern `
+  --model-dir models `
+  --phish-dir ..\.tmp\nazario-test-2015-2023 `
+  --phish-since 2015-01-01 --phish-until 2024-01-01 `
+  --out reports\modern-holdout
+```
+
+Auth-blind diagnostic, once it is ready:
+
+```powershell
+.\.venv\Scripts\python.exe ..\.tmp\auth_blind_experiment.py
+```
+
+The harness defaults to `models` for `--model-dir` and to
+`data/raw/mailbox/All mail Including Spam and Trash.mbox` for `--mailbox`, so those flags can be omitted when
+running from `backend/`.
+
+## 14. Related documents
+
+- [17 - Real-corpus evaluation](17-real-corpus-evaluation.md): the grouped-split result and its caveats.
+- [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.
+- [19 - Teammate training guide](19-teammate-training-guide.md): the training commands and the era-artifact
+  explanation.
+- [20 - Model parameters and features](20-model-parameters-and-features.md): the 65 features, candidates,
+  calibration, and bands.
+- [15 - Risks and limitations](15-risks-and-limitations.md): the honest limit this plan measures.
+- [13 - Testing and evaluation](13-testing-and-evaluation.md): the existing harnesses and test suite.
+- [Dataset card](datasets/README.md): corpus provenance and split rules.
+- [Documentation index](README.md): the full document set.
+- [File inventory](FILE_INVENTORY.md): what each tracked path is for.

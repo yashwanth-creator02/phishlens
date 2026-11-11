@@ -146,6 +146,42 @@ The training artifact is `backend/models/active/` and the run record is `backend
 is the manual step in `docs/18-open-manual-actions.md` and `docs/19-teammate-training-guide.md` step 8, and it comes
 with the `auth_missing` caveat above, which is why it is a decision and not a formality.
 
+### This model does not work on modern mail (measured 2026-11-11)
+
+The corpora-trained model above was scored against 2,216 received messages from a real Gmail inbox (2020-2026, 87%
+with links, 99.7% with SPF) using the same extractor the API uses:
+
+| Measurement | Value |
+|---|---|
+| FPR at probability 0.5 | 0.999 |
+| FPR at the LOW/MEDIUM boundary | 0.999 |
+| FPR at the boundary, domain-macro | 0.996 |
+| Mean probability on legitimate mail | 0.996 |
+| Bands | 2,202 HIGH / 12 MEDIUM / 2 LOW |
+| Recall on Nazario 2015-2023 (clean holdout) | 0.994 at the LOW/MEDIUM boundary |
+
+So the model catches modern phishing it has never seen, and it also calls essentially every modern legitimate
+message phishing. The cause is the training data, not the classifier: the only legitimate mail available is
+SpamAssassin 2003, which carries no authentication headers, no modern link structure and no modern notification
+style. The evidence, the feature-level diagnosis and the options are in
+[21](21-modern-corpus-evaluation-plan.md).
+
+**Do not quote the 2024-2025 phishing recall.** The active model trained on the `phishing-2024` and `phishing-2025`
+archives, so recall measured on them is in-sample. The clean window for this model is 2015-2023, quoted above. The
+harness now enforces this: `training.train` records the phishing date range it trained on, and
+`training/evaluate_modern.py` refuses to report a window the model was trained on unless it is told to.
+
+**Temporal holdout rule** for every future model:
+
+1. Choose a cutoff date before training. Everything before it may train; everything after it is test.
+2. Never train on a message dated on or after the cutoff, including through a near-duplicate campaign.
+3. Record the cutoff, the source files and the counts in `meta.json` and the training report.
+4. Deduplicate by raw hash, Message-ID and body hash before splitting.
+5. Evaluate on the same fixed test windows across runs so results stay comparable.
+
+`training/train.py --phish-until 2024-01-01` enforces steps 1 to 3 for the training side;
+`training/evaluate_modern.py --phish-since 2015-01-01 --phish-until 2024-01-01` is the matching test window.
+
 ### Per-group ablation (65 features, XGBoost)
 
 Dropping one group at a time and refitting, macro F1 on the same test slice:

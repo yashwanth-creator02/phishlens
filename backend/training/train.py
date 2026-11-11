@@ -1,10 +1,12 @@
 """Train, compare, select, calibrate and register a PhishLens model.
 
-    python -m training.train --source synthetic --n 2400 --out models          # pipeline check ONLY
-    python -m training.train --source corpus --phish-dir DIR --legit-dir DIR   # real corpora
+    python -m training.train --source synthetic --n 2400 --out models --activate          # pipeline check ONLY
+    python -m training.train --source corpus --phish-dir DIR --legit-dir DIR --activate   # real corpora
 
-Outputs <out>/<version_tag>/ and copies it to <out>/active/ (the directory the API serves), plus
-reports/training_report.md|json. Metrics on synthetic data are a pipeline sanity check, not results.
+Outputs <out>/<version_tag>/ and, only with --activate, copies it to <out>/active/ (the directory the
+API serves), plus reports/training_report.md|json. Without --activate the model stays a candidate so
+an offline run can never replace the serving model. Metrics on synthetic data are a pipeline sanity
+check, not results.
 """
 from __future__ import annotations
 
@@ -67,18 +69,51 @@ def main(argv=None) -> dict:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--phish-dir")
     ap.add_argument("--legit-dir")
+    ap.add_argument("--phish-until", default=None,
+                    help="drop phishing dated on/after this ISO date (and undated phishing) so a later "
+                         "window can be held out for generalization testing")
+    ap.add_argument("--activate", action="store_true",
+                    help="promote the trained model to <out>/active (the directory the API serves)")
     ap.add_argument("--limit", type=int, default=None, help="max emails per class (corpus mode)")
     ap.add_argument("--out", default="models")
     ap.add_argument("--reports", default="reports")
     args = ap.parse_args(argv)
     t0 = time.time()
 
+    provenance = {"phish_dir": args.phish_dir, "legit_dir": args.legit_dir, "phish_until": args.phish_until,
+                  "phish_min_date": None, "phish_max_date": None, "legit_min_date": None, "legit_max_date": None,
+                  "phish_undated_dropped": 0, "n_phish": 0, "n_legit": 0}
     if args.source == "synthetic":
         samples = synthetic.build_samples(n=args.n, seed=args.seed)
         data_source = "synthetic (pipeline check only, NOT a result)"
     else:
-        samples = corpus.load_dir(args.phish_dir, 1, args.limit) + corpus.load_dir(args.legit_dir, 0, args.limit)
+        phish = corpus.load_dir(args.phish_dir, 1, args.limit)
+        legit = corpus.load_dir(args.legit_dir, 0, args.limit)
+        if args.phish_until:
+            until = corpus.parse_cli_date(args.phish_until)
+            kept, late, undated = [], 0, 0
+            for s in phish:
+                d = corpus.parse_date(s.date)
+                if d is None:
+                    undated += 1
+                elif d >= until:
+                    late += 1
+                else:
+                    kept.append(s)
+            print(f"phish cutoff {args.phish_until}: dropped {late} dated on/after the cutoff and "
+                  f"{undated} undated messages")
+            provenance["phish_undated_dropped"] = undated
+            phish = kept
+        samples = phish + legit
         data_source = f"corpus: phish={args.phish_dir} legit={args.legit_dir}"
+        provenance["n_phish"] = len(phish)
+        provenance["n_legit"] = len(legit)
+        provenance.update({
+            "phish_min_date": corpus.date_range(phish)["min"],
+            "phish_max_date": corpus.date_range(phish)["max"],
+            "legit_min_date": corpus.date_range(legit)["min"],
+            "legit_max_date": corpus.date_range(legit)["max"],
+        })
     X, y, groups = synthetic.samples_to_matrix(samples)
     print(f"dataset: {len(y)} emails, {int(y.sum())} phishing, {X.shape[1]} features, {len(set(groups))} groups")
 
@@ -133,13 +168,18 @@ def main(argv=None) -> dict:
     meta = {"version_tag": tag, "algorithm": best, "trained_at": datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds"),
             "feature_names": FEATURE_NAMES, "data_source": data_source, "n_samples": int(len(y)),
             "split": {"fit": len(fit), "validation": len(val), "test": len(test)},
+            "training": provenance,
             "reason_min_contribution": REASON_MIN[best], "fpr_ceiling": FPR_CEILING,
             "metrics": {k: float(v) for k, v in selected_test.items() if not k in ("tn", "fp", "fn", "tp")}}
     (out / "meta.json").write_text(json.dumps(meta, indent=2))
     active = Path(args.out) / "active"
-    if active.exists():
-        shutil.rmtree(active)
-    shutil.copytree(out, active)
+    if args.activate:
+        if active.exists():
+            shutil.rmtree(active)
+        shutil.copytree(out, active)
+        print(f"activated {tag} -> {active}")
+    else:
+        print(f"candidate model written to {out}. Not activated; pass --activate to replace {active}.")
 
     rep_dir = Path(args.reports)
     rep_dir.mkdir(parents=True, exist_ok=True)

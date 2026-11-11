@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import mailbox
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from app.features.common import NullDomainAge, split_host
@@ -17,6 +19,44 @@ from app.ingestion.email_parser import parse_email
 from .synthetic import Sample
 
 _ARCHIVE_SUFFIXES = {".gz", ".bz2", ".zip", ".tar", ".tgz", ".xz", ".7z"}
+
+
+def parse_date(value: str | None) -> datetime | None:
+    """Parse an RFC 2822 Date header into an aware UTC datetime, or None when it is absent/unparsable."""
+    if not value:
+        return None
+    try:
+        dt = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    if dt is None:
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def parse_cli_date(value: str | None) -> datetime | None:
+    """Parse an ISO date from the command line into an aware UTC datetime."""
+    if not value:
+        return None
+    dt = datetime.fromisoformat(value)
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def in_window(sample: Sample, since: datetime | None, until: datetime | None) -> bool:
+    """True when the sample carries a date inside [since, until). Undated samples never match."""
+    dt = parse_date(sample.date)
+    if dt is None:
+        return False
+    return (since is None or dt >= since) and (until is None or dt < until)
+
+
+def date_range(samples: list[Sample]) -> dict:
+    dates = [d for d in (parse_date(s.date) for s in samples) if d is not None]
+    return {
+        "dated": len(dates), "undated": len(samples) - len(dates),
+        "min": min(dates).isoformat() if dates else None,
+        "max": max(dates).isoformat() if dates else None,
+    }
 
 
 def _iter_raw(path: Path):
@@ -64,7 +104,7 @@ def load_dir(path: str | Path, label: int, limit: int | None = None) -> list[Sam
             group = f"phish-{host}"
         else:
             group = f"legit-{p.from_domain or 'unknown'}"   # split by sender domain
-        out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge()))
+        out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(), date=p.date))
         if limit and len(out) >= limit:
             break
     return out
@@ -90,8 +130,8 @@ def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None) -> 
             continue
         for msg in box:
             try:
-                labels = str(msg.get("X-Gmail-Labels", "")).lower()
-                if "spam" in labels or "trash" in labels:
+                labels = {part.strip().lower() for part in str(msg.get("X-Gmail-Labels", "")).split(",")}
+                if labels & {"spam", "trash", "sent", "drafts", "chat"}:
                     continue
                 raw = bytes(msg)
                 p = parse_email(raw)
@@ -108,7 +148,7 @@ def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None) -> 
             seen_body.add(body_hash)
 
             group = f"legit-mailbox-{p.from_domain or 'unknown'}"
-            out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge()))
+            out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(), date=p.date))
             if limit and len(out) >= limit:
                 return out
     return out

@@ -232,13 +232,22 @@ and you must re-run the evaluation.
 python -m training.train --source corpus `
     --phish-dir data/raw/nazario `
     --legit-dir data/raw/spamassassin `
+    --phish-until 2024-01-01 `
     --out models --reports reports
 ```
+
+Read step 6a before you promote anything.
 
 What `training.train --source corpus` does:
 
 - Loads both corpora with the same parser, and the same 65-feature extractor, in the same feature names and order as
   serving. The model registry rejects a model whose stored feature metadata does not match.
+- With `--phish-until 2024-01-01`, drops every phishing message dated on or after the cutoff and every undated
+  phishing message, so the 2024-2025 archives stay a clean holdout for the modern evaluation. Without the flag the
+  whole corpus trains and those years become in-sample.
+- Records what it trained on in `meta.json` under `training`: source directories, the cutoff, the phishing and
+  legitimate date ranges, the number of dropped undated messages and the per-class counts. The modern evaluation
+  reads that block and refuses to report a window the model was trained on.
 - Applies the same `spamassassin.taint.org` exclusion as the evaluation, so the promoted model covers the same
   dataset the report describes, then splits by group with the same settings (fit/validation/test =
   2,647 / 628 / 986).
@@ -252,8 +261,12 @@ What `training.train --source corpus` does:
 - Fits an **isotonic calibrator** on a held-out slice of the training data so probabilities are comparable across
   runs, and a minimum-importance threshold per model family so only features that actually matter appear in the
   explanation (`REASON_MIN`: xgboost 0.10, logistic regression 0.10, random forest 0.02).
-- Writes `backend/models/<version_tag>/` (`model.joblib`, `calibrator.joblib`, `meta.json`, `background.npy`),
-  copies it to `backend/models/active/`, and writes `backend/reports/training_report.json` and `training_report.md`.
+- Writes `backend/models/<version_tag>/` (`model.joblib`, `calibrator.joblib`, `meta.json`, `background.npy`) and
+  `backend/reports/training_report.json` and `training_report.md`.
+
+**It does not touch `backend/models/active/` unless you pass `--activate`.** That is deliberate: an offline
+training run must never replace the serving model. The command above writes a candidate directory. When you have
+evaluated the candidate and want to serve it, add `--activate` (or copy the tag directory over `models/active/`).
 
 A useful flag for a quick sanity run before the full one: `--limit 500` caps emails per class. Do not use it for the
 model you promote.
@@ -270,6 +283,36 @@ model you promote.
 - Test metrics should be in the same neighbourhood as the evaluation comparator in `docs/17-real-corpus-evaluation.md`;
   they are not expected to match exactly, because the promoted model is a different selected candidate on a different
   internal slice. If F1 is far below 0.9 or the false-positive rate is above 0.05, stop - something is wrong.
+
+## Step 6a - Measure the candidate on modern mail before you promote it
+
+This step exists because the corpora-trained model has a measured limitation: scored against 2,216 received messages
+from a real Gmail inbox (2020-2026), it flags **99.9%** of them as phishing. The cause is the training data, not the
+classifier: the only legitimate mail in the corpora is SpamAssassin 2003, which has no authentication headers at
+all, so "authenticated mail" reads as "phishing". Removing the authentication features does not fix it. Full
+evidence in [21](21-modern-corpus-evaluation-plan.md) section 7.1.
+
+If you have a modern legitimate-mail source (a licensed export, a shared research corpus), score the candidate
+against it before promoting:
+
+```powershell
+python -m training.evaluate_modern `
+    --model models/<version_tag> `
+    --phish-dir data/raw/nazario `
+    --phish-since 2015-01-01 --phish-until 2024-01-01 `
+    --out reports/modern
+```
+
+`--model` points at the candidate directory, so a candidate is scored before it replaces anything. The harness
+refuses to run when the model was trained on phishing from the requested window, because that would report
+in-sample recall as if it were generalization.
+
+The promotion gates are the ones in [21](21-modern-corpus-evaluation-plan.md) section 9: FPR at probability 0.5
+at most 0.05, FPR at the LOW/MEDIUM boundary at most 0.12, domain-macro FPR at most 0.10, held-out 2015-2023 recall
+at least 0.90, historical grouped macro-F1 at least 0.95, Brier at most 0.02. A partial pass is a fail. If you
+cannot reach those gates because no modern ham corpus exists in your environment, say so in the write-up instead of
+promoting: "measured FPR 0.999 on modern inbox mail, root cause identified, remedy needs data we do not have" is a
+defensible result, and a model that cries wolf on every legitimate mail is not.
 
 ## Step 7 - Verify the newly trained model locally
 

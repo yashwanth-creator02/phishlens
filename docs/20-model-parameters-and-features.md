@@ -205,6 +205,12 @@ training size). The honest statement is that the added features did not visibly 
 that they improved or degraded them. They are included because they are cheap, non-redundant, and cover modern URL
 obfuscation and thread-hijacking patterns that the 2003-2007 corpora barely exercise.
 
+**The corpus model these parameters describe is not fit for modern mail.** Measured against 2,216 received messages
+from a real 2020-2026 inbox, it flags 99.9% of legitimate mail as phishing, and removing the era-sensitive header
+features does not fix it. The parameters are still the right description of what the model does; they are not
+evidence that the model works on today's mail. See
+[21](21-modern-corpus-evaluation-plan.md).
+
 The per-group ablation in `training_report.md` supports the same reading: dropping `header` costs about 1.5 F1
 points and dropping `url` about 0.4, while dropping `action` or `attachment` lands within noise of the 0.987
 baseline. Treat the feature set as a hypothesis, not a guarantee: re-run
