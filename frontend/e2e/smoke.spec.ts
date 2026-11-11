@@ -19,11 +19,11 @@ test.describe("signed-in smoke", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
 
     const routes = [
-      ["/", /Phishing triage console/],
-      ["/cases", /^Cases$/],
+      ["/", /Triage dashboard/],
+      ["/history", /^History$/],
       ["/model", /Model card/],
       ["/how-it-works", /How it works/],
-      ["/settings", /Settings and configuration/],
+      ["/profile", /^Profile$/],
       ["/status", /^Status$/],
     ] as const;
 

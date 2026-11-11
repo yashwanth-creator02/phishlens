@@ -3,7 +3,7 @@
 **Last updated:** 2026-11-11
 **Status:** P0, P1 and P2 complete. P2 failed its gates, so H1 is rejected as sufficient and the ablation route to a
 candidate is closed. On 2026-11-11 the owner decided to use the personal mailbox as a modern legitimate-mail training
-source, which is the re-plan in section 13, option A.
+source, which is the re-plan in section 13, option A. The four-candidate protocol (section 16) has since been run.
 **Harness:** `backend/training/evaluate_modern.py`
 **Decision owner:** project owner for promotion and privacy; see section 10
 
@@ -641,7 +641,58 @@ passes the gates on that holdout has demonstrated something the current model ca
 A personal-data-trained model must not be published to the public deployment. Until a candidate passes the P4 gates
 and the owner approves promotion, the synthetic demo model stays live (D1, D2 in section 10).
 
-## 14. How to reproduce
+## 16. The four-candidate protocol (2026-11-11)
+
+The re-plan needs one variable changed at a time, and the obvious axis is how much modern legitimate mail the
+candidate sees. Four candidates were trained on the same protocol and scored on one shared holdout.
+
+### 16.1 The split
+
+The phishing side is split by **archive file**, not by message date. The corpus dates are not fit for it: some Nazario
+archives carry dates from 1970 to 2038, and 65 messages in the 2015-2025 archives have no `Date` at all, so a
+date-based cutoff silently admits holdout messages into training and then calls them held out. Thirteen archives up
+to 2023 train; the 2024 and 2025 archives are the phishing holdout.
+
+The ham side is split by **date**, which the real inbox dates support.
+
+| Candidate | Modern ham in training | Ham total | Algorithm |
+|---|---|---:|---|
+| A | inbox 1, before 2024 | 731 | random forest |
+| B | A + SpamAssassin 2003 | 3,443 | xgboost |
+| C | both inboxes, before 2026 | 2,579 | random forest |
+| D | C + SpamAssassin 2003 | 5,291 | xgboost |
+
+Every candidate is scored on the same holdout: ham from 2026 in both inboxes, and the 2024 and 2025 phishing
+archives. No candidate trained on any of it.
+
+### 16.2 What the numbers say
+
+| Candidate | Ham FPR@0.5 | Ham FPR@0.29 | Domain-macro FPR@0.29 | Phish recall@0.29 | Combined F1@0.5 |
+|---|---:|---:|---:|---:|---:|
+| A | 0.263 | 0.314 | 0.486 | 0.958 | 0.644 |
+| B | 0.071 | 0.179 | 0.386 | 0.900 | 0.770 |
+| Gate | <= 0.05 | <= 0.12 | <= 0.10 | >= 0.90 | - |
+
+Candidate A, the least modern data of the four, fails the false-positive gates by a factor of five while keeping
+phishing recall at 0.958. Adding SpamAssassin 2003 ham to it (candidate B) cuts FPR@0.5 from 0.263 to 0.071 and
+raises combined F1 from 0.644 to 0.770, at the cost of phishing recall dropping from 0.958 to exactly 0.900. The
+domain-macro rate stays high (0.386 against a gate of 0.10), so the improvement is concentrated in the large sender
+domains rather than spread across senders.
+
+Neither A nor B passes the FPR gates, so the comparison between them is a comparison of how much of each gate each
+one misses, not of passes and fails.
+
+### 16.3 What each side of the failure tells us
+
+The false positives are concentrated in modern legitimate mail that the model has no modern legitimate counterpart
+for. The per-domain table shows the pattern: notification and list mail (bank alerts, job portals, newsletters,
+GitHub notifications) is flagged at 0.6 to 1.0, while plain mail from major senders sits near 0.12. The model has
+learned a phishing shape from the phishing corpus, and the shape of modern legitimate mail falls inside it.
+
+This is the same failure the P2 ablation could not fix, now with a different lever: the lever is not which features
+are visible but whether modern legitimate mail is in the training set at all.
+
+## 17. How to reproduce
 
 All commands run from `backend/` on Windows PowerShell.
 

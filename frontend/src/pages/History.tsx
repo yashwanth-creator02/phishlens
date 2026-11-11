@@ -13,7 +13,7 @@ const SCOPE_LABEL: Record<string, string> = {
   forward_inline: "Forwarded inline",
 };
 
-export default function Cases() {
+export default function History() {
   const [items, setItems] = useState<AnalysisSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -82,8 +82,8 @@ export default function Cases() {
     <>
       <div className="row" style={{ alignItems: "baseline", marginBottom: "16px" }}>
         <div>
-          <h1>Cases</h1>
-          <p className="muted">Browse all analyses with search, band filter, sort, and pagination.</p>
+          <h1>History</h1>
+          <p className="muted">Every analysis you have run, searchable and sortable by band, date or subject.</p>
         </div>
         <div>
           <button className="secondary" onClick={load} type="button">Refresh</button>
@@ -92,7 +92,7 @@ export default function Cases() {
 
       {error ? (
         <div className="card high" style={{ padding: "16px" }}>
-          <p className="error" role="alert">Failed to load cases: {error}</p>
+          <p className="error" role="alert">Failed to load history: {error}</p>
           <button onClick={load} style={{ marginTop: "8px" }} type="button">Retry</button>
         </div>
       ) : (
@@ -105,7 +105,7 @@ export default function Cases() {
               placeholder="Search subject or sender..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search cases"
+              aria-label="Search history"
             />
 
             <div className="filters" role="group" aria-label="Filter by risk band">
@@ -172,14 +172,14 @@ export default function Cases() {
           {/* Content states */}
           {items === null ? (
             <div role="status" aria-busy="true">
-              <span className="sr-only">Loading cases</span>
+              <span className="sr-only">Loading history</span>
               <div className="skeleton-row" />
               <div className="skeleton-row" />
               <div className="skeleton-row" />
             </div>
           ) : items.length === 0 ? (
             <div className="empty-state">
-              <p className="muted" style={{ fontSize: "1.05rem" }}>No cases yet.</p>
+              <p className="muted" style={{ fontSize: "1.05rem" }}>Nothing analysed yet.</p>
               <p className="muted">Upload an email from the dashboard to get started.</p>
               <Link to="/" className="btn" style={{ marginTop: "16px", textDecoration: "none" }}>
                 Go to dashboard
@@ -187,7 +187,7 @@ export default function Cases() {
             </div>
           ) : filteredTotal === 0 ? (
             <div className="empty-state">
-              <p className="muted" style={{ fontSize: "1.05rem" }}>No cases match the current filters.</p>
+              <p className="muted" style={{ fontSize: "1.05rem" }}>No entries match the current filters.</p>
               <button
                 className="secondary"
                 onClick={() => {
@@ -203,7 +203,7 @@ export default function Cases() {
           ) : (
             <>
               <p className="muted" style={{ marginTop: "16px" }}>
-                Showing {rows.length} of {filteredTotal} cases
+                Showing {rows.length} of {filteredTotal} entries
                 {total > 100 ? ` • Total records: ${total}` : ""}
               </p>
               <div className="analysis-list">

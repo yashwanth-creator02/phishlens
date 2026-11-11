@@ -169,14 +169,15 @@ def phish_leakage(meta: dict, eval_phish_dir: str, since: datetime | None, until
 
     The split is by archive file, because the corpus dates are unreliable: some Nazario archives carry
     dates from 1970 to 2038 and 65 messages in the 2015-2025 archives have no date at all, so a
-    date-based check admits holdout messages into training and then calls them held out.
+    date-based check admits holdout messages into training and then calls them held out. A model
+    trained before the file list existed cannot be checked that way, so it fails closed.
 
     Returns the status and the list of archive files that appear on both sides.
     """
     training = (meta or {}).get("training") or {}
     trained_files = training.get("phish_files")
     if trained_files is None:
-        return leakage_check(meta, since, until), []
+        return "unknown", []
     eval_files = set(corpus.source_files(eval_phish_dir))
     overlap = sorted(set(trained_files) & eval_files)
     if overlap:
@@ -184,24 +185,40 @@ def phish_leakage(meta: dict, eval_phish_dir: str, since: datetime | None, until
     return "clear", []
 
 
+def _path_ids(path: Path) -> set[str]:
+    """Non-reversible identifiers for a path and, for a file, the directory that contains it.
+
+    Storing a digest instead of the path keeps a local account name out of a published artifact
+    while still letting the harness decide whether two mailbox locations are the same source.
+    """
+    return corpus.path_digests(path)
+
+
 def ham_leakage(meta: dict, eval_mailbox: str, since: datetime | None, until: datetime | None) -> str:
     """Is the evaluation mailbox disjoint from the mailbox the model trained on?
 
-    'distinct' - the model trained on a different mailbox file, so the two cannot share messages.
-    'clear'    - same file, but the training dates fall outside the evaluation window.
-    'overlap'  - same file and the training dates fall inside the window.
-    'unknown'  - the model records no mailbox provenance.
+    'distinct' - the model trained on a different mailbox, so the two cannot share messages.
+    'clear'    - same source, but the training dates fall outside the evaluation window.
+    'overlap'  - same source and the training dates fall inside the window.
+    'unknown'  - the model records no mailbox provenance, or the two locations cannot be compared.
+
+    The comparison is by path digest, and it is deliberately conservative: a model trained on a
+    directory and evaluated on a file inside that directory is the same source, and a model trained
+    on a file and evaluated on a directory that may contain it is 'unknown' rather than 'distinct',
+    because a directory load reads every mbox beneath it.
     """
     training = (meta or {}).get("training") or {}
-    trained = training.get("legit_mailbox")
-    if not trained:
+    trained_id = training.get("legit_mailbox_id")
+    trained_scope = training.get("legit_mailbox_scope")
+    if not trained_id:
         return "unknown"
-    trained_p = Path(trained).resolve()
-    eval_p = Path(eval_mailbox).resolve()
-    same_source = trained_p == eval_p or (eval_p.is_dir() and trained_p.parent == eval_p)
-    if not same_source:
-        return "distinct"
-    return leakage_check(meta, since, until, "legit_mailbox_min_date", "legit_mailbox_max_date")
+    eval_path = Path(eval_mailbox)
+    if trained_id in corpus.path_digests(eval_path):
+        return leakage_check(meta, since, until, "legit_mailbox_min_date", "legit_mailbox_max_date")
+    if trained_scope == "file" and eval_path.is_dir():
+        # The evaluated directory may contain the file the model trained on.
+        return "unknown"
+    return "distinct"
 
 
 def guard_leakage(status: str, model_tag: str, allow_overlap: bool, allow_unknown: bool = False) -> None:
@@ -354,7 +371,7 @@ def main(argv=None) -> dict:
 
     mailbox_path = Path(args.mailbox)
     if not mailbox_path.exists():
-        raise SystemExit(f"Mailbox file not found: {mailbox_path}")
+        raise SystemExit(f"Mailbox not found: {mailbox_path}")
     mailbox_stats: dict = {}
     mailbox_samples = corpus.load_mailbox(mailbox_path, label=0, stats=mailbox_stats)
     if args.mailbox_since or args.mailbox_until:
@@ -378,7 +395,7 @@ def main(argv=None) -> dict:
     training = bundle.meta.get("training") or {}
     report = {
         "model": {"version_tag": bundle.version_tag, "algorithm": bundle.algorithm,
-                  "path": str(args.model or Path(args.model_dir) / "active")},
+                  "path": Path(args.model or Path(args.model_dir) / "active").name},
         "thresholds": {"low_max": settings.band_low_max, "high_min": settings.band_high_min},
         "leakage": {
             "status": leak_status,
@@ -388,12 +405,12 @@ def main(argv=None) -> dict:
                       "model_max_date": training.get("phish_max_date")},
             "ham": {"status": ham_leak,
                     "window": {"since": args.mailbox_since, "until": args.mailbox_until},
-                    "model_mailbox": training.get("legit_mailbox"),
+                    "model_mailbox_scope": training.get("legit_mailbox_scope"),
                     "model_min_date": training.get("legit_mailbox_min_date"),
                     "model_max_date": training.get("legit_mailbox_max_date")},
         },
         "mailbox": {
-            "path": str(args.mailbox),
+            "scope": "directory" if mailbox_path.is_dir() else "file",
             "count": len(mailbox_samples),
             "date_range": _date_range(mailbox_samples),
             "loader_drops": mailbox_stats,

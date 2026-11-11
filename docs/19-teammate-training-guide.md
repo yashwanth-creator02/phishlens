@@ -316,12 +316,15 @@ recall as if it were generalization.
 The repository can train on a Gmail Takeout export (`backend/data/raw/mailbox/`, gitignored). **This is personal
 data.** The owner of that data decides whether it may be used; if the answer is yes, two rules apply:
 
-1. The trained model is **derived from personal mail**. It stays local, it is never committed (`backend/models/` is
+1. The trained model is **derived from personal mail**. It stays local by default (`backend/models/` is
    gitignored), and it is not baked into the Docker image or shipped to Render without a separate, explicit
    decision. Reports and docs contain aggregate counts only, never message content, addresses, subjects or
    Message-IDs.
 2. Training and evaluation use **different messages**, split by date. Train on what came before the cutoff, measure
    on what came after it, or the measurement is worthless.
+3. Before a personal-data-trained model may be published, it must pass the audit: no sender domain, no email
+   address and no distinctive subject word from the mailbox may appear in any file of the model directory. See
+   "Publishing a model" below.
 
 ```powershell
 # training side: mailbox dated before 2024-01-01, phishing dated before 2024-01-01
@@ -350,6 +353,28 @@ recall at least 0.90, historical grouped macro-F1 at least 0.95, Brier at most 0
 your environment has no modern ham corpus at all, say so in the write-up instead of promoting: "measured FPR 0.999
 on modern inbox mail, root cause identified, remedy needs data we do not have" is a defensible result, and a model
 that cries wolf on every legitimate mail is not.
+
+## Publishing a model
+
+`backend/release/model/` holds the model the Docker image serves. The repository is public, so nothing may be
+copied there by hand: the release script audits the candidate first and refuses to copy anything that fails.
+
+```powershell
+# from backend/
+.\.venv\Scripts\python.exe -m scripts.audit_model --model models\active --mailbox "data\raw\mailbox"
+
+# or, in one step, audit and copy:
+.\.venv\Scripts\python.exe -m scripts.release_model --model models\active --mailbox "data\raw\mailbox" `
+    --allow-personal-data --notes "trained on the owner's inbox, audited clean"
+```
+
+The audit reads the sender domains, email addresses and distinctive subject words out of the mailbox, then
+searches every file of the candidate for them: plain text, UTF-16, gzip and base64. Any hit refuses the release.
+A model fitted on personal mail additionally needs `--allow-personal-data`, because it is derived from private data
+even when no string of it survives in the artifact. That flag is the owner's decision, not a technical check.
+
+The audit proves the artifact is clean. It cannot prove the model is good: that is what the promotion gates in
+[21](21-modern-corpus-evaluation-plan.md) section 9 are for.
 
 ## Step 7 - Verify the newly trained model locally
 

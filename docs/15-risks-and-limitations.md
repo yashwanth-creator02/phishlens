@@ -39,6 +39,11 @@
 15. **Phishing recall on 2024-2025 Nazario is in-sample.** The active model trained on those archives, so the 0.999
     recall measured on them is memorisation of campaigns it already saw. The clean window for that model is
     2015-2023. The harness now refuses to report a window the model was trained on unless it is told to.
+16. **A model fitted on the owner's own mailbox is derived from private data.** It may be released only after
+    `backend/scripts/audit_model.py` reports the artifact clean (no sender domain, no email address and no
+    distinctive subject word from the mailbox in any file of the model directory) and only on the owner's explicit
+    decision. The audit proves the artifact carries no personal data; it does not make the model accurate, and a
+    model fitted on one inbox is fitted on one inbox.
 
 ## Project risks
 | Risk | Likelihood | Impact | Mitigation |

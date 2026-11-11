@@ -30,3 +30,7 @@ frontend/playwright-report/
 
 # Vercel CLI link state
 .vercel/
+
+# Project-local agent skills (installed tooling, not project source)
+.agents/
+skills-lock.json

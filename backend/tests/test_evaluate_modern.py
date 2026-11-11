@@ -172,16 +172,50 @@ def test_phish_leakage_compares_archive_files_not_dates(tmp_path: Path):
 
 def test_ham_leakage_is_distinct_for_a_different_mailbox_file(tmp_path: Path):
     from training.evaluate_modern import ham_leakage
+    from training.corpus import path_digest
 
-    meta = {"training": {"legit_mailbox": str(tmp_path / "trained.mbox"),
+    trained = tmp_path / "trained.mbox"
+    trained.write_text("")
+    meta = {"training": {"legit_mailbox_id": path_digest(trained),
+                          "legit_mailbox_scope": "file",
                           "legit_mailbox_min_date": "2020-01-01T00:00:00+00:00",
                           "legit_mailbox_max_date": "2023-12-31T00:00:00+00:00"}}
     other = tmp_path / "other.mbox"
     other.write_text("")
 
     assert ham_leakage(meta, str(other), None, None) == "distinct"
-    assert ham_leakage(meta, str(tmp_path / "trained.mbox"), None, None) == "overlap"
+    assert ham_leakage(meta, str(trained), None, None) == "overlap"
     assert ham_leakage({}, str(other), None, None) == "unknown"
+
+
+def test_ham_leakage_treats_a_file_inside_the_trained_directory_as_the_same_source(tmp_path: Path):
+    from training.evaluate_modern import ham_leakage
+    from training.corpus import path_digest
+
+    directory = tmp_path / "mailbox"
+    directory.mkdir()
+    inside = directory / "inbox.mbox"
+    inside.write_text("")
+    meta = {"training": {"legit_mailbox_id": path_digest(directory),
+                          "legit_mailbox_scope": "directory",
+                          "legit_mailbox_min_date": "2020-01-01T00:00:00+00:00",
+                          "legit_mailbox_max_date": "2023-12-31T00:00:00+00:00"}}
+
+    # A directory load reads every mbox beneath it, so a file inside it is the same source.
+    assert ham_leakage(meta, str(inside), None, None) == "overlap"
+    assert ham_leakage(meta, str(directory), None, None) == "overlap"
+
+
+def test_phish_leakage_fails_closed_for_a_model_without_file_provenance():
+    from training.evaluate_modern import phish_leakage
+
+    meta = {"training": {"phish_min_date": "2004-01-01T00:00:00+00:00",
+                          "phish_max_date": "2023-12-31T00:00:00+00:00"}}
+
+    status, overlap = phish_leakage(meta, "data/raw/nazario", None, None)
+
+    assert status == "unknown"
+    assert overlap == []
 
 
 def test_activation_refuses_a_personal_data_model_without_acknowledgement():
@@ -204,6 +238,32 @@ def test_activation_keeps_the_previous_model_servable_when_the_copy_fails(tmp_pa
         activate(tmp_path / "does-not-exist", active)
 
     assert (active / "meta.json").exists(), "a failed promotion must not remove the serving model"
+
+
+def test_activation_restores_the_previous_model_when_the_final_rename_fails(tmp_path: Path, monkeypatch):
+    import training.train as train_module
+
+    candidate = tmp_path / "candidate"
+    candidate.mkdir()
+    (candidate / "meta.json").write_text('{"version_tag": "new"}')
+    active = tmp_path / "active"
+    active.mkdir()
+    (active / "meta.json").write_text('{"version_tag": "old"}')
+
+    real_rename = Path.rename
+
+    def failing_rename(self, target):
+        if Path(self).name == "active.new" and Path(target).name == "active":
+            raise OSError("destination locked by another process")
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", failing_rename)
+
+    with pytest.raises(OSError):
+        train_module.activate(candidate, active)
+
+    assert (active / "meta.json").exists(), "the serving model must survive a failed swap"
+    assert json.loads((active / "meta.json").read_text())["version_tag"] == "old"
 
 
 def test_activation_swaps_the_candidate_in_and_keeps_the_previous(tmp_path: Path):

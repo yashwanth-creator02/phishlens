@@ -24,7 +24,8 @@ of the deployment (see `docs/21-modern-corpus-evaluation-plan.md`).
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (68 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (86 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/release/` | The audited model the Docker image serves; empty until a release passes the privacy audit |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
@@ -89,6 +90,9 @@ Non-negotiable invariants:
 - Attachments are metadata only. Never open, execute, or render them.
 - Inline forwarding loses the original SPF/DKIM/DMARC headers; represent them as missing, not failed.
 - Do not claim model quality from the synthetic demo model.
+- A model fitted on a personal mailbox is derived from private data. It may reach a committed artifact or the public
+  deployment only after `backend/scripts/audit_model.py` reports the artifact clean and the owner has explicitly
+  decided. `backend/scripts/release_model.py` performs both steps together.
 - Keep the reason engine evidence-verified; do not emit a specific claim that the email does not support.
 - Do not change the feature set, thresholds, or reason rules without updating tests and the relevant `docs/` page.
 
@@ -107,6 +111,9 @@ python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir
 
 # Score a model on modern mail (evaluation only; never writes a model)
 python -m training.evaluate_modern --model-dir models --phish-dir data/raw/nazario --out reports/modern
+
+# Privacy audit before publishing a model (required for any model fitted on a personal mailbox)
+python -m scripts.audit_model --model models/active --mailbox data/raw/mailbox
 
 # Run the suite
 python -m pytest -q

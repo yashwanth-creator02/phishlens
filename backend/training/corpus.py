@@ -76,12 +76,50 @@ def _iter_raw(path: Path):
 
 
 def source_files(path: str | Path) -> list[str]:
-    """Names of the corpus files a loader would read from a directory, for split provenance."""
+    """Corpus files a loader would read from a directory, relative to that directory.
+
+    Relative paths, not bare names, so two different corpora that happen to hold an archive with
+    the same name are not mistaken for the same source.
+    """
+    root = Path(path)
     out = []
-    for f in sorted(Path(path).rglob("*")):
+    for f in sorted(root.rglob("*")):
         if f.is_dir() or f.name == "manifest.json" or f.suffix.lower() in _ARCHIVE_SUFFIXES:
             continue
-        out.append(f.name)
+        out.append(f.relative_to(root).as_posix())
+    return out
+
+
+def path_digest(path: str | Path) -> str:
+    """A non-reversible identifier for a location.
+
+    An absolute path carries the local account name, so a published artifact records only this
+    digest. The same location always produces the same digest, which is what the leakage guard
+    compares.
+    """
+    p = Path(path)
+    try:
+        resolved = str(p.resolve())
+    except OSError:
+        resolved = str(p)
+    return hashlib.sha256(resolved.encode("utf-8", errors="ignore")).hexdigest()[:16]
+
+
+def path_digests(path: str | Path) -> set[str]:
+    """Digests of a location and of the files it can contain.
+
+    A model trained on a directory and evaluated on a file inside it are the same source, and a
+    model trained on a file and evaluated on a directory that contains it are the same source too,
+    because a directory load reads every mbox beneath it. The comparison has to be symmetric in
+    both directions or the leakage guard would call an in-sample window clean.
+    """
+    p = Path(path)
+    out = {path_digest(p)}
+    if p.is_file():
+        out.add(path_digest(p.parent))
+    elif p.is_dir():
+        for mbox in sorted(p.glob("*.mbox")):
+            out.add(path_digest(mbox))
     return out
 
 
@@ -108,11 +146,12 @@ def load_dir(path: str | Path, label: int, limit: int | None = None, stats: dict
     seen_raw: set[str] = set()
     seen_msg_id: set[str] = set()
     seen_body: set[str] = set()
-    counts = {"parsed": 0, "duplicate": 0, "loaded": 0}
+    counts = {"parsed": 0, "failed": 0, "duplicate": 0, "loaded": 0}
     for raw in _iter_raw(Path(path)):
         try:
             p = parse_email(raw)
         except Exception:
+            counts["failed"] += 1
             continue
         counts["parsed"] += 1
         # Dedupe by raw hash, Message-ID, and body content hash.
@@ -156,7 +195,7 @@ def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None,
     seen_raw: set[str] = set()
     seen_msg_id: set[str] = set()
     seen_body: set[str] = set()
-    counts = {"parsed": 0, "label_filtered": 0, "duplicate": 0, "loaded": 0}
+    counts = {"parsed": 0, "failed": 0, "label_filtered": 0, "duplicate": 0, "loaded": 0}
 
     mbox_path = Path(path)
     if not mbox_path.exists():
@@ -178,6 +217,7 @@ def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None,
                 raw = bytes(msg)
                 p = parse_email(raw)
             except Exception:
+                counts["failed"] += 1
                 continue
             counts["parsed"] += 1
 

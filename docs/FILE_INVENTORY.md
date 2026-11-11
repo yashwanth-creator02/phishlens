@@ -53,7 +53,11 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `training/download_datasets.py` | Nazario + SpamAssassin fetch with SHA-256 manifests |
 | `training/train.py` | Training entry point, model selection, calibration, reports |
 | `training/evaluate.py` | Grouped-split evaluation, cold start, random-split baseline |
+| `training/evaluate_modern.py` | Modern-mailbox evaluation with leakage guard and dual thresholds |
 | `scripts/verify_rls.py` | Live Supabase RLS isolation check in both directions |
+| `scripts/audit_model.py` | Publish gate: scans a model directory for sender domains, addresses and subject words |
+| `scripts/release_model.py` | Audits a candidate, then copies it into `backend/release/model/` |
+| `release/model/` | The audited model the Docker image serves; empty until a release passes the audit |
 
 ## `backend/tests/`
 
@@ -87,13 +91,13 @@ legitimate bank alert.
 | `src/api/client.ts` | `apiFetch`: base URL, bearer token, typed errors |
 | `src/types.ts` | Response types shared across pages |
 | `src/lib/cases.ts` | Search, filter, sort, pagination helpers (unit tested) |
-| `src/pages/Dashboard.tsx` | Upload, counters, band cards, recent cases |
+| `src/pages/Dashboard.tsx` | Upload, band counters, recent activity list |
 | `src/pages/AnalysisDetail.tsx` | Band bar, verified reasons, SHAP table, features, delete |
-| `src/pages/Cases.tsx` | Case queue with filters and pagination |
+| `src/pages/History.tsx` | Full record list with search, band filter, sort, pagination |
 | `src/pages/Model.tsx` | Active model identity and metrics with the synthetic-data caveat |
 | `src/pages/HowItWorks.tsx` | Pipeline and feature-group explanation |
 | `src/pages/Status.tsx` | Health and model-loaded state |
-| `src/pages/Settings.tsx` | Forwarding alias and environment notices |
+| `src/pages/Profile.tsx` | Account identity, forwarding alias, trusted-sender baseline, sign out |
 | `src/pages/Login.tsx` | Sign-in, or an explicit authentication-disabled notice |
 | `src/components/` | `AppShell`, `BandBar`, `ConfirmDialog`, `EvidencePanel`, `FeatureTable`, `ReasonCard`, `RiskBadge`, `SessionExpired`, `Toast`, `UploadBox` |
 | `src/styles.css`, `src/styles/*.css` | Design tokens, shell, report, and status styles |

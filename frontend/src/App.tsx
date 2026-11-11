@@ -5,11 +5,11 @@ import { api } from "./api/client";
 import type { Health } from "./types";
 import { AppShell } from "./components/AppShell";
 import Dashboard from "./pages/Dashboard";
-import Cases from "./pages/Cases";
+import History from "./pages/History";
 import AnalysisDetailPage from "./pages/AnalysisDetail";
 import Model from "./pages/Model";
 import HowItWorks from "./pages/HowItWorks";
-import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import Status from "./pages/Status";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -35,11 +35,11 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route index element={<Dashboard />} />
-          <Route path="cases" element={<Cases />} />
+          <Route path="history" element={<History />} />
           <Route path="analyses/:id" element={<AnalysisDetailPage />} />
           <Route path="model" element={<Model />} />
           <Route path="how-it-works" element={<HowItWorks />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="profile" element={<Profile />} />
           <Route path="status" element={<Status />} />
         </Route>
         <Route path="*" element={<NotFound />} />

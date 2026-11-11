@@ -76,7 +76,8 @@ def activate(candidate: Path, active: Path) -> None:
     """Swap a candidate model into place without ever leaving the serving model missing.
 
     The copy lands in active.new first, the previous model moves to active.prev, and only then is
-    active.new renamed to active. If the copy fails, the old model is still servable.
+    active.new renamed to active. If either step fails, the previous model is put back, so a failed
+    promotion leaves the service with the model it already had.
     """
     active = Path(active)
     staging = active.with_name(active.name + ".new")
@@ -88,7 +89,12 @@ def activate(candidate: Path, active: Path) -> None:
         if previous.exists():
             shutil.rmtree(previous)
         active.rename(previous)
-    staging.rename(active)
+    try:
+        staging.rename(active)
+    except Exception:
+        if previous.exists():
+            previous.rename(active)
+        raise
 
 
 def main(argv=None) -> dict:
@@ -117,12 +123,14 @@ def main(argv=None) -> dict:
     args = ap.parse_args(argv)
     t0 = time.time()
 
-    provenance = {"phish_dir": args.phish_dir, "legit_dir": args.legit_dir, "phish_until": args.phish_until,
+    provenance = {"phish_dir": Path(args.phish_dir).name if args.phish_dir else None,
+                  "legit_dir": Path(args.legit_dir).name if args.legit_dir else None,
+                  "phish_until": args.phish_until,
                   "phish_min_date": None, "phish_max_date": None, "legit_min_date": None, "legit_max_date": None,
                   "phish_undated_dropped": 0, "n_phish": 0, "n_legit": 0,
-                  "legit_mailbox": args.legit_mailbox, "legit_until": args.legit_until,
+                  "legit_until": args.legit_until,
                   "legit_mailbox_min_date": None, "legit_mailbox_max_date": None,
-                  "n_legit_mailbox": 0, "contains_personal_data": bool(args.legit_mailbox)}
+                  "n_legit_mailbox": 0, "contains_personal_data": False}
     personal = None
     if args.source == "synthetic":
         samples = synthetic.build_samples(n=args.n, seed=args.seed)
@@ -161,6 +169,8 @@ def main(argv=None) -> dict:
             provenance["n_legit_mailbox"] = len(mailbox)
             provenance["legit_mailbox_min_date"] = corpus.date_range(mailbox)["min"]
             provenance["legit_mailbox_max_date"] = corpus.date_range(mailbox)["max"]
+            # The flag follows the data that was actually loaded, not the flag that was passed.
+            provenance["contains_personal_data"] = len(mailbox) > 0
         if args.phish_until:
             until = corpus.parse_cli_date(args.phish_until)
             kept, late, undated = [], 0, 0
@@ -187,13 +197,27 @@ def main(argv=None) -> dict:
         # Rows that came from personal mail. Used to keep personal-derived vectors out of the
         # published artifacts (the SHAP background sample) and out of the served metadata.
         personal = np.array([False] * (len(phish) + len(legit)) + [True] * len(mailbox))
-        data_source = f"corpus: phish={args.phish_dir} legit={args.legit_dir or 'personal mailbox'}"
+        # Only the directory names go into the artifact: a full path can carry the local account
+        # name into a published model file.
+        data_source = (f"corpus: phish={Path(args.phish_dir).name} "
+                       f"legit={Path(args.legit_dir).name if args.legit_dir else 'personal mailbox'}")
         provenance["n_phish"] = len(phish)
         provenance["n_legit"] = len(legit)
         provenance["loader_drops"] = {"phish": phish_stats, "legit": legit_stats, "mailbox": mailbox_stats}
         # The phishing split is by archive file, not by message date: the corpus dates are unreliable
         # (some archives carry dates from 1970 to 2038), so the file list is what proves a holdout.
         provenance["phish_files"] = corpus.source_files(args.phish_dir)
+        # The mailbox is personal data, so only a non-reversible digest of its location is recorded.
+        # An absolute path would carry the local account name into a published artifact.
+        mailbox_path = Path(args.legit_mailbox)
+        provenance["legit_mailbox_id"] = corpus.path_digest(mailbox_path)
+        provenance["legit_mailbox_scope"] = "directory" if mailbox_path.is_dir() else "file"
+        # The file name is not recorded: a Takeout export is named after the account, so even the
+        # base name would carry an identifier into a published artifact.
+        # A --legit-dir that points at a mailbox export loads the same personal data, so it is
+        # flagged the same way.
+        if args.legit_dir and any(Path(args.legit_dir).rglob("*.mbox")):
+            provenance["contains_personal_data"] = True
         provenance.update({
             "phish_min_date": corpus.date_range(phish)["min"],
             "phish_max_date": corpus.date_range(phish)["max"],
@@ -269,7 +293,13 @@ def main(argv=None) -> dict:
         print(f"SHAP background sample: {len(bg_pool)} non-personal rows "
               f"({int(personal[fit].sum())} personal rows excluded)")
     bg_pick = np.random.RandomState(args.seed).choice(bg_pool, min(100, len(bg_pool)), replace=False)
+    personal_in_background = int(personal[fit][bg_pick].sum()) if personal is not None else 0
+    if personal_in_background:
+        raise SystemExit("refusing to write a SHAP background sample that contains personal rows")
     np.save(out / "background.npy", Xf[bg_pick])
+    provenance["background_rows"] = int(len(bg_pick))
+    provenance["background_rows_personal"] = personal_in_background
+    provenance["fit_rows_personal"] = int(personal[fit].sum()) if personal is not None else 0
     meta = {"version_tag": tag, "algorithm": best, "trained_at": datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds"),
             "feature_names": FEATURE_NAMES, "data_source": data_source, "n_samples": int(len(y)),
             "split": {"fit": len(fit), "validation": len(val), "test": len(test)},
