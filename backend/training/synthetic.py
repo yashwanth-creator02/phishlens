@@ -55,6 +55,7 @@ class Sample:
     group: str
     profile: ProfileData | None
     domain_age: DomainAgeProvider
+    date: str = ""
 
 
 LEGIT_DEFS = [

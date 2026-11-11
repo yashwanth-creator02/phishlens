@@ -21,6 +21,43 @@
     return-paths as phishing signals, so it scores modern, fully-authenticated legitimate mail near 1.0.
     Retraining on a modern ham corpus with real headers is the remedy, not threshold tuning. Full detail in
     [17](17-real-corpus-evaluation.md) and the teammate guide, step 7.
+12. **Measured: the corpora-trained model flags 99.9% of modern legitimate mail.** On 2,216 received messages from a
+    real Gmail inbox (2020-2026, 87% with links, 99.7% with SPF) the corpus model `xgboost-corpus-20261110-s7`
+    returns FPR 0.999 at probability 0.5 and at the LOW/MEDIUM boundary: 2,202 HIGH, 12 MEDIUM, 2 LOW. Mean
+    probability is 0.996. This is a measured result on one inbox, not a population estimate, but the effect is far
+    too large to be sampling noise. The corpus model is therefore **not fit for modern mail and must not be promoted
+    to the live demo**. Details, method and the ablation in [21](21-modern-corpus-evaluation-plan.md).
+13. **Removing the era features does not fix it.** Retraining on pre-2015 phishing plus 2003 ham with the 7
+    authentication features removed still gives FPR 0.97 on the same inbox; adding `from_returnpath_mismatch` and
+    `http_only` to the mask does not help either. The era shift is broader than authentication: modern legitimate
+    mail also differs in link count, link length, click-request language and capitalisation. The binding constraint
+    is the **absence of modern legitimate mail in training**, not any single feature.
+14. **Adding modern legitimate mail to training fixes the false-positive side and costs recall.** Four candidates were
+    trained and scored on one shared 2026 holdout (2,865 legitimate messages never seen in training, 788 phishing
+    messages from the 2024-2025 archives). The candidate with modern ham and no 2003 ham flags 0.8% of legitimate mail
+    at probability 0.5, against 99.9% for the corpus-only model, but catches only 72% of held-out phishing. Adding
+    2003 ham back restores recall to 0.810 and the false-positive rate to 2.2%, at the cost of a domain-macro rate of
+    0.112 that misses its 0.10 gate. The full table is in
+    [21](21-modern-corpus-evaluation-plan.md) section 16. **No candidate passes every gate**: recall and Brier fail for
+    all four, so a published model is a trade, not a clean win.
+15. **No free, real, modern ham corpus exists.** The SpamAssassin public corpus ends in 2005; the public modern
+    "spam/ham" sets that do exist are explicitly synthetic (generated mail with generated headers) and cannot serve as
+    ground truth for real-world accuracy. This is why item 12 cannot be fixed by downloading something, and why the
+    next step is a decision (see [21](21-modern-corpus-evaluation-plan.md) section 11) rather than more training.
+15. **Phishing recall on 2024-2025 Nazario is in-sample.** The active model trained on those archives, so the 0.999
+    recall measured on them is memorisation of campaigns it already saw. The clean window for that model is
+    2015-2023. The harness now refuses to report a window the model was trained on unless it is told to.
+16. **A model fitted on the owner's own mailbox is derived from private data.** It may be released only after
+    `backend/scripts/audit_model.py` reports the artifact clean (no sender domain, no email address and no
+    distinctive subject word from the mailbox in any file of the model directory) and only on the owner's explicit
+    decision. The audit proves the artifact carries no personal data; it does not make the model accurate, and a
+    model fitted on one inbox is fitted on one inbox.
+17. **The published model is fitted on one person's mail and on a phishing corpus that is 20 years old.** Whatever its
+    measured numbers are, they describe that combination, not phishing detection in general. The honest way to present
+    it is as a measured system with a stated domain of validity, not as a detector.
+18. **The credential-phrase matcher is not negation-aware.** It reads "never reveal your OTP" as a credential request,
+    because it matches substrings. It fires on 3.9% of real modern mail, and those messages still score LOW, so it is
+    a nuisance today. A negation-aware match would fix it, and the fix would need a retrain.
 
 ## Project risks
 | Risk | Likelihood | Impact | Mitigation |

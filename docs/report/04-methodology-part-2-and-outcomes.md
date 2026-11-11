@@ -55,7 +55,7 @@ Real-data performance below targets; dated/biased corpora; inbound email setup d
 
 ## 5.1 Deliverables
 1. Working prototype: forward an email (or upload .eml), receive score, band and verified reasons in the web interface.
-2. Documented dataset and 57-feature dictionary across six evidence groups.
+2. Documented dataset and 65-feature dictionary across six evidence groups.
 3. Comparison of an existing approach with LR, RF and XGBoost on F1, ROC-AUC, PR-AUC, FPR, calibration, error analysis.
 4. SHAP-based explanation module with evidence verification and a template catalogue.
 5. User-study results on whether explanations help.

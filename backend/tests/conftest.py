@@ -12,10 +12,15 @@ SAMPLES = Path(__file__).resolve().parent.parent / "data" / "sample_emails"
 
 @pytest.fixture(scope="session")
 def model_dir(tmp_path_factory) -> Path:
-    """Train a small model once per test session (synthetic data; takes ~10 s)."""
+    """Train a small model once per test session (synthetic data; takes ~10 s).
+
+    --activate is explicit: an offline training run must never replace the serving model,
+    so the fixture asks for promotion the same way a deployment would.
+    """
     from training import train
     d = tmp_path_factory.mktemp("models")
-    train.main(["--source", "synthetic", "--n", "1400", "--out", str(d), "--reports", str(d / "reports")])
+    train.main(["--source", "synthetic", "--n", "1400", "--out", str(d), "--reports", str(d / "reports"),
+                "--activate"])
     return d
 
 

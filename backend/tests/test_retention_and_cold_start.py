@@ -1,6 +1,6 @@
 """Task 4: retention, delete cascade, cold-start neutral senders.
 
-The brief's `sender_history_count` feature name does not exist in the 57-feature
+The brief's `sender_history_count` feature name does not exist in the 65-feature
 vector (feature names are fixed by training/serving parity). This module tests
 the equivalent cold-start neutrality via the existing `prior_message_count`
 feature and `insufficient_history`.

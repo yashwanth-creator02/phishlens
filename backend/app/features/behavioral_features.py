@@ -8,6 +8,7 @@ scored LOW. It is deliberately NOT updated from messages scored MEDIUM/HIGH, so 
 from __future__ import annotations
 
 import math
+import re
 import zlib
 from datetime import datetime
 
@@ -17,9 +18,11 @@ from .common import ExtractionContext, ProfileData, registered_domain, scale_day
 
 GROUP = "behaviour"
 NAMES = ["sender_seen_before", "prior_message_count", "days_since_first_seen", "new_sending_domain",
-         "replyto_changed", "new_link_domain", "urgency_deviation", "text_style_distance", "insufficient_history"]
+         "replyto_changed", "new_link_domain", "urgency_deviation", "text_style_distance",
+         "subject_reply_without_history", "insufficient_history"]
 DIM = 128
 EMA_ALPHA = 0.2
+REPLY_PREFIX_RE = re.compile(r"^\s*(re|fwd?|aw|sv)\s*:", re.I)
 
 
 def style_vector(text: str) -> list[float]:
@@ -43,8 +46,11 @@ def extract(p: ParsedEmail, ctx: ExtractionContext, urgency: float, link_domains
     prof = ctx.profile
     f = {n: 0.0 for n in NAMES}
     ev: dict = {"details": [], "message_count": prof.message_count if prof else 0}
+    # A "Re:" subject from a sender we have never corresponded with is a thread-hijacking signal on its own.
+    reply_prefix = float(bool(REPLY_PREFIX_RE.match(p.subject)))
     if prof is None or prof.message_count == 0:
         f["insufficient_history"] = 1.0
+        f["subject_reply_without_history"] = reply_prefix
         return f, ev
     f["sender_seen_before"] = 1.0
     f["prior_message_count"] = min(prof.message_count, 50) / 50.0
@@ -52,6 +58,7 @@ def extract(p: ParsedEmail, ctx: ExtractionContext, urgency: float, link_domains
         f["days_since_first_seen"] = scale_days((ctx.now - prof.first_seen).days)
     if prof.message_count < ctx.min_history:
         f["insufficient_history"] = 1.0
+        f["subject_reply_without_history"] = reply_prefix
         return f, ev
 
     rt = registered_domain(domain_of(p.return_path_addr))

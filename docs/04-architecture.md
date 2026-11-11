@@ -115,7 +115,7 @@ sequenceDiagram
 |---|---|---|
 | Ingestion | receive forwarded mail (raw MIME or JSON), verify shared secret, map recipient alias -> user | `backend/app/api/webhooks.py` |
 | Email parser | MIME -> headers, text, links (+anchor text), attachment metadata; detect forward-as-attachment / inline | `backend/app/ingestion/email_parser.py` |
-| Feature engine | six modules -> 57 features + evidence | `backend/app/features/*.py` |
+| Feature engine | six modules -> 65 features + evidence | `backend/app/features/*.py` |
 | Sender history | per (user, sender) rolling profile | `features/behavioral_features.py`, `db/repository.py` |
 | Model registry | load `models/active/` (model, calibrator, background, meta) and check feature-set match | `backend/app/ml/registry.py` |
 | SHAP engine | per-prediction contributions (Tree/Linear explainer) | `backend/app/explain/shap_engine.py` |

@@ -14,7 +14,7 @@ def feats(raw: bytes, ctx: ExtractionContext | None = None):
 
 
 def test_feature_registry_is_consistent():
-    assert len(FEATURE_NAMES) == len(set(FEATURE_NAMES)) == 57
+    assert len(FEATURE_NAMES) == len(set(FEATURE_NAMES)) == 65
     assert set(FEATURE_GROUP.values()) == set(GROUPS)
     assert len(GROUPS) == 6
 
@@ -48,6 +48,18 @@ def test_attachment_features():
     m.add_attachment(b"MZ", maintype="application", subtype="octet-stream", filename="invoice.pdf.exe")
     v = feats(m.as_bytes()).values
     assert v["double_extension"] == 1 and v["risky_extension"] == 1 and v["has_attachment"] == 1
+
+
+def test_url_features_tolerate_malformed_port():
+    raw = b"""From: a@b.example
+Subject: hi
+Content-Type: text/html
+
+<p><a href="https://example.com:99999/x">here</a></p>
+<p><a href="http://example.com:abc/y">here</a></p>
+"""
+    v = feats(raw).values
+    assert v["has_port"] == 1
 
 
 def _history(n: int) -> ProfileData:

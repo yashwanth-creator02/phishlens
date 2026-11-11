@@ -30,15 +30,19 @@ DEFAULT_RAW_DIR = BACKEND_DIR / "data" / "raw"
 # name -> [(url, local filename)]. Nazario phishing mboxes + SpamAssassin ham tarballs.
 # monkey.org stopped publishing one tarball; the corpus is per-year mbox files now.
 # The 2018+ "private-phishing4" archive is deliberately excluded (donor privacy).
-# phishing-2024/phishing-2025 add ~7,000 real phishing messages from the last two years, so the phishing set
-# spans both the 2003-2007 mboxes above and contemporary campaigns instead of only historical mail.
+# Every published year is fetched (2004 through 2025), so the phishing set spans both the
+# 2003-2007 research mboxes and contemporary campaigns instead of only historical mail.
+# 20051114.mbox overlaps phishing1/phishing2; the loader dedupes on raw hash, Message-ID,
+# and body hash, so the overlap costs bandwidth once and does not inflate the dataset.
 DATASETS: dict[str, list[tuple[str, str]]] = {
     "nazario": [
         ("https://monkey.org/~jose/phishing/phishing0.mbox", "phishing0.mbox"),
+        ("https://monkey.org/~jose/phishing/20051114.mbox", "20051114.mbox"),
         ("https://monkey.org/~jose/phishing/phishing1.mbox", "phishing1.mbox"),
         ("https://monkey.org/~jose/phishing/phishing2.mbox", "phishing2.mbox"),
-        ("https://monkey.org/~jose/phishing/phishing-2024", "phishing-2024.mbox"),
-        ("https://monkey.org/~jose/phishing/phishing-2025", "phishing-2025.mbox"),
+        ("https://monkey.org/~jose/phishing/phishing3.mbox", "phishing3.mbox"),
+        *((f"https://monkey.org/~jose/phishing/phishing-{year}", f"phishing-{year}.mbox")
+          for year in range(2015, 2026)),
     ],
     "spamassassin": [
         ("https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham.tar.bz2", "easy_ham.tar.bz2"),

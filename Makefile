@@ -8,7 +8,7 @@ help:
 setup:
 	cd backend && python -m pip install -r requirements-dev.txt && cd ../frontend && npm install
 train-demo:
-	cd backend && python -m training.train --source synthetic --n 2400 --out models --reports reports
+	cd backend && python -m training.train --source synthetic --n 2400 --out models --reports reports --activate
 backend:
 	cd backend && python -m uvicorn app.main:app --reload --port 8000
 frontend:

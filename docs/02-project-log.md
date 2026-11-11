@@ -176,16 +176,16 @@ the synthetic demo.
 
 ## 2026-11-06 (deployment) - Branches merged, frontend live on Vercel, Supabase provisioned
 
-- **Merged both lanes.** eat/dashboard-ui and eat/real-corpus-evaluation are on main via --no-ff merges
-  ( 3b0af8, 2e052ab) and pushed. The UI work, the mini-project pages, the corpus loader fix and the evaluation
+- **Merged both lanes.** `feat/dashboard-ui` and `feat/real-corpus-evaluation` are on main via --no-ff merges
+  (`03b0af8`, `2e052ab`) and pushed. The UI work, the mini-project pages, the corpus loader fix and the evaluation
   report are no longer branch-only.
 - **Frontend deployed.** Vercel project phishlens (team yashwanth-creator02s-projects, Root Directory
-  rontend) serves https://phishlens-gules.vercel.app. Vercel Authentication was disabled at the project level so
+  `frontend`) serves https://phishlens-gules.vercel.app. Vercel Authentication was disabled at the project level so
   the URL is public; VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set and baked into the bundle. Deploy with
-  `vercel deploy --prod --yes` from the repository root, because the project root directory is rontend.
+  `vercel deploy --prod --yes` from the repository root, because the project root directory is `frontend`.
   Push-to-deploy is not connected: the Vercel GitHub App has no access to the private repo.
-- **Supabase provisioned.** Project mbtdrmevlovvvfvtqmd (phislens, eu-west-1, PostgreSQL 17) restored to
-  ACTIVE_HEALTHY, then  001_init.sql and  002_auth_hardening.sql applied through the management API: 7 tables,
+- **Supabase provisioned.** Project `vmbtdrmevlovvvfvtqmd` (phislens, eu-west-1, PostgreSQL 17) restored to
+  ACTIVE_HEALTHY, then `0001_init.sql` and `0002_auth_hardening.sql` applied through the management API: 7 tables,
   RLS on all of them. Auth URL configuration and the email-confirmation toggle remain dashboard-only.
 - **Verified.** Live URL returns 200 with the app HTML; a Playwright pass against the deployment shows the expected
   title, the "Analyst sign in" heading, three form controls, protected routes redirecting to sign-in, and no console
@@ -222,3 +222,77 @@ the synthetic demo.
   `docs/17-real-corpus-evaluation.md`, `docs/15-risks-and-limitations.md`, and the new
   `docs/19-teammate-training-guide.md`. Render still bakes the synthetic demo model; promoting this one is the
   open manual step in `docs/18-open-manual-actions.md`.
+
+## 2026-11-10 - Feature expansion, retrained model, and parameter documentation
+
+- **Feature set widened 57 -> 65 and the model retrained on it.** Eight offline features added across the existing
+  groups: `max_path_depth`, `has_port`, `percent_encoding_ratio` (url), `subject_caps_ratio`, `generic_greeting`
+  (text), `action_count` (action), `max_attachment_size` (attachment), `subject_reply_without_history`
+  (behaviour). `training.train --source corpus` selected XGBoost again and wrote `xgboost-corpus-20261110-s7`
+  (4,261 messages, 2,647/628/986 split, isotonic calibration): calibrated test precision 0.965, recall 0.989,
+  F1 macro 0.978, FPR 0.033, ROC-AUC 0.993, PR-AUC 0.986, Brier 0.014. The earlier 57-feature run scored
+  F1 macro 0.983 / PR-AUC 0.984, so this is not a controlled comparison; the per-group ablation in
+  `docs/17-real-corpus-evaluation.md` shows header and url still carry the signal. The new
+  `docs/20-model-parameters-and-features.md` is the canonical feature and hyperparameter reference.
+- **Hardened URL parsing while adding `has_port`.** `urlparse(...).port` raises `ValueError` on a hostile href
+  such as `https://example.com:99999/x`, which would have returned a 500 instead of a scored analysis. The
+  extractor now treats an unparseable port as suspicious; `test_url_features_tolerate_malformed_port` covers it.
+  Suite 52 passed / 1 skipped. No reason rule references the eight new features yet, so verdicts driven by them
+  fall back to the generic reason - recorded as a follow-up in
+  `docs/report/2026-11-10-feature-expansion-report.md`.
+
+## 2026-11-10 - Full Nazario corpus fetch and a one-page project summary
+
+- **Every published Nazario year is now fetched.** `download_datasets` pulls `phishing0`, `20051114`, `phishing1`,
+  `phishing2`, `phishing3`, and `phishing-2015` … `phishing-2025` (15 files, 124 MB). Parsed and deduped: 4,306
+  phishing messages, up from 2,182; with 2,712 SpamAssassin legitimate messages the corpus is 7,018 messages.
+  The model was **not** retrained: `xgboost-corpus-20261110-s7` still reflects the 4,261-message fetch, and docs
+  17/19 plus the dataset card now say so explicitly.
+- **`docs/SUMMARY.md` added** as the three-minute read the other 20 docs cannot replace: the idea, the six pipeline
+  steps, what is built, the numbers with their caveats, the demo-versus-real model distinction, what is not done,
+  and a five-row reading guide. Linked from the root README and the docs index.
+
+## 2026-11-11 - Modern-mail evaluation: the corpora model fails on real inbox mail
+
+- **The corpora-trained model flags 99.9% of modern legitimate mail.** Scored against 2,216 received messages from a
+  real Gmail inbox (2020-2026, 133 sender domains, 87% with links, 99.7% with SPF): FPR 0.999 at probability 0.5
+  and at the LOW/MEDIUM boundary, 0.996 domain-macro, 95% CI 0.997-1.000, bands 2,202 HIGH / 12 MEDIUM / 2 LOW,
+  mean probability 0.996. On the clean 2015-2023 holdout (2,072 phishing messages it never trained on) recall is
+  0.994, so the model is neither blind nor weak on modern phishing; it is broken on modern legitimate mail.
+- **Three candidate causes were tested and rejected.** Auth-feature leakage: retraining without the 7
+  authentication features leaves FPR@0.29 at 0.971, and the 9-feature and header-group variants stay above 0.93.
+  Calibration: the uncalibrated probabilities already average 0.967 with 99.7% above 0.29, so only 0.18% of
+  messages cross the boundary because of calibration. Domain skew: the domain-macro rate (0.996) is as bad as the
+  message-level rate (0.999). The real cause is the training data - the only legitimate mail in it is SpamAssassin
+  2003, so the classifier has never seen a modern legitimate message. `docs/21-modern-corpus-evaluation-plan.md`
+  section 7.1 holds the ablation table and the feature-level comparison.
+- **The harness now enforces the temporal holdout rule.** `training.train` records the phishing date range and
+  sources it trained on in `meta["training"]`; `training/evaluate_modern.py` refuses to report a window the model
+  was trained on unless `--allow-training-overlap` is passed, defaults to the 2015-2024 window, and can score a
+  candidate with `--model`. `training.train` gained `--phish-until` (drop phishing dated on or after the cutoff and
+  undated phishing) and `--activate`, so an offline training run writes a candidate directory and never replaces
+  `models/active`; the four call sites that need promotion (Dockerfile, entrypoint.sh, both Makefiles) pass it.
+- **Consequence: the corpora model stays out of the live demo.** The synthetic demo model remains what Render
+  serves. `docs/18-open-manual-actions.md` now carries the decision the owner has to make (allow a modern ham
+  source for training, provide a licensed corpus, accept a synthetic-augmented model, or accept the honest
+  limitation) and the privacy cleanup of the mailbox-derived cache. Docs 15, 17, 19, SUMMARY, README and AGENTS.md
+  were updated to match. Suite: 68 passed, 1 skipped.
+
+## 2026-11-11 - Owner decision: the mailbox may be used for training, with a privacy constraint
+
+- **The decision.** The owner chose option A of the re-plan in `docs/21-modern-corpus-evaluation-plan.md` section 13:
+  the personal Gmail Takeout mailbox may be used as a modern legitimate-mail training source. That is the only
+  option that fixes the root cause, because the failure was never the features; it was that the training set contained
+  no modern legitimate mail. The corpora-trained model is still not promoted as it stands, the synthetic demo model
+  stays live on Render for now, and the auth-blind trade-off is rejected because the ablation gate failed rather
+  than because a recall loss was judged acceptable.
+- **The constraint is privacy, not permission.** No sensitive information or personal data may end up in committed
+  artifacts or in the public deployment. Concretely: the trained model stays local (`backend/models/` is gitignored),
+  it must not be baked into the Docker image or shipped to Render without a separate explicit decision, and reports
+  and documentation may carry aggregate counts only, never message content, addresses, subjects or Message-IDs. The
+  evaluation design that keeps the measurement honest is a temporal split on the mailbox itself: messages dated
+  before 2024 may train the candidate, and 2024 and later are held out and never seen in training.
+- **The derived cache is deleted; the raw export stays.** On the owner's instruction `.tmp/auth_cache` was deleted
+  and the raw mbox export remains on disk. The aggregate numbers already written into the docs are unaffected, because
+  no message content was ever recorded there. `docs/18-open-manual-actions.md` now lists only work that still needs the
+  owner, and the decision rows in `docs/21-modern-corpus-evaluation-plan.md` section 10 record what was chosen.

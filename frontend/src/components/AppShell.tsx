@@ -1,18 +1,25 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useSession } from "../auth";
 import { ToastProvider } from "./Toast";
 import { ConfirmProvider } from "./ConfirmDialog";
 import "../styles/shell.css";
 
-const links = [
+// Primary: the two screens an analyst works in, all day.
+const primary = [
   { to: "/", label: "Dashboard", end: true },
-  { to: "/cases", label: "Cases" },
+  { to: "/history", label: "History" },
+];
+
+// Reference: what the system is and how it behaves.
+const reference = [
   { to: "/model", label: "Model" },
   { to: "/how-it-works", label: "How it works" },
-  { to: "/settings", label: "Settings" },
   { to: "/status", label: "Status" },
 ];
 
 function Shell() {
+  const { user } = useSession();
+
   return (
     <div className="shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
@@ -20,8 +27,9 @@ function Shell() {
         <NavLink to="/" className="shell-brand" end>
           PhishLens<span>Explainable email triage</span>
         </NavLink>
+
         <nav className="shell-nav" aria-label="Primary">
-          {links.map((link) => (
+          {primary.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -31,7 +39,24 @@ function Shell() {
               {link.label}
             </NavLink>
           ))}
+          <span className="shell-separator" aria-hidden="true" />
+          {reference.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) => (isActive ? "shell-link is-active" : "shell-link")}
+            >
+              {link.label}
+            </NavLink>
+          ))}
         </nav>
+
+        <div className="shell-account">
+          {user?.email && <span className="shell-account-email mono" title={user.email}>{user.email}</span>}
+          <NavLink to="/profile" className={({ isActive }) => (isActive ? "shell-link is-active" : "shell-link")}>
+            Profile
+          </NavLink>
+        </div>
       </header>
       <main id="main-content" className="shell-main" tabIndex={-1}><Outlet /></main>
       <footer className="shell-footer">
@@ -51,4 +76,3 @@ export function AppShell() {
     </ToastProvider>
   );
 }
-

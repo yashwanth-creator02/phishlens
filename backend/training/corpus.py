@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import mailbox
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from app.features.common import NullDomainAge, split_host
@@ -17,6 +19,44 @@ from app.ingestion.email_parser import parse_email
 from .synthetic import Sample
 
 _ARCHIVE_SUFFIXES = {".gz", ".bz2", ".zip", ".tar", ".tgz", ".xz", ".7z"}
+
+
+def parse_date(value: str | None) -> datetime | None:
+    """Parse an RFC 2822 Date header into an aware UTC datetime, or None when it is absent/unparsable."""
+    if not value:
+        return None
+    try:
+        dt = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    if dt is None:
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def parse_cli_date(value: str | None) -> datetime | None:
+    """Parse an ISO date from the command line into an aware UTC datetime."""
+    if not value:
+        return None
+    dt = datetime.fromisoformat(value)
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def in_window(sample: Sample, since: datetime | None, until: datetime | None) -> bool:
+    """True when the sample carries a date inside [since, until). Undated samples never match."""
+    dt = parse_date(sample.date)
+    if dt is None:
+        return False
+    return (since is None or dt >= since) and (until is None or dt < until)
+
+
+def date_range(samples: list[Sample]) -> dict:
+    dates = [d for d in (parse_date(s.date) for s in samples) if d is not None]
+    return {
+        "dated": len(dates), "undated": len(samples) - len(dates),
+        "min": min(dates).isoformat() if dates else None,
+        "max": max(dates).isoformat() if dates else None,
+    }
 
 
 def _iter_raw(path: Path):
@@ -35,20 +75,90 @@ def _iter_raw(path: Path):
             continue
 
 
-def load_dir(path: str | Path, label: int, limit: int | None = None) -> list[Sample]:
+def source_files(path: str | Path) -> list[str]:
+    """Corpus files a loader would read from a directory, relative to that directory.
+
+    Relative paths, not bare names, so two different corpora that happen to hold an archive with
+    the same name are not mistaken for the same source.
+    """
+    root = Path(path)
+    out = []
+    for f in sorted(root.rglob("*")):
+        if f.is_dir() or f.name == "manifest.json" or f.suffix.lower() in _ARCHIVE_SUFFIXES:
+            continue
+        out.append(f.relative_to(root).as_posix())
+    return out
+
+
+def path_digest(path: str | Path) -> str:
+    """A non-reversible identifier for a location.
+
+    An absolute path carries the local account name, so a published artifact records only this
+    digest. The same location always produces the same digest, which is what the leakage guard
+    compares.
+    """
+    p = Path(path)
+    try:
+        resolved = str(p.resolve())
+    except OSError:
+        resolved = str(p)
+    return hashlib.sha256(resolved.encode("utf-8", errors="ignore")).hexdigest()[:16]
+
+
+def path_digests(path: str | Path) -> set[str]:
+    """Digests of a location and of the files it can contain.
+
+    A model trained on a directory and evaluated on a file inside it are the same source, and a
+    model trained on a file and evaluated on a directory that contains it are the same source too,
+    because a directory load reads every mbox beneath it. The comparison has to be symmetric in
+    both directions or the leakage guard would call an in-sample window clean.
+    """
+    p = Path(path)
+    out = {path_digest(p)}
+    if p.is_file():
+        out.add(path_digest(p.parent))
+    elif p.is_dir():
+        for mbox in sorted(p.glob("*.mbox")):
+            out.add(path_digest(mbox))
+    return out
+
+
+def _gmail_labels(message) -> set[str]:
+    """Label tokens of a Takeout message, normalised.
+
+    Takeout writes labels as comma-separated tokens, but other exports quote or escape them
+    ("\\Sent", '"Spam"'), so quotes and backslashes are stripped and only the last segment of
+    a "\\Inbox\\Sent" style token is compared.
+    """
+    raw = str(message.get("X-Gmail-Labels", ""))
+    out = set()
+    for part in raw.split(","):
+        token = part.strip().strip('"').strip("\\").strip().lower()
+        if not token:
+            continue
+        out.add(token.split("\\")[-1].split("/")[-1])
+    return out
+
+
+def load_dir(path: str | Path, label: int, limit: int | None = None, stats: dict | None = None) -> list[Sample]:
+    """Load labelled messages from a directory. `stats` collects the drop reasons when given."""
     out: list[Sample] = []
     seen_raw: set[str] = set()
     seen_msg_id: set[str] = set()
     seen_body: set[str] = set()
+    counts = {"parsed": 0, "failed": 0, "duplicate": 0, "loaded": 0}
     for raw in _iter_raw(Path(path)):
         try:
             p = parse_email(raw)
         except Exception:
+            counts["failed"] += 1
             continue
+        counts["parsed"] += 1
         # Dedupe by raw hash, Message-ID, and body content hash.
         msg_id = (p.headers.get("message-id") or "").strip().lower()
         body_hash = hashlib.sha256(p.text_body.encode("utf-8", errors="ignore")).hexdigest()
         if p.raw_sha256 in seen_raw or (msg_id and msg_id in seen_msg_id) or body_hash in seen_body:
+            counts["duplicate"] += 1
             continue
         seen_raw.add(p.raw_sha256)
         if msg_id:
@@ -64,7 +174,70 @@ def load_dir(path: str | Path, label: int, limit: int | None = None) -> list[Sam
             group = f"phish-{host}"
         else:
             group = f"legit-{p.from_domain or 'unknown'}"   # split by sender domain
-        out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge()))
+        out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(), date=p.date))
+        counts["loaded"] += 1
         if limit and len(out) >= limit:
             break
+    if stats is not None:
+        stats.update(counts)
+    return out
+
+
+def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None,
+                 stats: dict | None = None) -> list[Sample]:
+    """Load messages from an mbox file or directory of mbox files (such as Google Takeout mailbox export),
+    skipping messages labeled as Spam, Trash, Sent, Drafts or Chat via X-Gmail-Labels.
+
+    `stats` collects the drop reasons when given, so a run can report how many messages the
+    label filter and the deduplication removed.
+    """
+    out: list[Sample] = []
+    seen_raw: set[str] = set()
+    seen_msg_id: set[str] = set()
+    seen_body: set[str] = set()
+    counts = {"parsed": 0, "failed": 0, "label_filtered": 0, "duplicate": 0, "loaded": 0}
+
+    mbox_path = Path(path)
+    if not mbox_path.exists():
+        if stats is not None:
+            stats.update(counts)
+        return out
+
+    mbox_files = [mbox_path] if mbox_path.is_file() else sorted(mbox_path.rglob("*.mbox"))
+    for f in mbox_files:
+        try:
+            box = mailbox.mbox(str(f))
+        except Exception:
+            continue
+        for msg in box:
+            try:
+                if _gmail_labels(msg) & {"spam", "trash", "sent", "drafts", "chat"}:
+                    counts["label_filtered"] += 1
+                    continue
+                raw = bytes(msg)
+                p = parse_email(raw)
+            except Exception:
+                counts["failed"] += 1
+                continue
+            counts["parsed"] += 1
+
+            msg_id = (p.headers.get("message-id") or "").strip().lower()
+            body_hash = hashlib.sha256(p.text_body.encode("utf-8", errors="ignore")).hexdigest()
+            if p.raw_sha256 in seen_raw or (msg_id and msg_id in seen_msg_id) or body_hash in seen_body:
+                counts["duplicate"] += 1
+                continue
+            seen_raw.add(p.raw_sha256)
+            if msg_id:
+                seen_msg_id.add(msg_id)
+            seen_body.add(body_hash)
+
+            group = f"legit-mailbox-{p.from_domain or 'unknown'}"
+            out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(), date=p.date))
+            counts["loaded"] += 1
+            if limit and len(out) >= limit:
+                if stats is not None:
+                    stats.update(counts)
+                return out
+    if stats is not None:
+        stats.update(counts)
     return out

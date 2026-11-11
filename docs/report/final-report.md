@@ -19,7 +19,7 @@ Guide: Dr. Shanthi D L
 
 Phishing warnings are either a binary verdict or a wall of indicators that a non-expert cannot act on. PhishLens
 returns a risk level and the reasons for it, where each reason is a plain-language sentence backed by evidence
-quoted from the email being analysed. The system parses a forwarded email, extracts 57 features in six groups,
+quoted from the email being analysed. The system parses a forwarded email, extracts 65 features in six groups,
 scores it with a calibrated tree/linear model, converts SHAP contributions into candidate reasons, and discards any
 reason whose evidence rule fails against the parsed message. The result is a Low / Medium / High band, a 0-100
 score, and a short, verifiable explanation. PhishLens is implemented as a FastAPI service and a React interface,
@@ -49,7 +49,7 @@ Objectives:
 ### 3.1 Pipeline
 
 ```
-forwarded email -> parser -> sender history -> 57-feature vector -> model + calibration
+forwarded email -> parser -> sender history -> 65-feature vector -> model + calibration
                 -> probability -> score 0-100 -> band -> SHAP contributions -> candidate reasons
                 -> evidence verification -> stored analysis + explanations
 ```
@@ -118,7 +118,7 @@ Two evaluation paths exist in the repository:
 
 The real evaluation **has** been run. `python -m training.download_datasets` fetched 1,390 Nazario phishing
 messages (819 campaign/host groups) and 2,712 SpamAssassin legitimate messages (468 sender-domain groups);
-`python -m training.evaluate` then trained a throwaway XGBoost comparator on the production 57-feature matrix and
+`python -m training.evaluate` then trained a throwaway XGBoost comparator on the production 65-feature matrix and
 scored it on a campaign-and-sender-grouped split (3,092 train / 1,010 test):
 
 | Metric | Grouped split (headline) | Random split (leaky baseline) |
@@ -134,6 +134,32 @@ identity. It is **not** evidence of production accuracy: labels are corpus-of-or
 traffic, there is one split with no confidence interval, and the comparator is not the shipped model. The shipped
 model remains the synthetic demo model, and its 0.959 calibrated macro-F1 is still a synthetic hold-out number.
 Method and caveats: `docs/17-real-corpus-evaluation.md`.
+
+### What the corpus model does on modern mail
+
+The corpus-trained XGBoost model was scored against 2,216 received messages from a real Gmail inbox (2020-2026,
+133 sender domains) with the same extractor the API uses:
+
+| Measurement | Value |
+|---|---|
+| FPR at probability 0.5 | 0.999 |
+| FPR at the LOW/MEDIUM boundary | 0.999 |
+| FPR at the boundary, domain-macro | 0.996 (95% CI 0.997-1.000 pooled) |
+| Bands on legitimate mail | 2,202 HIGH / 12 MEDIUM / 2 LOW |
+| Recall on Nazario 2015-2023, a clean holdout | 0.994 at the boundary |
+
+The model catches modern phishing it never saw and also calls essentially every modern legitimate message phishing.
+Three candidate causes were measured and rejected: removing the seven authentication features leaves FPR at 0.971,
+the uncalibrated probabilities already average 0.967 (so calibration is not moving the boundary), and the
+domain-macro rate is as bad as the message-level rate (so it is not sender skew). The cause is the training data:
+the only legitimate mail in the corpora is SpamAssassin 2003, which carries no authentication headers, so the
+classifier has never seen a modern legitimate message. Feature removal cannot fix that; modern legitimate mail has
+to be in the training set, and there is no free public corpus of it.
+
+Consequences for this submission: the corpora-trained model is **not** shipped and **no accuracy claim is made for
+modern mail**. The deployed model is the synthetic demo, and the contribution is the pipeline, the evidence-verified
+reason engine, the security model and an honest evaluation that includes a measured failure with its root cause.
+Full evidence, the ablation and the promotion gates: `docs/21-modern-corpus-evaluation-plan.md`.
 
 ## 6. Security and privacy
 
@@ -168,21 +194,26 @@ was evaluated and rejected as a host (HTTP 402: Docker Spaces are paid, free Zer
 1. Detection quality is measured only on 2003-2007 research corpora (grouped-split F1 0.948, single split, no
    confidence interval); the shipped model is the synthetic demo model, so nothing in the app's own output has been
    validated against real mail.
-2. Behavioural features need history the system only sees for senders the user has already forwarded; cold start is
+2. The corpus-trained model was measured on a modern inbox and **fails there**: FPR 0.999 on 2,216 legitimate
+   messages (section 5). The cause is the training data, not the classifier, and it is not fixed by removing
+   features. It is not shipped, and no accuracy claim is made for modern mail.
+3. Behavioural features need history the system only sees for senders the user has already forwarded; cold start is
    neutral by design.
-3. Inline forwarding loses the original authentication headers.
-4. No real inbound provider; ingestion is file upload plus a simulated webhook. Gmail IMAP is designed in the spec
+4. Inline forwarding loses the original authentication headers.
+5. No real inbound provider; ingestion is file upload plus a simulated webhook. Gmail IMAP is designed in the spec
    and not implemented.
-5. No domain-age or reputation lookup.
-6. The frontend has no linter, and the dependency audit reports advisories whose fixes are major-version upgrades.
-7. The synthetic demo model must not be presented as a detector in any external material.
+6. No domain-age or reputation lookup.
+7. The frontend has no linter, and the dependency audit reports advisories whose fixes are major-version upgrades.
+8. The synthetic demo model must not be presented as a detector in any external material.
 
 ## 9. Future work
 
 1. Add bootstrap confidence intervals and a second seed to the real-corpus evaluation, plus a third-party holdout; one
    split cannot support a claim that two configurations differ.
-2. Train the serving model on the real corpus (the documented `training.train --source corpus` path) once a holdout
-   strategy beyond the two research corpora exists, so the app's own output stops being synthetic-pipeline demo.
+2. Train the serving model on real mail once a holdout strategy beyond the two research corpora exists, so the app's
+   own output stops being a synthetic-pipeline demo. The `training.train --legit-mailbox` path and the temporal
+   split in `docs/19-teammate-training-guide.md` step 6a are the mechanism; the constraint is that a model trained
+   on a personal mailbox is personal-data-derived and stays out of the public deployment.
 3. Add Gmail IMAP ingestion so a user can forward without leaving their client.
 4. Add domain-age and reputation enrichment behind the existing feature interface.
 5. Run the user study in `docs/14-user-study.md` to test whether verified reasons change user decisions.

@@ -8,7 +8,7 @@ Supabase dashboard. If you only want the demo model, use the commands in the roo
 
 ## What you are doing and why
 
-PhishLens scores suspicious emails with an ML model over 57 features extracted from six groups (header, URL, text,
+PhishLens scores suspicious emails with an ML model over 65 features extracted from six groups (header, URL, text,
 action, attachment, behavioral). The result is turned into a Low / Medium / High risk band, and SHAP contributions
 become plain-language reasons that are checked against evidence found in the email.
 
@@ -95,7 +95,7 @@ python -c "import sys, xgboost, sklearn, shap, joblib; print(sys.version)"
 python -m pytest -q
 ```
 
-Expected: `51 passed, 1 skipped`. The one skip is the live-only Supabase RLS test, which skips without credentials.
+Expected: `52 passed, 1 skipped`. The one skip is the live-only Supabase RLS test, which skips without credentials.
 If pytest errors on import, your venv is built with the wrong interpreter - delete `.venv` and redo this step.
 
 ## Step 3 - Train the synthetic demo model (plumbing check, five minutes)
@@ -128,10 +128,11 @@ python -m training.download_datasets
 Two things happen:
 
 1. The fetcher downloads the corpora from their public mirrors into `backend/data/raw/<name>/`:
-   - `nazario/phishing0.mbox`, `phishing1.mbox`, `phishing2.mbox`, `phishing-2024.mbox`, `phishing-2025.mbox`
-     (~50 MB total). The upstream stopped shipping a single tarball, so the fetcher pulls the per-year mbox files,
-     including the 2024 and 2025 archives so the phishing set spans both the 2003-2007 mboxes and contemporary
-     campaigns. `private-phishing4` is deliberately excluded because it contains donor-private messages.
+   - `nazario/`: every published file - `phishing0.mbox`, `20051114.mbox`, `phishing1.mbox`, `phishing2.mbox`,
+     `phishing3.mbox`, and `phishing-2015` through `phishing-2025` (~124 MB total). Upstream stopped shipping a single
+     tarball, so the fetcher pulls the per-year files; the set spans the 2003-2007 research mboxes and contemporary
+     campaigns. `private-phishing4` is deliberately excluded because it contains donor-private messages, and
+     `20051114.mbox` overlaps the 2005 mboxes; the loader dedupes on raw hash, Message-ID, and body hash.
    - `spamassassin/20030228_easy_ham.tar.bz2` and `20030228_hard_ham.tar.bz2` (~2.5 MB), extracted into
      hash-named files with no extension.
 2. It writes `manifest.json` into each corpus directory: per-file SHA-256, total size and file count.
@@ -147,8 +148,13 @@ python -m training.download_datasets --names nazario  # one corpus only
 
 What you should end up with after deduplication and parsing (see `docs/datasets/README.md`):
 
-- `backend/data/raw/nazario/` - about 2,180 phishing messages in mbox files.
-- `backend/data/raw/spamassassin/` - about 2,710 legitimate messages as extensionless hash-named files.
+- `backend/data/raw/nazario/` - about 4,300 phishing messages in mbox files (measured 4,306 on 2026-11-10).
+- `backend/data/raw/spamassassin/` - about 2,710 legitimate messages as extensionless hash-named files (measured
+  2,712).
+
+The committed evaluation and model figures were produced on a smaller fetch (the 2024/2025 archives only: 2,182
+phishing, 4,261 messages total). With every year on disk the corpus is 7,018 messages, so both the split sizes and the
+metrics below will differ; read the table as the expected shape, not the exact digits.
 
 Two details that matter and that have bitten before:
 
@@ -167,7 +173,7 @@ python -m training.evaluate --phish-dir data/raw/nazario --ham-dir data/raw/spam
 
 What `training.evaluate` does:
 
-- Loads the corpora through the same parser and extractor used at serving time (57 features per email).
+- Loads the corpora through the same parser and extractor used at serving time (65 features per email).
 - **Excludes one corpus artefact before splitting**: SpamAssassin rewrites some hostnames to
   `spamassassin.taint.org`, which lands 633+ legitimate messages in a single sender-domain group that the grouped
   split puts entirely in one partition (about 40% of the test set belongs to one group). Both `training.evaluate`
@@ -175,7 +181,8 @@ What `training.evaluate` does:
   model always cover the same dataset. Everything else is untouched.
 - Splits with `GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=7)`. Phishing messages are grouped by
   campaign or first URL host; legitimate messages by sender domain. No campaign host and no sender domain appears in
-  both train and test - about 3,275 train, 986 test (4,261 messages in total).
+  both train and test - about 3,275 train, 986 test (4,261 messages in total) on the corpus that produced the
+  committed report; with every Nazario year downloaded the split scales with the corpus.
 - Trains a throwaway comparator (`XGBClassifier`, `n_estimators=100, max_depth=4, learning_rate=0.1, random_state=7`)
   and measures it. **It never touches `backend/models/`.** The serving model is untouched by this step.
 - Writes `backend/reports/evaluation.json` and `backend/reports/evaluation.md`.
@@ -186,8 +193,8 @@ sender identity across the split. That number is a comparison baseline only - ne
 
 ### Expected output
 
-On this corpus with these library versions, you should reproduce something close to what is committed in
-`backend/reports/evaluation.json`:
+On the 4,261-message corpus that produced the committed report, with these library versions, you should reproduce
+something close to what is committed in `backend/reports/evaluation.json`:
 
 | Metric | Grouped split (headline) |
 |---|---|
@@ -225,13 +232,22 @@ and you must re-run the evaluation.
 python -m training.train --source corpus `
     --phish-dir data/raw/nazario `
     --legit-dir data/raw/spamassassin `
+    --phish-until 2024-01-01 `
     --out models --reports reports
 ```
 
+Read step 6a before you promote anything.
+
 What `training.train --source corpus` does:
 
-- Loads both corpora with the same parser, and the same 57-feature extractor, in the same feature names and order as
+- Loads both corpora with the same parser, and the same 65-feature extractor, in the same feature names and order as
   serving. The model registry rejects a model whose stored feature metadata does not match.
+- With `--phish-until 2024-01-01`, drops every phishing message dated on or after the cutoff and every undated
+  phishing message, so the 2024-2025 archives stay a clean holdout for the modern evaluation. Without the flag the
+  whole corpus trains and those years become in-sample.
+- Records what it trained on in `meta.json` under `training`: source directories, the cutoff, the phishing and
+  legitimate date ranges, the number of dropped undated messages and the per-class counts. The modern evaluation
+  reads that block and refuses to report a window the model was trained on.
 - Applies the same `spamassassin.taint.org` exclusion as the evaluation, so the promoted model covers the same
   dataset the report describes, then splits by group with the same settings (fit/validation/test =
   2,647 / 628 / 986).
@@ -245,8 +261,12 @@ What `training.train --source corpus` does:
 - Fits an **isotonic calibrator** on a held-out slice of the training data so probabilities are comparable across
   runs, and a minimum-importance threshold per model family so only features that actually matter appear in the
   explanation (`REASON_MIN`: xgboost 0.10, logistic regression 0.10, random forest 0.02).
-- Writes `backend/models/<version_tag>/` (`model.joblib`, `calibrator.joblib`, `meta.json`, `background.npy`),
-  copies it to `backend/models/active/`, and writes `backend/reports/training_report.json` and `training_report.md`.
+- Writes `backend/models/<version_tag>/` (`model.joblib`, `calibrator.joblib`, `meta.json`, `background.npy`) and
+  `backend/reports/training_report.json` and `training_report.md`.
+
+**It does not touch `backend/models/active/` unless you pass `--activate`.** That is deliberate: an offline
+training run must never replace the serving model. The command above writes a candidate directory. When you have
+evaluated the candidate and want to serve it, add `--activate` (or copy the tag directory over `models/active/`).
 
 A useful flag for a quick sanity run before the full one: `--limit 500` caps emails per class. Do not use it for the
 model you promote.
@@ -263,6 +283,98 @@ model you promote.
 - Test metrics should be in the same neighbourhood as the evaluation comparator in `docs/17-real-corpus-evaluation.md`;
   they are not expected to match exactly, because the promoted model is a different selected candidate on a different
   internal slice. If F1 is far below 0.9 or the false-positive rate is above 0.05, stop - something is wrong.
+
+## Step 6a - Measure the candidate on modern mail before you promote it
+
+This step exists because the corpora-trained model has a measured limitation: scored against 2,216 received messages
+from a real Gmail inbox (2020-2026), it flags **99.9%** of them as phishing. The cause is the training data, not the
+classifier: the only legitimate mail in the corpora is SpamAssassin 2003, which has no authentication headers at
+all, so "authenticated mail" reads as "phishing". Removing the authentication features does not fix it. Full
+evidence in [21](21-modern-corpus-evaluation-plan.md) section 7.1.
+
+There are two ways to get a model that works on modern mail. The second is the one this repository now supports.
+
+### Option 1 - a legitimate modern ham corpus you are allowed to use
+
+If you have a licensed export or a shared research corpus of modern legitimate mail, score the candidate against it
+before promoting:
+
+```powershell
+python -m training.evaluate_modern `
+    --model models/<version_tag> `
+    --phish-dir data/raw/nazario `
+    --phish-since 2015-01-01 --phish-until 2024-01-01 `
+    --out reports/modern
+```
+
+`--model` points at the candidate directory, so a candidate is scored before it replaces anything. The harness
+refuses to run when the model was trained on data from the requested window, because that would report in-sample
+recall as if it were generalization.
+
+### Option 2 - train on a modern mailbox with a temporal split (privacy constraint)
+
+The repository can train on a Gmail Takeout export (`backend/data/raw/mailbox/`, gitignored). **This is personal
+data.** The owner of that data decides whether it may be used; if the answer is yes, two rules apply:
+
+1. The trained model is **derived from personal mail**. It stays local by default (`backend/models/` is
+   gitignored), and it is not baked into the Docker image or shipped to Render without a separate, explicit
+   decision. Reports and docs contain aggregate counts only, never message content, addresses, subjects or
+   Message-IDs.
+2. Training and evaluation use **different messages**, split by date. Train on what came before the cutoff, measure
+   on what came after it, or the measurement is worthless.
+3. Before a personal-data-trained model may be published, it must pass the audit: no sender domain, no email
+   address and no distinctive subject word from the mailbox may appear in any file of the model directory. See
+   "Publishing a model" below.
+
+```powershell
+# training side: mailbox dated before 2024-01-01, phishing dated before 2024-01-01
+python -m training.train --source corpus `
+    --phish-dir data/raw/nazario --phish-until 2024-01-01 `
+    --legit-mailbox "data/raw/mailbox/All mail Including Spam and Trash.mbox" --legit-until 2024-01-01 `
+    --out models --reports reports
+
+# evaluation side: the holdout the model never saw
+python -m training.evaluate_modern `
+    --model models/<version_tag> `
+    --mailbox "data/raw/mailbox/All mail Including Spam and Trash.mbox" --mailbox-since 2024-01-01 `
+    --phish-dir data/raw/nazario --phish-since 2024-01-01 --phish-until 2026-01-01 `
+    --out reports/modern-holdout
+```
+
+`--legit-until` and `--mailbox-since` are the two halves of the same split, and the harness checks them: if the
+model trained on messages dated inside the evaluation window, the run aborts instead of reporting in-sample numbers.
+Leave `--legit-dir` out when you want modern legitimate mail only. Adding SpamAssassin 2003 ham back in re-creates
+the original shortcut ("no authentication headers means legitimate") because that corpus has none, so measure both
+ways before choosing.
+
+The promotion gates are the ones in [21](21-modern-corpus-evaluation-plan.md) section 9: FPR at probability 0.5
+at most 0.05, FPR at the LOW/MEDIUM boundary at most 0.12, domain-macro FPR at most 0.10, held-out modern-phish
+recall at least 0.90, historical grouped macro-F1 at least 0.95, Brier at most 0.02. A partial pass is a fail. If
+your environment has no modern ham corpus at all, say so in the write-up instead of promoting: "measured FPR 0.999
+on modern inbox mail, root cause identified, remedy needs data we do not have" is a defensible result, and a model
+that cries wolf on every legitimate mail is not.
+
+## Publishing a model
+
+`backend/release/model/` holds the model the Docker image serves. The repository is public, so nothing may be
+copied there by hand: the release script audits the candidate first and refuses to copy anything that fails.
+
+```powershell
+# from backend/
+.\.venv\Scripts\python.exe -m scripts.audit_model --model models\active --mailbox "data\raw\mailbox"
+
+# or, in one step, audit and copy:
+.\.venv\Scripts\python.exe -m scripts.release_model --model models\active --mailbox "data\raw\mailbox" `
+    --allow-personal-data --notes "trained on the owner's inbox, audited clean"
+```
+
+The audit reads the sender domains, email addresses and distinctive subject words out of the mailbox, then
+searches every file of the candidate for them: plain text, UTF-16, gzip and base64. Any hit refuses the release.
+A model fitted on personal mail additionally needs `--allow-personal-data`, because it is derived from private data
+even when no string of it survives in the artifact. That flag is the owner's decision, not a technical check.
+
+The audit proves the artifact is clean. It cannot prove the model is good: that is what the promotion gates in
+[21](21-modern-corpus-evaluation-plan.md) section 9 are for.
 
 ## Step 7 - Verify the newly trained model locally
 
@@ -282,6 +394,15 @@ curl.exe -X POST http://localhost:8000/api/analyses/upload `
 You should get a scored analysis with a band and at least one verified reason. `curl.exe` is the Windows build of
 curl; plain `curl` in PowerShell is an alias for `Invoke-WebRequest` and will fail on `-F`. Stop the server with
 `Ctrl+C`.
+
+## Step 8 - Ingesting modern mailbox data (avoiding era artifacts)
+
+Because SpamAssassin 2003 ham lacks modern authentication headers (`Authentication-Results`, SPF/DKIM/DMARC) and uses old URL conventions (`http://`), models trained purely on 2003 data can misclassify modern legitimate email. To train on modern data from your own inbox:
+
+1. Export your Gmail mailbox via Google Takeout (`All mail Including Spam and Trash.mbox`).
+2. Place the `.mbox` file into `backend/data/raw/mailbox/` (this path is gitignored).
+3. The corpus loader provides `corpus.load_mailbox()`, which automatically parses personal mbox exports and skips messages labeled as Spam or Trash (`X-Gmail-Labels`).
+4. You can combine modern mailbox ham with Nazario phishing to evaluate and train against contemporary email patterns without era skew.
 
 ### Known artefact - read before you are surprised
 
@@ -394,7 +515,7 @@ the demo stays on the synthetic model and the corpora run stays as the measured 
 | Download returns 404 or empty corpora | Upstream mirror change; the URLs live in `DATASETS` in `backend/training/download_datasets.py` | Update the URL there, or drop the files into `backend/data/raw/<name>/` yourself and rerun; the fetcher skips sources already on disk |
 | `ImportError: cannot import name 'Self'` / `datetime.UTC` | Virtualenv built with Python 3.10 | Delete `.venv`, recreate with `py -3.11 -m venv .venv` |
 | `psycopg.OperationalError: failed to resolve host '...@aws-0-...'` | The database password contains `@` and the URL was not encoded; `app/db/session.py` handles `@` automatically but `#`, `?`, `/` must be percent-encoded by hand | Percent-encode those characters in the connection string |
-| `health` shows `model_loaded: false` | No model in `backend/models/active/`, or the registry rejected the feature metadata | Retrain so `backend/models/active/meta.json` matches the extractor; confirm the 57 feature names and order |
+| `health` shows `model_loaded: false` | No model in `backend/models/active/`, or the registry rejected the feature metadata | Retrain so `backend/models/active/meta.json` matches the extractor; confirm the 65 feature names and order |
 | Test suite fails after retraining | The training run changed `meta.json` in a way the tests do not expect | Read the failing test; do not lower a threshold to make it pass |
 | Legitimate sample emails score HIGH | The `auth_missing` corpus artefact (step 7) | Expected with the corpora-trained model; use the phish samples for the demo, or stay on the synthetic model |
 | Render deploy fails, or health never turns green | The image still trains the demo model and the promoted artefact is not in the image | Follow step 8: copy the model in the Dockerfile and set `PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml` |

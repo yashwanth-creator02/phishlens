@@ -6,13 +6,16 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **verified against evidence actually found in the email** before they are shown.
 
 > Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 47 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
+> verified reasons -> API -> web UI) with 52 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
 > **synthetic-data demo model for pipeline checks only**; detection quality is measured offline on the Nazario and
 > SpamAssassin corpora (grouped-split F1 0.987, one split, no confidence interval - see
 > [docs/17-real-corpus-evaluation.md](docs/17-real-corpus-evaluation.md), including the corpus artefacts that
 > inflate that number). Real inbound-email provider, real domain-age
 > lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and
 > [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
+
+**New here?** [docs/SUMMARY.md](docs/SUMMARY.md) is the whole project in three minutes; every claim links to the
+detailed page behind it.
 
 BMSIT&M, Dept. of CSE - Mini Project (Batch 45), 2026-27 - Product Development category.
 
@@ -22,7 +25,7 @@ BMSIT&M, Dept. of CSE - Mini Project (Batch 45), 2026-27 - Product Development c
 
 | Path | What |
 |---|---|
-| `backend/` | FastAPI service: ingestion, 6 feature modules (57 features), model registry, SHAP, reason engine, risk bands, DB layer, tests, training scripts |
+| `backend/` | FastAPI service: ingestion, 6 feature modules (65 features), model registry, SHAP, reason engine, risk bands, DB layer, tests, training scripts |
 | `frontend/` | React + TypeScript (Vite) web UI: dashboard, analysis detail, settings, optional Supabase login |
 | `supabase/migrations/` | PostgreSQL schema + Row-Level-Security policies |
 | `docs/` | **All documentation**: project log, plan, architecture, design docs, decisions (ADRs), the project report (Markdown), Review-1 slide deck, diagrams |
@@ -44,8 +47,8 @@ Requirements: Python 3.11+ (CI and Docker use 3.12), Node 20+.
 cd backend
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m training.train --source synthetic --n 2400 --out models --reports reports   # DEMO model, ~60 s
-python -m pytest -q                                      # 44 pass, 1 skipped (needs Supabase creds)
+python -m training.train --source synthetic --n 2400 --out models --reports reports --activate   # DEMO model, ~60 s
+python -m pytest -q                                      # 68 pass, 1 skipped (needs Supabase creds)
 python -m uvicorn app.main:app --reload --port 8000      # API docs: http://localhost:8000/docs
 
 # 2) frontend (second terminal)
@@ -81,10 +84,13 @@ cd backend
 python -m training.download_datasets                  # Nazario phishing + SpamAssassin ham into data/raw
 python -m training.evaluate --out reports             # grouped-split metrics -> reports/evaluation.md
 python -m training.train --source corpus --phish-dir data/raw/nazario --legit-dir data/raw/spamassassin --out models
+python -m training.evaluate_modern --model-dir models # score on modern mail -> reports/modern/evaluation.md
 ```
 
 `download_datasets` fetches the corpora itself (no manual download) and is rerunnable; `evaluate` trains a
-throwaway comparator in memory and never touches the serving model in `backend/models/`.
+throwaway comparator in memory and never touches the serving model in `backend/models/`. `training.train` writes a
+candidate model directory and leaves `models/active` alone unless you pass `--activate`, so an offline run cannot
+replace the serving model.
 
 See [docs/datasets/README.md](docs/datasets/README.md) for provenance and split rules, and
 [docs/08-ml-pipeline.md](docs/08-ml-pipeline.md) for the feature set, splits, behavioural benchmark, and evaluation plan.
@@ -92,6 +98,10 @@ See [docs/datasets/README.md](docs/datasets/README.md) for provenance and split 
 ## Important honesty notes
 
 * The bundled demo model is trained on **generated** emails. Its metrics prove the plumbing works, **not** that phishing is detected.
+* The corpora-trained model is **not valid for modern mail**: measured against 2,216 received messages from a real
+  2020-2026 inbox it flags 99.9% of them as phishing, because the only legitimate mail in the training corpora is
+  SpamAssassin 2003. Feature removal does not fix it; it needs modern legitimate mail in the training set. Do not
+  promote it and do not quote an accuracy claim for modern mail. Evidence: [docs/21](docs/21-modern-corpus-evaluation-plan.md).
 * Forwarding **inline** loses the original SPF/DKIM/DMARC results; the system treats them as *missing* (not failed). Ask users to forward **as attachment**.
 * Sender-history ("unusual behaviour") features need trusted history; the bot only sees what users send it. See ADR-006 / ADR-007 in `docs/decisions/`.
 

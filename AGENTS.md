@@ -2,9 +2,15 @@
 
 ## What this project is
 
-PhishLens is an explainable phishing-triage prototype. A user forwards a suspicious email; the backend parses it, extracts 57 features in six groups, scores it with a calibrated tree/linear model, turns SHAP contributions into plain-language reasons, verifies each reason against evidence found in the email, and returns a Low / Medium / High risk band. The React UI shows the result and the supporting evidence.
+PhishLens is an explainable phishing-triage prototype. A user forwards a suspicious email; the backend parses it, extracts 65 features in six groups, scores it with a calibrated tree/linear model, turns SHAP contributions into plain-language reasons, verifies each reason against evidence found in the email, and returns a Low / Medium / High risk band. The React UI shows the result and the supporting evidence.
 
-Status: v0.1 working skeleton. The bundled model is trained on synthetic data and is a pipeline demo only. Its metrics are not evidence of real-world phishing detection.
+Status: v0.2 working skeleton. The extractor is 65 features. The released model
+(`xgboost-corpus-20261111-s7`, in `backend/release/model/`) is an XGBoost fitted on the owner's
+mailbox plus Nazario pre-2024 phishing and SpamAssassin 2003 ham; it passed the privacy audit
+(0 findings) and measures FPR 0.022 at probability 0.5 on 2,865 held-out legitimate messages from
+2026, with phishing recall 0.810 on 788 held-out phishing messages. It is fitted on one inbox and on
+a 20-year-old phishing corpus, so those numbers describe that combination and not real-world
+detection. See `docs/21-modern-corpus-evaluation-plan.md`.
 
 ## Stack
 
@@ -19,7 +25,8 @@ Status: v0.1 working skeleton. The bundled model is trained on synthetic data an
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (51 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (86 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/release/` | The audited model the Docker image serves; empty until a release passes the privacy audit |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |
@@ -70,7 +77,7 @@ Settings come from environment variables with the `PHISHLENS_` prefix, loaded fr
 
 1. Parse the email (direct, forwarded inline, or forwarded as a `message/rfc822` attachment).
 2. Load the sender history profile.
-3. Extract the shared 57-feature vector from six groups: header, URL, text, action, attachment, behavioral.
+3. Extract the shared 65-feature vector from six groups: header, URL, text, action, attachment, behavioral.
 4. Predict with the active model and optional isotonic calibration.
 5. Convert probability to a 0-100 score and a band.
 6. Compute SHAP contributions.
@@ -84,6 +91,9 @@ Non-negotiable invariants:
 - Attachments are metadata only. Never open, execute, or render them.
 - Inline forwarding loses the original SPF/DKIM/DMARC headers; represent them as missing, not failed.
 - Do not claim model quality from the synthetic demo model.
+- A model fitted on a personal mailbox is derived from private data. It may reach a committed artifact or the public
+  deployment only after `backend/scripts/audit_model.py` reports the artifact clean and the owner has explicitly
+  decided. `backend/scripts/release_model.py` performs both steps together.
 - Keep the reason engine evidence-verified; do not emit a specific claim that the email does not support.
 - Do not change the feature set, thresholds, or reason rules without updating tests and the relevant `docs/` page.
 
@@ -99,6 +109,12 @@ From the repository root on Windows:
 ```powershell
 # Train on a real corpus
 python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir C:\data\spamassassin_ham --out models
+
+# Score a model on modern mail (evaluation only; never writes a model)
+python -m training.evaluate_modern --model-dir models --phish-dir data/raw/nazario --out reports/modern
+
+# Privacy audit before publishing a model (required for any model fitted on a personal mailbox)
+python -m scripts.audit_model --model models/active --mailbox data/raw/mailbox
 
 # Run the suite
 python -m pytest -q
@@ -145,14 +161,20 @@ Also upload at least one sample email through the UI or API and confirm a scored
 
 - Real-corpus evaluation is measured on 2003-2007 research corpora with one grouped split and no confidence interval
   (grouped F1 0.948, PR-AUC 0.990; see `docs/17-real-corpus-evaluation.md`). It does not validate the shipped model.
+- The corpora-trained model **does not work on modern legitimate mail**: FPR 0.999 on 2,216 received messages from a
+  real 2020-2026 inbox, and removing the era features does not fix it. Cause, ablation and options are in
+  `docs/21-modern-corpus-evaluation-plan.md`; do not quote an accuracy claim for modern mail.
+- The released model is personal-data-derived and **misses three of its own promotion gates**: domain-macro FPR 0.112
+  against 0.10, recall 0.810 against 0.90, Brier 0.039 against 0.02. The measurement is in
+  `docs/21-modern-corpus-evaluation-plan.md` section 16; any claim about it must carry those numbers.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
   filter silently drops every legitimate sample.
 - Docker Compose has not been exercised in this environment.
-- The frontend is deployed on Vercel (https://phishlens-gules.vercel.app) and the Supabase schema is applied to project
-  `vmbtdrmevlovvvfvtqmd`, but the backend is not deployed anywhere: there is no `VITE_API_BASE_URL`, so the live UI can
-  sign in and render but every API call fails. Vercel pushes do not auto-deploy (the GitHub App lacks repo access).
+- The frontend is live on Vercel (https://phishlens-gules.vercel.app) with `VITE_API_BASE_URL` pointing at the Render
+  backend, and the backend is live on Render (`phishlens-api`, https://phishlens-api-6esn.onrender.com). Both
+  auto-deploy on a push to `main`. The deployed backend serves the released model from `backend/release/model/`.
 - Hugging Face hosting is ruled out: Docker Spaces need a paid plan and free ZeroGPU Spaces need a 30-day-old account
   (HTTP 402 on both). The backend target is now Render's free Docker web service via `render.yaml` (512 MB, 0.1 CPU,
   sleeps after 15 idle minutes). Peak RSS for one demo analysis measured ~257 MB locally.

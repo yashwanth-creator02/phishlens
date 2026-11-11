@@ -31,6 +31,12 @@ REPLY_INFO_PHRASES = [
     "reply with your", "send me your", "send your", "reply to this email with", "provide your",
     "share your", "kindly send", "kindly provide",
 ]
+# Impersonal salutations: real correspondents address the recipient by name, mass phishing cannot.
+GENERIC_GREETINGS = [
+    "dear customer", "dear user", "dear client", "dear member", "dear account holder",
+    "dear valued customer", "dear sir/madam", "dear sir or madam", "dear email user",
+    "dear subscriber", "dear candidate", "dear employee",
+]
 CLICK_PHRASES = [
     "click here", "click the link", "click below", "click on the link", "follow the link", "tap here",
     "use the link", "visit the link", "click the button",

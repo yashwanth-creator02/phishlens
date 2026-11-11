@@ -34,7 +34,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `db/repository.py` | Owner-scoped queries, transactional delete, retention purge |
 | `db/session.py` | Engine and session factory (SQLite locally, PostgreSQL in deployment) |
 | `ingestion/email_parser.py` | Direct, inline-forwarded, and `message/rfc822` attachment parsing; header normalisation |
-| `features/feature_vector.py` | The shared 57-feature vector used by training and serving |
+| `features/feature_vector.py` | The shared 65-feature vector used by training and serving |
 | `features/{header,url,text,action,attachment,behavioral}_features.py` | One module per feature group |
 | `features/{common,lexicons}.py` | Shared helpers and the urgency/credential word lists |
 | `ml/registry.py` | Model loading plus metadata validation (feature names and order) |
@@ -53,7 +53,11 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `training/download_datasets.py` | Nazario + SpamAssassin fetch with SHA-256 manifests |
 | `training/train.py` | Training entry point, model selection, calibration, reports |
 | `training/evaluate.py` | Grouped-split evaluation, cold start, random-split baseline |
+| `training/evaluate_modern.py` | Modern-mailbox evaluation with leakage guard and dual thresholds |
 | `scripts/verify_rls.py` | Live Supabase RLS isolation check in both directions |
+| `scripts/audit_model.py` | Publish gate: scans a model directory for sender domains, addresses and subject words |
+| `scripts/release_model.py` | Audits a candidate, then copies it into `backend/release/model/` |
+| `release/model/` | The audited model the Docker image serves; empty until a release passes the audit |
 
 ## `backend/tests/`
 
@@ -87,13 +91,13 @@ legitimate bank alert.
 | `src/api/client.ts` | `apiFetch`: base URL, bearer token, typed errors |
 | `src/types.ts` | Response types shared across pages |
 | `src/lib/cases.ts` | Search, filter, sort, pagination helpers (unit tested) |
-| `src/pages/Dashboard.tsx` | Upload, counters, band cards, recent cases |
+| `src/pages/Dashboard.tsx` | Upload, band counters, recent activity list |
 | `src/pages/AnalysisDetail.tsx` | Band bar, verified reasons, SHAP table, features, delete |
-| `src/pages/Cases.tsx` | Case queue with filters and pagination |
+| `src/pages/History.tsx` | Full record list with search, band filter, sort, pagination |
 | `src/pages/Model.tsx` | Active model identity and metrics with the synthetic-data caveat |
 | `src/pages/HowItWorks.tsx` | Pipeline and feature-group explanation |
 | `src/pages/Status.tsx` | Health and model-loaded state |
-| `src/pages/Settings.tsx` | Forwarding alias and environment notices |
+| `src/pages/Profile.tsx` | Account identity, forwarding alias, trusted-sender baseline, sign out |
 | `src/pages/Login.tsx` | Sign-in, or an explicit authentication-disabled notice |
 | `src/components/` | `AppShell`, `BandBar`, `ConfirmDialog`, `EvidencePanel`, `FeatureTable`, `ReasonCard`, `RiskBadge`, `SessionExpired`, `Toast`, `UploadBox` |
 | `src/styles.css`, `src/styles/*.css` | Design tokens, shell, report, and status styles |
@@ -117,14 +121,18 @@ legitimate bank alert.
 | Path | Purpose |
 |---|---|
 | `README.md` | Documentation index |
+| `SUMMARY.md` | One-page project summary: what it is, how it decides, what is built, the numbers with caveats, what is not done, where to read more |
 | `01`-`15` | Topic docs: overview, project log, plan, architecture, backend, frontend, data model, ML, explainability, API, security, deployment, testing, user study, risks |
 | `16-demo-script.md` | Review walkthrough with expected screens and fallbacks |
 | `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |
 | `18-open-manual-actions.md` | Dashboard/account steps that still need the user, with values and verification |
 | `19-teammate-training-guide.md` | Step-by-step corpora download, evaluation, training and promotion, with expected outputs and the header artefact caveat |
+| `20-model-parameters-and-features.md` | Canonical list of the 65 features, candidate hyperparameters, selection rule, calibration, bands and reason thresholds |
+| `21-modern-corpus-evaluation-plan.md` | Modern-mail evaluation: measured 99.9% FPR on a modern inbox, the ablation that ruled out the obvious cause, the promotion gates, and the mailbox-training decision with its privacy constraint |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |
+| `report/2026-11-10-feature-expansion-report.md` | 57 → 65 feature expansion: new features, retrained metrics, ablation read, malformed-port fix, follow-ups |
 | `report/_sources/` | Generator scripts for the report chapters |
 | `diagrams/` | Mermaid sources plus rendered PNGs |
 | `screenshots/` | UI captures used in docs and the deck |

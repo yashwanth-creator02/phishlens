@@ -11,7 +11,8 @@ from .common import ExtractionContext, clip, count_hits, log1p
 
 GROUP = "text"
 NAMES = ["urgency_score", "threat_score", "credential_phrase_flag", "financial_terms_ratio",
-         "caps_ratio", "exclaim_count", "readability_score", "text_length"]
+         "caps_ratio", "subject_caps_ratio", "exclaim_count", "readability_score", "text_length",
+         "generic_greeting"]
 WORD_RE = re.compile(r"[A-Za-z']+")
 VOWELS = re.compile(r"[aeiouy]+", re.I)
 
@@ -41,15 +42,19 @@ def extract(p: ParsedEmail, ctx: ExtractionContext) -> tuple[dict[str, float], d
     fin = sum(1 for w in words if w.lower() in lx.FINANCIAL_TERMS)
     letters = [c for c in original if c.isalpha()]
     caps = sum(1 for c in letters if c.isupper()) / max(1, len(letters))
+    subj_letters = [c for c in p.subject if c.isalpha()]
+    subj_caps = sum(1 for c in subj_letters if c.isupper()) / max(1, len(subj_letters))
     f = {
         "urgency_score": clip(len(urg) / 3.0, 0, 1),
         "threat_score": clip(len(thr) / 3.0, 0, 1),
         "credential_phrase_flag": float(bool(cred)),
         "financial_terms_ratio": clip(fin / nwords * 10, 0, 1),
         "caps_ratio": float(caps),
+        "subject_caps_ratio": float(subj_caps),
         "exclaim_count": min(10, original.count("!")) / 10.0,
         "readability_score": flesch(original) / 100.0,
         "text_length": min(1.0, log1p(len(words)) / 8.0),
+        "generic_greeting": float(any(p in low for p in lx.GENERIC_GREETINGS)),
     }
     ev = {"urgency_phrases": urg[:3], "threat_phrases": thr[:3], "credential_phrases": cred[:3]}
     return f, ev

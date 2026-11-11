@@ -22,7 +22,7 @@ Every increment ends in something demonstrable. Targets below are planned, not a
 |---|---|---|
 | 1-3 | literature survey, requirements | gap analysis (done in draft) |
 | 2-5 | dataset collection and cleaning | corpora + dataset card |
-| 4-7 | feature engineering | feature dictionary (v0.1 has 57) |
+| 4-7 | feature engineering | feature dictionary (v0.2 has 65) |
 | 6-9 | model training and comparison | E1-E4 results |
 | 8-11 | SHAP module and explanation templates | rules + audit of explanations |
 | 7-11 | ingestion and backend API | real inbound email working |

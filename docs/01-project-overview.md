@@ -23,7 +23,7 @@ Measurable success criteria (planned targets, to be validated): see [report/02](
 3. Inbound provider POSTs it to `/api/webhooks/inbound`. 4. Backend parses -> features -> model -> SHAP -> reasons -> stores.
 5. User opens the web UI: score, band, reasons, evidence, history.
 
-## The six evidence groups (57 features in v0.1)
+## The six evidence groups (65 features in v0.2)
 Header/sender - URL - Language/tone - Requested action - Attachments - Sender behaviour. Full list: [08-ml-pipeline.md](08-ml-pipeline.md).
 
 ## Scope
