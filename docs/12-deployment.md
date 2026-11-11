@@ -7,21 +7,36 @@ See the root README: `pip install -r backend/requirements-dev.txt`, train the de
 
 ## Docker Compose
 `cp .env.example .env && docker compose up --build` -> UI http://localhost:8080 (nginx, proxies `/api` to the backend), API http://localhost:8000/docs.
-`backend/entrypoint.sh` trains the **synthetic demo model** on first start when `PHISHLENS_AUTO_TRAIN_DEMO=true` (set in compose). Models, stored mail and the SQLite file live in named volumes.
+`backend/entrypoint.sh` trains the **synthetic demo model** on first start when `PHISHLENS_AUTO_TRAIN_DEMO=true` (set in compose) and no model is present. Models, stored mail and the SQLite file live in named volumes.
 **Not tested here** (no Docker engine in the build environment); the Dockerfiles are straightforward but expect small fixes on first run.
 Disable auto-training and mount a real model directory for anything beyond demos.
 
 ## Render (free backend)
 `render.yaml` defines one free Docker web service (`phishlens-api`) built from `backend/Dockerfile` with build context
-`backend/`. The image trains the synthetic demo model at build time, so `/api/health` answers as soon as the container
-starts instead of waiting on a cold-start training run. Shipping the corpora-trained model instead is a two-part
-change (copy the model in the Dockerfile, set `PHISHLENS_AUTO_TRAIN_DEMO=false` in `render.yaml`) - see
-`docs/19-teammate-training-guide.md` step 8, including the reason to think twice before doing it.
+`backend/`. The image copies `backend/release/model/` into `/app/models/active/`, so `/api/health` answers as soon as the
+container starts instead of waiting on a cold-start training run. When `backend/release/model/` is empty, the image
+falls back to training the synthetic demo model at build time, so a fresh checkout still starts.
 
-**Do not ship the corpora-trained model.** Measured on 2,216 messages from a modern inbox it flags 99.9% of
-legitimate mail as phishing, because the only legitimate mail in the training corpora is SpamAssassin 2003. The
-evidence, and the alternatives that would make a corpora-trained model shippable, are in
-`docs/21-modern-corpus-evaluation-plan.md`. The synthetic demo model stays.
+**The released model is `xgboost-corpus-20261111-s7`.** It was fitted on the owner's mailbox plus Nazario pre-2024
+phishing and SpamAssassin 2003 ham, and it reached the repository through the privacy gate:
+`backend/scripts/audit_model.py` searched every file of the model directory for the sender domains, email addresses
+and distinctive subject words read out of the mailbox, in plain text, UTF-16, gzip and base64, and reported zero
+findings. The result is recorded in `backend/release/model/release.json`.
+
+Its measured behaviour on a held-out split (2,865 legitimate messages from 2026 that it never trained on, and 788
+phishing messages from the 2024-2025 archives): false-positive rate 0.022 at probability 0.5 and 0.041 at the
+LOW/MEDIUM boundary, phishing recall 0.810 at that boundary, combined F1 0.806. It is fitted on one inbox and on a
+20-year-old phishing corpus, so those numbers describe that combination and not phishing detection in general. The
+evidence, the gates it misses and the alternatives are in `docs/21-modern-corpus-evaluation-plan.md`.
+
+To ship a different model, retrain it, run the audit, and copy it in with the release script. Never copy a model into
+`backend/release/model/` by hand:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m scripts.release_model --model models\active --mailbox "data\raw\mailbox" `
+    --allow-personal-data --notes "why this model"
+```
 
 1. Render -> **New -> Blueprint**, pick the repository, apply. Render reads `render.yaml`.
 2. When it asks for `PHISHLENS_DATABASE_URL`, paste the Supabase **Session pooler** URI. A bare `postgresql://`
@@ -43,11 +58,10 @@ Rebuild the image locally with:
 docker build -f backend/Dockerfile -t phishlens-api backend
 docker run --rm -p 8000:8000 phishlens-api
 ```
-The container is public; never send real personal email to it, and expect the synthetic demo model's output, not a
-security verdict.
+The container is public; never send real personal email to it.
 
 ## Vercel frontend (free)
-`frontend/vercel.json` builds the Vite app and rewrites unknown paths to `index.html` so client routes such as `/cases`
+`frontend/vercel.json` builds the Vite app and rewrites unknown paths to `index.html` so client routes such as `/history`
 work on refresh. Import the GitHub repository in Vercel, set **Root Directory** to `frontend`, and add
 `VITE_API_BASE_URL=https://<backend-host>` plus `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as Production and Preview
 environment variables. `VITE_API_BASE_URL` is read at build time, so changing it requires a redeploy.

@@ -9,9 +9,9 @@ Rules for this file:
 - Last reviewed: 2026-11-11.
 - If an item is blocked on the agent instead of you, it does not belong here; it belongs in the project log.
 
-No new owner-only action came out of the 2026-11-11 decision on the modern-mail story. The remaining work is agent
-work: train a candidate on the approved mailbox slice, evaluate it on the holdout, and report. Nothing below needs
-you until a candidate passes the gates and promotion is put to you for approval.
+No new owner-only action came out of the 2026-11-11 decision on the modern-mail story. The four-candidate protocol
+ran on 2026-11-11, candidate D was retrained with the current code, and it was released through the privacy audit
+(`backend/scripts/release_model.py`, 0 findings). Nothing below needs you until a replacement model is wanted.
 
 ## 1. Optional: restore push-to-deploy for the backend (2 minutes)
 
@@ -40,6 +40,10 @@ the tunnel are running, and the Vercel build has to be redeployed each time it c
   (7 tables, RLS on all).
 - The dashboard-UI and real-corpus-evaluation branches are merged into `main` and pushed. The modern-corpus work
   sits on `feat/modern-corpus-temporal-split`; it is not merged into `main` yet.
+- **The released model is in `backend/release/model/`** (`xgboost-corpus-20261111-s7`). It passed the privacy audit:
+  395 sender domains, 400 distinctive subject words, 0 findings, and 0 personal rows in the SHAP background sample. The
+  result is recorded in `backend/release/model/release.json`. The Docker image copies it into `/app/models/active/`, so
+  the next Render build serves it.
 - **Backend is live on Render** (`phishlens-api`) at https://phishlens-api-6esn.onrender.com; `/api/health` returns
   `{"status":"ok","model_loaded":true,"auth_mode":"supabase"}`.
 - **Frontend is wired to it**: Vercel project `phishlens` carries `VITE_API_BASE_URL=https://phishlens-api-6esn.onrender.com`

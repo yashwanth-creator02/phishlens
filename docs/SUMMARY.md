@@ -17,28 +17,29 @@ The design bet: an explanation the user can check is worth more than a slightly 
 | Piece | State |
 |---|---|
 | End-to-end pipeline | Parse -> 65 features -> calibrated XGBoost -> SHAP -> verified reasons -> store |
-| Web UI (React + TypeScript) | Dashboard, analysis detail, cases, model info, status, settings; 18 unit tests and a Playwright smoke suite |
+| Web UI (React + TypeScript) | Six screens: dashboard, history, analysis detail, model, profile, status; 20 unit tests and a Playwright smoke suite |
 | Auth and storage | Supabase Auth (JWT verified in the backend) and Postgres with Row-Level Security |
 | Deployment | Frontend on Vercel, backend on Render free tier, Supabase for auth and database |
-| Training and evaluation | Public corpora -> dedupe -> grouped split -> train -> calibrate -> report; 58 backend tests pass (1 live-only Supabase test skips without credentials) |
+| Training and evaluation | Public corpora -> dedupe -> grouped split -> train -> calibrate -> report; 86 backend tests pass (1 live-only Supabase test skips without credentials) |
+| Model release gate | `audit_model.py` proves a model carries no personal data before it may be published |
 
 ## The number that matters, and the catch
 
-- Corpus model `xgboost-corpus-20261110-s7`: held-out macro F1 **0.978**, PR-AUC **0.986**, false-positive rate
-  **0.033**, Brier **0.014** on 4,261 messages after dedupe and after excluding 633 `spamassassin.taint.org`
-  artefacts.
-- **That is not field accuracy, and it was measured.** The legitimate side is SpamAssassin ham from **2003**, which has
-  no SPF, DKIM, or DMARC headers. The model learned "authentication headers missing = legitimate": `dkim_pass` alone
-  carries about 65% of feature importance and `auth_missing` about 11%. Modern legitimate mail, which normally *does*
-  carry authentication headers, is therefore flagged: **99.9% false-positive rate** on a 2,216-message modern inbox
-  (see below).
-- The public Render demo runs a **synthetic-data model** baked into the Docker image, not the corpus model above.
-  Live scores prove the pipeline works end to end; they do not prove detection quality.
+- The released model `xgboost-corpus-20261111-s7` scores a held-out set of real mail: **FPR 0.022** at probability 0.5
+  and **0.041** at the LOW/MEDIUM boundary on 2,865 legitimate messages from a modern inbox that it never trained on,
+  and **recall 0.810** on 788 phishing messages from the 2024-2025 archives. Combined F1 0.806, ROC-AUC 0.961.
+- **That is not field accuracy, and the caveats are measured.** It is fitted on one person's inbox and on a phishing
+  corpus that is 20 years old. Its domain-macro false-positive rate (0.112) misses its 0.10 gate, its recall (0.810)
+  misses its 0.90 gate, and its Brier score (0.039) misses its 0.02 gate. The gates and the trade are in
+  [21](21-modern-corpus-evaluation-plan.md) section 16.
+- Before the owner's mailbox was allowed into training, the corpora-only model flagged **99.9%** of legitimate modern
+  mail. That history is kept in [21](21-modern-corpus-evaluation-plan.md) because the diagnosis is the point: modern
+  legitimate mail has to be in the training set, and no feature mask can substitute for it.
 
 ## What we measured on modern mail (2026-11-11)
 
-The corpora-trained model was scored against 2,216 received messages from a real Gmail inbox (2020-2026) and against
-Nazario phishing it had never trained on:
+The corpora-only model, before the owner's mailbox was allowed into training, was scored against 2,216 received
+messages from a real Gmail inbox (2020-2026) and against Nazario phishing it had never trained on:
 
 | Measurement | Value |
 |---|---|
@@ -65,29 +66,55 @@ exists, so the corpora-trained model stays out of the live demo. The owner has n
 used for training, under a privacy constraint. Evidence and options:
 [21](21-modern-corpus-evaluation-plan.md).
 
+## The four-candidate protocol (2026-11-11)
+
+With the mailbox approved as a training source, four candidates were trained on the same protocol and scored on one
+shared holdout: 2,865 legitimate messages from 2026 that no candidate saw, and 788 phishing messages from the 2024
+and 2025 archives.
+
+| Candidate | Modern ham in training | FPR@0.5 | FPR@0.29 | Domain-macro | Recall@0.29 | Combined F1 |
+|---|---|---:|---:|---:|---:|---:|
+| A | one inbox, pre-2024 | 0.263 | 0.314 | 0.486 | 0.958 | 0.644 |
+| B | A + 2003 ham | 0.071 | 0.179 | 0.386 | 0.900 | 0.770 |
+| C | both inboxes, pre-2026 | 0.008 | 0.018 | 0.074 | 0.720 | 0.744 |
+| D | C + 2003 ham | 0.022 | 0.041 | 0.112 | 0.810 | 0.806 |
+| Gate | | <= 0.05 | <= 0.12 | <= 0.10 | >= 0.90 | - |
+
+Putting real modern legitimate mail into training fixes the false-positive side by a factor of thirty: candidate C
+flags 0.8% of legitimate mail where the corpus-only model flagged 99.9%. The cost is recall, because a model trained
+on modern mail and old phishing learns that the notification mail that dominates a real inbox is normal.
+
+**No candidate passes every gate.** Recall (0.90) and Brier (0.02) fail for all four. The best combined performer is D,
+at FPR 0.022 and recall 0.810, which misses its domain-macro gate by 0.012 and its recall gate by 0.090. The full gate
+table and the trade are in [21](21-modern-corpus-evaluation-plan.md) section 16.
+
 ## Data on disk
 
 | Data | Messages | Dates | Role | Training use |
 |---|---:|---|---|---|
 | SpamAssassin ham | 2,712 | 2003 | legitimate | yes, but era-biased |
 | Nazario phishing | 4,306 | 2004-2025 | phishing | yes |
-| Google Takeout mailbox | 2,216 | 2020-2026 | modern legitimate training source and evaluation set | **yes**, by owner decision (2026-11-11); pre-2024 trains, 2024+ held out |
+| Google Takeout mailbox | 2,216 | 2020-2026 | modern legitimate training source and evaluation set | **yes**, by owner decision (2026-11-11); pre-2026 trains, 2026+ held out |
 
 Totals after parsing and deduplication: 7,018 public messages, plus the private mailbox.
 
 **What is missing:** a licence-clean modern ham corpus that can be shared. There is no free, registration-free public
-one. The private mailbox may now be used for training by owner decision (2026-11-11), so the honest constraint is that
-a model trained on it is personal-data-derived: it stays local and out of the public deployment, and no message
-content, address, subject or Message-ID may reach a committed artifact.
+one. The private mailbox is used for training by owner decision (2026-11-11), so the honest constraint is that a model
+trained on it is personal-data-derived: no message content, address, subject or Message-ID may reach a committed
+artifact, and the artifact must pass `backend/scripts/audit_model.py` before it may be published. The audit reads the
+sender domains, addresses and distinctive subject words out of the mailbox and searches every file of the model
+directory for them; a hit refuses the release.
 
 ## What is next
 
-1. Train a candidate on the modern legitimate mail the owner approved: mailbox messages dated before 2024, plus
-   pre-2024 phishing, and evaluate it on the 2024-and-later holdout, which the candidate never sees.
-2. A candidate trained on the mailbox is personal-data-derived: it stays local, is not shipped to Render without a
-   separate explicit decision, and no personal data may reach a committed artifact.
-3. Keep the synthetic demo live on Render until a model passes the gates: modern FPR at most 5% at 0.50 and 12% at
-   0.29, domain-macro at most 10%, held-out modern recall at least 90%, and legacy grouped F1 at least 0.95.
+1. Improve recall without losing the false-positive fix. The released model misses 19% of held-out phishing at the
+   triage boundary. The likely causes are the age of the phishing corpus and the loss of ham diversity, and both are
+   addressable with more data rather than a feature change.
+2. Fix the calibration. The isotonic calibrator is fitted on a split that mixes 2003 ham with modern ham, and the two
+   have very different score distributions, so the Brier score (0.039) misses its 0.02 gate. Fitting on one era, or
+   dropping the calibrator and thresholding the raw probability, would address it.
+3. Replace the personal-mailbox training source with a licence-clean modern ham corpus when one exists, so the model
+   stops being personal-data-derived and the privacy constraint disappears.
 
 ## What it does not do yet
 

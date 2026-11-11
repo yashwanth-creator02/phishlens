@@ -1,0 +1,32 @@
+{
+  "version_tag": "xgboost-corpus-20261111-s7",
+  "algorithm": "xgboost",
+  "trained_at": "2026-11-11T19:11:57",
+  "data_source": "corpus: phish=nazario-train-pre2024 legit=spamassassin",
+  "n_samples": 8174,
+  "metrics": {
+    "accuracy": 0.9485199485199485,
+    "precision": 0.9411239964317574,
+    "recall": 0.951307484220018,
+    "f1_phish": 0.9461883408071748,
+    "f1_macro": 0.9484231177720085,
+    "fpr": 0.054009819967266774,
+    "roc_auc": 0.9903047377578774,
+    "pr_auc": 0.9848061261913283,
+    "brier": 0.03912300989031792
+  },
+  "notes": "Trained on the owner's mailbox (before 2026) plus Nazario pre-2024 phishing and SpamAssassin 2003 ham. Audited clean: no sender domain, email address or distinctive subject word from the mailbox appears in any model file.",
+  "audit": {
+    "domains_checked": 395,
+    "subject_tokens_checked": 400,
+    "files_checked": [
+      "background.npy",
+      "calibrator.joblib",
+      "meta.json",
+      "model.joblib"
+    ],
+    "findings": [],
+    "fitted_on_personal_data": true,
+    "personal_rows_in_shap_background": 0
+  }
+}
