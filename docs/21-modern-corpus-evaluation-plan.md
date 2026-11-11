@@ -235,6 +235,8 @@ P0 items that are implemented, with tests in `backend/tests/test_evaluate_modern
 
 - Domain-macro FPR with a cluster bootstrap over sender domains (1,000 resamples, seed 7) and the number of
   sender domains plus the largest domain share, so a headline rate cannot hide behind one dominant sender.
+- Raw and calibrated probability summaries recorded side by side, so the calibration hypothesis is checkable in
+  the tool rather than in a one-off script.
 - A leakage guard. `training.train` now records the phishing date range it trained on in `meta["training"]`; the
   harness reads it and refuses to report a window the model was trained on, unless `--allow-training-overlap` is
   passed. The default window is 2015-01-01 to 2024-01-01, which keeps the 2024-2025 archives as a holdout.
@@ -242,10 +244,10 @@ P0 items that are implemented, with tests in `backend/tests/test_evaluate_modern
 - `--activate` gates promotion in `training.train`. Without it, a training run writes a candidate directory and
   leaves `models/active` untouched, so an offline run cannot replace the serving model.
 
-Two P0 items are still open: the harness does not record raw and calibrated probabilities side by side (H2 was
-answered once with a separate script, `.tmp/h2_calibration_check.py`, and the harness should carry it), and the
-cross-split overlap check is not implemented (the corpus loader already deduplicates by raw hash, Message-ID and
-body hash, which covers the common case).
+One P0 item is still open: the cross-split overlap check is not implemented. The corpus loader already
+deduplicates by raw hash, Message-ID and body hash within a load, which covers an exact copy of a message, but a
+campaign reworded across two files would not be caught. The grouped split by campaign host reduces the risk
+without proving it away.
 
 ## 8. Plan phases
 
@@ -549,7 +551,7 @@ Open questions:
 
 | Phase | Status | Evidence |
 |---|---|---|
-| P0 Loaders, metrics, tests | Partly done | Harness at `backend/training/evaluate_modern.py`; tests at `backend/tests/test_evaluate_modern.py`. Done: domain-macro FPR with cluster bootstrap, sender-domain count and largest-domain share, leakage guard, `--model` for candidates. Open: raw and calibrated probabilities recorded separately, cross-split overlap check, window-role field. |
+| P0 Loaders, metrics, tests | Partly done | Harness at `backend/training/evaluate_modern.py`; tests at `backend/tests/test_evaluate_modern.py`. Done: domain-macro FPR with cluster bootstrap, sender-domain count and largest-domain share, raw and calibrated probability summaries, leakage guard, `--model` for candidates. Open: the cross-split overlap check. |
 | P1 Clean baseline | Done | `backend/reports/modern-holdout/` (2015-2023 clean window) and `backend/reports/modern-insample/` (2024-2025, labelled in-sample). Both are gitignored. |
 | P2 Auth-blind ablation | Done, gate failed | `.tmp/auth_blind_experiment.py` ran on 2026-11-11; results in `.tmp/auth_cache/results.json`, summarised in section 7.1. No variant approaches the FPR gates. H1 rejected as sufficient. |
 | P3 Retrain/calibrate | Not started | Blocked by the failed P2 gate: there is no winning variant to retrain. |

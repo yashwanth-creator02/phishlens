@@ -42,7 +42,21 @@ def score_samples(bundle: ModelBundle, samples: list[Sample]):
     p_cal = bundle.calibrator.predict(p_raw) if bundle.calibrator is not None else p_raw
     p_cal = np.clip(np.asarray(p_cal, dtype=float), 0.0, 1.0)
     scores = np.asarray([to_score(float(p)) for p in p_cal], dtype=int)
-    return X, y, groups, p_cal, scores
+    return X, y, groups, p_raw, p_cal, scores
+
+
+def probability_summary(p) -> dict:
+    """Distribution summary for a probability vector, so raw and calibrated scores can be compared."""
+    p = np.asarray(p, dtype=float)
+    if p.size == 0:
+        return {"mean": 0.0, "median": 0.0, "p90": 0.0, "share_above_0_29": 0.0, "share_above_0_5": 0.0}
+    return {
+        "mean": float(p.mean()),
+        "median": float(np.median(p)),
+        "p90": float(np.percentile(p, 90)),
+        "share_above_0_29": float(np.mean(p >= 0.29)),
+        "share_above_0_5": float(np.mean(p >= 0.5)),
+    }
 
 
 def _binary_metrics(y, pred) -> dict:
@@ -211,6 +225,10 @@ def _render(report: dict) -> str:
         f"- Sender domains: {m.get('sender_domains', 0)}; largest domain share: {m.get('max_domain_share', 0.0):.3f}",
         f"- Band counts: {m['band_counts']}",
         f"- Auth missing rate: {m['auth']['auth_missing']:.3f}",
+        f"- Raw probability mean: {m['raw_probability']['mean']:.4f} "
+        f"(share above 0.29: {m['raw_probability']['share_above_0_29']:.3f})",
+        f"- Calibrated probability mean: {m['calibrated_probability']['mean']:.4f} "
+        f"(share above 0.29: {m['calibrated_probability']['share_above_0_29']:.3f})",
         "", "### Top flagged sender domains", "",
         "| domain | flagged | total | FPR |", "|---|---:|---:|---:|",
     ]
@@ -256,7 +274,7 @@ def main(argv=None) -> dict:
     mailbox_samples = corpus.load_mailbox(args.mailbox, label=0)
     if not mailbox_samples:
         raise SystemExit(f"No mailbox messages found at {args.mailbox}")
-    Xh, yh, gh, ph, sh = score_samples(bundle, mailbox_samples)
+    Xh, yh, gh, ph_raw, ph, sh = score_samples(bundle, mailbox_samples)
 
     phish_samples = []
     phish_path = Path(args.phish_dir)
@@ -278,15 +296,19 @@ def main(argv=None) -> dict:
             "path": str(args.mailbox),
             "count": len(mailbox_samples),
             "date_range": _date_range(mailbox_samples),
+            "raw_probability": probability_summary(ph_raw),
+            "calibrated_probability": probability_summary(ph),
             **{k: v for k, v in ham_summary(Xh, ph, sh, gh, settings.band_low_max,
                                            settings.band_high_min).items() if k != "count"},
         },
     }
     if phish_samples:
-        Xp, yp, gp, pp, sp = score_samples(bundle, phish_samples)
+        Xp, yp, gp, pp_raw, pp, sp = score_samples(bundle, phish_samples)
         report["phish"] = {
             "path": str(args.phish_dir), "window": {"since": args.phish_since, "until": args.phish_until},
             "date_range": _date_range(phish_samples), "count": len(phish_samples),
+            "raw_probability": probability_summary(pp_raw),
+            "calibrated_probability": probability_summary(pp),
             **phish_summary(pp, sp, settings.band_low_max, settings.band_high_min),
         }
         y_all = np.concatenate([yh, yp])

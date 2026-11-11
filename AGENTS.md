@@ -24,7 +24,7 @@ of the deployment (see `docs/21-modern-corpus-evaluation-plan.md`).
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (67 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (68 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
 | `frontend/e2e/` | Playwright smoke suite (`npm run test:e2e`) |

@@ -12,7 +12,8 @@ from app.features.feature_vector import FEATURE_NAMES
 from app.ml.registry import load_model_dir
 from training.corpus import date_range, parse_cli_date
 from training.evaluate_modern import (DEFAULT_PHISH_SINCE, DEFAULT_PHISH_UNTIL, fpr_with_ci, guard_leakage,
-                                      ham_summary, in_window, leakage_check, parse_date, threshold_metrics)
+                                      ham_summary, in_window, leakage_check, parse_date, probability_summary,
+                                      threshold_metrics)
 from training.synthetic import Sample
 
 
@@ -120,6 +121,14 @@ def test_guard_leakage_blocks_overlap_unless_allowed():
     guard_leakage("overlap", "xgboost-corpus-test", allow=True)
     guard_leakage("clear", "xgboost-corpus-test", allow=False)
     guard_leakage("unknown", "xgboost-corpus-test", allow=False)
+
+
+def test_probability_summary_reports_the_threshold_shares():
+    summary = probability_summary([0.05, 0.30, 0.60, 0.95])
+
+    assert summary["mean"] == pytest.approx(0.475)
+    assert summary["share_above_0_29"] == pytest.approx(0.75)
+    assert summary["share_above_0_5"] == pytest.approx(0.5)
 
 
 def test_default_window_keeps_the_newest_archive_as_holdout():

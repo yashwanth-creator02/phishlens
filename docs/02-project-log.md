@@ -276,4 +276,4 @@ the synthetic demo.
   serves. `docs/18-open-manual-actions.md` now carries the decision the owner has to make (allow a modern ham
   source for training, provide a licensed corpus, accept a synthetic-augmented model, or accept the honest
   limitation) and the privacy cleanup of the mailbox-derived cache. Docs 15, 17, 19, SUMMARY, README and AGENTS.md
-  were updated to match. Suite: 67 passed, 1 skipped.
+  were updated to match. Suite: 68 passed, 1 skipped.

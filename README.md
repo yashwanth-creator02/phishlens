@@ -48,7 +48,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 python -m training.train --source synthetic --n 2400 --out models --reports reports --activate   # DEMO model, ~60 s
-python -m pytest -q                                      # 67 pass, 1 skipped (needs Supabase creds)
+python -m pytest -q                                      # 68 pass, 1 skipped (needs Supabase creds)
 python -m uvicorn app.main:app --reload --port 8000      # API docs: http://localhost:8000/docs
 
 # 2) frontend (second terminal)
