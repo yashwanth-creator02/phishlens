@@ -25,7 +25,7 @@ export default function HowItWorksPage() {
         <li>
           <h3>2. Feature extraction</h3>
           <p>
-            A single 57-feature vector is computed from six groups. Training and serving share the
+            A single 65-feature vector is computed from six groups. Training and serving share the
             same feature names and order; the model registry rejects mismatched artifacts.
           </p>
         </li>

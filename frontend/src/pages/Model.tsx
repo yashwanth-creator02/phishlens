@@ -111,6 +111,11 @@ export default function ModelPage() {
                     : "Reported metrics come from the recorded training run. Treat them as test-set figures, not a promise on new mail."}
                 </li>
                 <li>
+                  {model.data_source.startsWith("synthetic")
+                    ? "The corpus-trained model measures a 2.2% false-positive rate on 2,865 held-out legitimate messages from a modern inbox, and catches 81% of held-out phishing. One inbox, one provider, one point in time: a floor, not a population estimate."
+                    : "This model was fitted on one modern inbox and on a phishing corpus that ends in 2025. It misses some phishing, and its false-positive rate is higher for financial and transactional mail than for ordinary mail."}
+                </li>
+                <li>
                   Sender history updates only from known-good uploads and LOW-risk results. MEDIUM
                   and HIGH messages never train the behavioural profile.
                 </li>
@@ -161,14 +166,15 @@ export default function ModelPage() {
                 </table>
               )}
               <p className="muted" style={{ fontSize: "0.9rem", marginTop: "16px" }}>
-                Do not claim model quality from a synthetic demo model. Real-corpus evaluation is
-                reported separately and is not shown as a product guarantee.
+                {model.data_source.startsWith("synthetic")
+                  ? "Do not claim model quality from a synthetic demo model. Real-corpus evaluation is reported separately and is not shown as a product guarantee."
+                  : "These are the training-run figures on its own test split. The measured behaviour on modern mail, with its false-positive rate and the gates it misses, is in docs/21-modern-corpus-evaluation-plan.md and is not shown here as a product guarantee."}
               </p>
             </section>
           </div>
 
           <p className="muted" style={{ marginTop: "24px", fontSize: "0.9rem" }}>
-            Feature contract: training and serving use the same 57-feature vector in the same order.
+            Feature contract: training and serving use the same 65-feature vector in the same order.
             The model registry rejects artifacts whose feature names do not match the serving code.
           </p>
         </>

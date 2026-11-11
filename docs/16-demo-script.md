@@ -20,23 +20,25 @@ step is obvious instead of being narrated over.
 | # | Step | What the reviewer sees | What to say |
 |---|---|---|---|
 | 1 | Open http://localhost:5173 | Analyst sign-in screen | "Nothing is readable without a session; analysis data is per-user." |
-| 2 | Sign in with the seeded account | Dashboard: summary counters, band cards, analysis queue | "Every row is one analysed email, ordered newest first." |
+| 2 | Sign in with the seeded account | Dashboard: band counts and the five most recent analyses | "Every row is one analysed email, ordered newest first. The full archive is on the History screen." |
 | 3 | Upload `phish_paypal_direct.eml` | New case at the top with a High band | "The score is 0-100; bands are Low <= 29, Medium 30-69, High >= 70." |
 | 4 | Open the case | Band bar, plain-language reasons, evidence per reason, SHAP contribution table | "Reasons are not generated from the model alone: each one is checked against the parsed email before it is shown. No evidence, no reason." |
 | 5 | Point at one reason | The quoted evidence (for example the mismatched link host) | "This is the difference from a black-box score: the claim and the evidence sit together." |
 | 6 | Back to the dashboard, upload the legitimate newsletter sample | Low band | "Low risk does not hide the analysis; the score and features are still recorded." |
-| 7 | Cases page | Search, band filter, sort, pagination | "Built for a queue, not a single lookup." |
-| 8 | Model page | Active model identity, feature count, training metrics with the synthetic-data caveat | "This model is trained on generated email for pipeline checks. The numbers are not a detection claim, and the page says so." |
-| 9 | How it works page | Six feature groups, pipeline stages | "65 features across header, URL, text, action, attachment, and behavioural groups; the same order at training and serving time." |
-| 10 | Status page | API health, model loaded flag, last checked time | "Operational view: if the model failed to load, this page says it before a user trusts a score." |
-| 11 | Delete the uploaded case, confirm the dialog | Row disappears; toast confirms | "Deletion is transactional and scoped to the owner; retention purges expired rows on a schedule." |
-| 12 | Settings page | Forwarding alias, environment notices | "Alias-based forwarding works with a shared 32-bit alias; the webhook is secret-guarded." |
+| 7 | History screen | Search, band filter, sort, pagination | "Built for a queue, not a single lookup." |
+| 8 | Model screen | Active model identity, feature count, training metrics | "This model is fitted on real mail: Nazario phishing, SpamAssassin, and one modern inbox. It measured a 2.2% false-positive rate on 2,865 held-out legitimate messages, and it misses some phishing. The page shows the numbers and the caveats." |
+| 9 | How it works screen | Six feature groups, pipeline stages | "65 features across header, URL, text, action, attachment, and behavioural groups; the same order at training and serving time." |
+| 10 | Profile screen | Signed-in identity, forwarding alias, trusted-sender baseline upload, sign out | "The alias-based forwarding address, and the way to teach the system what a trusted sender looks like." |
+| 11 | Status screen | API health, model loaded flag, last checked time | "Operational view: if the model failed to load, this page says it before a user trusts a score." |
+| 12 | Delete the uploaded case, confirm the dialog | Row disappears; toast confirms | "Deletion is transactional and scoped to the owner; retention purges expired rows on a schedule." |
 
 ## Closing (30 seconds)
 
-State the boundary explicitly: this is a working end-to-end prototype on a synthetic demo model. Real-corpus
-evaluation, a real inbound mail provider, and the user study are the next phase; the evaluation harness and the
-grouped split are already in the repository so those numbers are reproducible rather than asserted.
+State the boundary explicitly: this is a working end-to-end prototype. The served model is fitted on real mail, but on
+one person's inbox and a phishing corpus that is 20 years old, so the measured numbers describe that combination and
+not phishing detection in general. Its recall misses the promotion gate it was measured against. A real inbound mail
+provider and the user study are the next phase; the evaluation harness, the leakage guard and the grouped split are
+already in the repository, so those numbers are reproducible rather than asserted.
 
 ## Fallbacks
 
@@ -50,8 +52,9 @@ grouped split are already in the repository so those numbers are reproducible ra
 
 | Question | Answer |
 |---|---|
-| How accurate is it? | No real-world accuracy is claimed. The bundled model is synthetic; the honest number requires `backend/training/evaluate.py` on Nazario plus SpamAssassin with grouped splits. |
+| How accurate is it? | Measured on a held-out split: false-positive rate 0.022 at probability 0.5 and 0.041 at the LOW/MEDIUM boundary on 2,865 legitimate messages the model never saw, with phishing recall 0.810 on 788 held-out phishing messages. One inbox, one provider, one point in time, and a phishing corpus that ends in 2025: that is a floor, not a population estimate. The method is in `docs/21-modern-corpus-evaluation-plan.md`. |
 | Why SHAP and not an LLM? | SHAP gives additive, auditable contributions per feature; the reason engine then checks the claim against the email. An LLM is used for none of the decisions. |
 | What stops a wrong reason being shown? | Each reason has an evidence rule over the parsed email. A reason whose evidence fails is dropped, and Medium/High falls back to a generic statement. |
 | What happens to forwarded mail? | Inline forwarding loses SPF/DKIM/DMARC; those are marked missing, not failed. Forward as attachment to keep the original headers. |
 | Can two users see each other's cases? | The backend scopes every query by `user_id` and the PostgreSQL schema has Row-Level-Security as defence in depth. `backend/scripts/verify_rls.py` checks it in both directions when credentials are supplied. |
+| What personal data is in the published model? | The model was fitted on one person's mailbox. `backend/scripts/audit_model.py` searches every file of the model directory for that mailbox's sender domains, email addresses and distinctive subject words, in plain text, UTF-16, gzip and base64, and reports zero findings; the SHAP background sample holds zero personal rows. The result is recorded in `backend/release/model/release.json`. |
