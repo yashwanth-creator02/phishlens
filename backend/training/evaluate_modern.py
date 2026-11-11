@@ -136,16 +136,27 @@ def _parse_iso(value: str | None) -> datetime | None:
         return None
 
 
-def leakage_check(meta: dict, since: datetime | None, until: datetime | None) -> str:
-    """Is the model's training phishing range disjoint from the evaluation window?
+def _cli_date(value: str | None, flag: str) -> datetime | None:
+    """Parse a CLI date, turning a malformed value into a readable error."""
+    if not value:
+        return None
+    try:
+        return parse_cli_date(value)
+    except ValueError as exc:
+        raise SystemExit(f"{flag} must be an ISO date such as 2024-01-01, got {value!r} ({exc})") from exc
 
-    'clear'    - the model never saw phishing from this window.
-    'overlap'  - it did, so the window is in-sample and its recall is not a generalization result.
-    'unknown'  - the model carries no training provenance (pre-provenance artefacts).
+
+def leakage_check(meta: dict, since: datetime | None, until: datetime | None,
+                  min_key: str = "phish_min_date", max_key: str = "phish_max_date") -> str:
+    """Is the model's training range disjoint from the evaluation window?
+
+    'clear'    - the model never trained on data from this window.
+    'overlap'  - it did, so the window is in-sample and its numbers are not generalization results.
+    'unknown'  - the model carries no training provenance for this side (pre-provenance artefacts).
     """
     training = (meta or {}).get("training") or {}
-    lo = _parse_iso(training.get("phish_min_date"))
-    hi = _parse_iso(training.get("phish_max_date"))
+    lo = _parse_iso(training.get(min_key))
+    hi = _parse_iso(training.get(max_key))
     if lo is None or hi is None:
         return "unknown"
     since_b = since or datetime.min.replace(tzinfo=timezone.utc)
@@ -153,12 +164,41 @@ def leakage_check(meta: dict, since: datetime | None, until: datetime | None) ->
     return "overlap" if (lo < until_b and hi >= since_b) else "clear"
 
 
-def guard_leakage(status: str, model_tag: str, allow: bool) -> None:
-    if status == "overlap" and not allow:
+def ham_leakage(meta: dict, eval_mailbox: str, since: datetime | None, until: datetime | None) -> str:
+    """Is the evaluation mailbox disjoint from the mailbox the model trained on?
+
+    'distinct' - the model trained on a different mailbox file, so the two cannot share messages.
+    'clear'    - same file, but the training dates fall outside the evaluation window.
+    'overlap'  - same file and the training dates fall inside the window.
+    'unknown'  - the model records no mailbox provenance.
+    """
+    training = (meta or {}).get("training") or {}
+    trained = training.get("legit_mailbox")
+    if not trained:
+        return "unknown"
+    if Path(trained).resolve() != Path(eval_mailbox).resolve():
+        return "distinct"
+    return leakage_check(meta, since, until, "legit_mailbox_min_date", "legit_mailbox_max_date")
+
+
+def guard_leakage(status: str, model_tag: str, allow_overlap: bool, allow_unknown: bool = False) -> None:
+    """Refuse to report a window the model may have trained on.
+
+    'overlap'  - the model trained on data from this window: the numbers would be in-sample.
+    'unknown'  - the model carries no training provenance, so it cannot be proven disjoint. A model
+                  trained before the provenance block existed would otherwise pass silently, which is
+                  exactly the case this guard exists for.
+    """
+    if status == "overlap" and not allow_overlap:
         raise SystemExit(
-            f"Refusing to report this window: model {model_tag} was trained on phishing dated inside it, "
-            "so the numbers would be in-sample. Retrain with --phish-until (see docs/19-teammate-training-guide.md) "
-            "or pass --allow-training-overlap to score anyway.")
+            f"Refusing to report this window: model {model_tag} was trained on data dated inside it, "
+            "so the numbers would be in-sample. Retrain with --phish-until / --legit-until (see "
+            "docs/19-teammate-training-guide.md) or pass --allow-training-overlap to score anyway.")
+    if status == "unknown" and not allow_unknown:
+        raise SystemExit(
+            f"Refusing to report this window: model {model_tag} carries no training provenance, so it cannot be "
+            "shown to be disjoint from the window. Score a model trained with the current training code, or "
+            "pass --allow-unknown-provenance to score anyway (the result is then unverified, not clean).")
 
 
 def ham_summary(X, p_cal, scores, groups, low_max: int, high_min: int) -> dict:
@@ -177,6 +217,7 @@ def ham_summary(X, p_cal, scores, groups, low_max: int, high_min: int) -> dict:
     return {
         "count": int(len(p_cal)),
         "fpr_at_probability_0_5": float(np.mean(p_cal >= 0.5)),
+        "fpr_at_probability_0_29": float(np.mean(p_cal >= 0.29)),
         "fpr_at_band_boundary": float(np.mean(flagged)),
         "fpr_at_band_boundary_macro": band_rates["macro"],
         "fpr_at_band_boundary_ci95": band_rates["pooled_ci95"],
@@ -196,6 +237,7 @@ def phish_summary(p_cal, scores, low_max: int, high_min: int) -> dict:
     return {
         "count": int(len(p_cal)),
         "recall_at_probability_0_5": float(np.mean(p_cal >= 0.5)),
+        "recall_at_probability_0_29": float(np.mean(p_cal >= 0.29)),
         "recall_at_band_boundary": float(np.mean(scores > low_max)),
         "mean_probability": float(np.mean(p_cal)),
         "band_counts": _band_counts(scores, low_max, high_min),
@@ -214,11 +256,14 @@ def _render(report: dict) -> str:
         "# Modern mailbox evaluation", "",
         f"- Model: `{report['model']['version_tag']}` ({report['model']['algorithm']})",
         f"- Thresholds: LOW max {report['thresholds']['low_max']}, HIGH min {report['thresholds']['high_min']}",
-        f"- Training leakage check: **{leak.get('status', 'unknown')}**",
+        f"- Training leakage check: **{leak.get('status', 'unknown')}** "
+        f"(phish: {leak.get('phish', {}).get('status', 'unknown')}, "
+        f"ham: {leak.get('ham', {}).get('status', 'unknown')})",
         "", "## Mailbox ham", "",
         f"- Loaded: {m['count']}",
         f"- Date range: {m['date_range']['min']} to {m['date_range']['max']}",
         f"- FPR at probability 0.5: **{m['fpr_at_probability_0_5']:.3f}**",
+        f"- FPR at probability 0.29: **{m['fpr_at_probability_0_29']:.3f}**",
         f"- FPR at LOW/MEDIUM boundary: **{m['fpr_at_band_boundary']:.3f}**",
         f"- FPR at LOW/MEDIUM boundary, domain-macro: **{m.get('fpr_at_band_boundary_macro', 0.0):.3f}**",
         f"- 95% CI (pooled): {ci[0]:.3f} - {ci[1]:.3f}",
@@ -240,6 +285,7 @@ def _render(report: dict) -> str:
                   f"- Loaded: {p['count']}",
                   f"- Window: {p['window']['since']} to {p['window']['until']}",
                   f"- Recall at probability 0.5: **{p['recall_at_probability_0_5']:.3f}**",
+                  f"- Recall at probability 0.29: **{p['recall_at_probability_0_29']:.3f}**",
                   f"- Recall at LOW/MEDIUM boundary: **{p['recall_at_band_boundary']:.3f}**",
                   f"- Band counts: {p['band_counts']}"]
     if report.get("combined"):
@@ -257,29 +303,52 @@ def main(argv=None) -> dict:
     ap.add_argument("--model", default=None,
                     help="path to a candidate model directory (as written by training/train.py) instead of active")
     ap.add_argument("--mailbox", default="data/raw/mailbox/All mail Including Spam and Trash.mbox")
+    ap.add_argument("--mailbox-since", default=None, help="only score mailbox messages dated on/after this date")
+    ap.add_argument("--mailbox-until", default=None, help="only score mailbox messages dated before this date")
     ap.add_argument("--phish-dir", default="data/raw/nazario")
     ap.add_argument("--phish-since", default=DEFAULT_PHISH_SINCE)
     ap.add_argument("--phish-until", default=DEFAULT_PHISH_UNTIL)
     ap.add_argument("--allow-training-overlap", action="store_true",
-                    help="score even when the model was trained on phishing from this window (in-sample)")
+                    help="score even when the model was trained on phishing or legitimate mail from this window "
+                         "(in-sample on that side)")
+    ap.add_argument("--allow-unknown-provenance", action="store_true",
+                    help="score even when the model carries no training provenance, so the window cannot be "
+                         "proven disjoint. The result is unverified, not clean")
     ap.add_argument("--out", default="reports/modern")
     args = ap.parse_args(argv)
 
     settings = Settings()
     bundle = load_model_dir(Path(args.model)) if args.model else load_active(Path(args.model_dir))
-    since, until = parse_cli_date(args.phish_since), parse_cli_date(args.phish_until)
-    leak_status = leakage_check(bundle.meta, since, until)
-    guard_leakage(leak_status, bundle.version_tag, args.allow_training_overlap)
+    since, until = _cli_date(args.phish_since, "--phish-since")
+    m_since, m_until = _cli_date(args.mailbox_since, "--mailbox-since"), _cli_date(args.mailbox_until, "--mailbox-until")
+    phish_leak = leakage_check(bundle.meta, since, until)
+    ham_leak = ham_leakage(bundle.meta, args.mailbox, m_since, m_until)
+    leak_status = "overlap" if "overlap" in (phish_leak, ham_leak) else (
+        "clear" if phish_leak == "clear" and ham_leak in ("clear", "distinct") else "unknown")
+    guard_leakage(leak_status, bundle.version_tag, args.allow_training_overlap, args.allow_unknown_provenance)
 
-    mailbox_samples = corpus.load_mailbox(args.mailbox, label=0)
+    mailbox_path = Path(args.mailbox)
+    if not mailbox_path.exists():
+        raise SystemExit(f"Mailbox file not found: {mailbox_path}")
+    mailbox_stats: dict = {}
+    mailbox_samples = corpus.load_mailbox(mailbox_path, label=0, stats=mailbox_stats)
+    if args.mailbox_since or args.mailbox_until:
+        # One rule for both sides: a message with no date cannot be placed in time, so it is dropped
+        # whenever a window is requested and counted in the report.
+        mailbox_samples = [s for s in mailbox_samples if in_window(s, m_since, m_until)]
     if not mailbox_samples:
-        raise SystemExit(f"No mailbox messages found at {args.mailbox}")
+        raise SystemExit(f"No mailbox messages in the requested window at {mailbox_path} "
+                         f"(window {args.mailbox_since} to {args.mailbox_until})")
     Xh, yh, gh, ph_raw, ph, sh = score_samples(bundle, mailbox_samples)
 
     phish_samples = []
     phish_path = Path(args.phish_dir)
-    if phish_path.exists():
-        phish_samples = [s for s in corpus.load_dir(phish_path, 1) if in_window(s, since, until)]
+    if not phish_path.exists():
+        raise SystemExit(f"Phishing directory not found: {phish_path}")
+    phish_samples = [s for s in corpus.load_dir(phish_path, 1) if in_window(s, since, until)]
+    if not phish_samples:
+        raise SystemExit(f"No phishing messages in the requested window at {phish_path} "
+                         f"(window {args.phish_since} to {args.phish_until})")
 
     training = bundle.meta.get("training") or {}
     report = {
@@ -288,14 +357,20 @@ def main(argv=None) -> dict:
         "thresholds": {"low_max": settings.band_low_max, "high_min": settings.band_high_min},
         "leakage": {
             "status": leak_status,
-            "window": {"since": args.phish_since, "until": args.phish_until},
-            "model_phish_min_date": training.get("phish_min_date"),
-            "model_phish_max_date": training.get("phish_max_date"),
+            "phish": {"status": phish_leak, "window": {"since": args.phish_since, "until": args.phish_until},
+                      "model_min_date": training.get("phish_min_date"),
+                      "model_max_date": training.get("phish_max_date")},
+            "ham": {"status": ham_leak,
+                    "window": {"since": args.mailbox_since, "until": args.mailbox_until},
+                    "model_mailbox": training.get("legit_mailbox"),
+                    "model_min_date": training.get("legit_mailbox_min_date"),
+                    "model_max_date": training.get("legit_mailbox_max_date")},
         },
         "mailbox": {
             "path": str(args.mailbox),
             "count": len(mailbox_samples),
             "date_range": _date_range(mailbox_samples),
+            "loader_drops": mailbox_stats,
             "raw_probability": probability_summary(ph_raw),
             "calibrated_probability": probability_summary(ph),
             **{k: v for k, v in ham_summary(Xh, ph, sh, gh, settings.band_low_max,

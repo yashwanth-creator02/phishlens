@@ -11,6 +11,7 @@ check, not results.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import time
@@ -62,6 +63,34 @@ def split_groups(groups, test_size, seed):
     return next(gss.split(np.zeros(len(groups)), groups=groups))
 
 
+def check_activation_allowed(provenance: dict, allow_personal_data: bool) -> None:
+    """Refuse to promote a model derived from personal mail unless it is explicitly acknowledged."""
+    if provenance.get("contains_personal_data") and not allow_personal_data:
+        raise SystemExit(
+            "Refusing to promote: this model was trained on personal mail, so it is derived from private data. "
+            "Keep it local and never bake it into an image. Pass --allow-personal-data if that is what you want "
+            "(the model then stays local and out of any public deployment).")
+
+
+def activate(candidate: Path, active: Path) -> None:
+    """Swap a candidate model into place without ever leaving the serving model missing.
+
+    The copy lands in active.new first, the previous model moves to active.prev, and only then is
+    active.new renamed to active. If the copy fails, the old model is still servable.
+    """
+    active = Path(active)
+    staging = active.with_name(active.name + ".new")
+    previous = active.with_name(active.name + ".prev")
+    if staging.exists():
+        shutil.rmtree(staging)
+    shutil.copytree(candidate, staging)
+    if active.exists():
+        if previous.exists():
+            shutil.rmtree(previous)
+        active.rename(previous)
+    staging.rename(active)
+
+
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=["synthetic", "corpus"], default="synthetic")
@@ -69,11 +98,19 @@ def main(argv=None) -> dict:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--phish-dir")
     ap.add_argument("--legit-dir")
+    ap.add_argument("--legit-mailbox", default=None,
+                    help="additional legitimate source: a Gmail Takeout mbox file or a directory of them. "
+                         "Personal data: the resulting model is derived from it and must not be published")
+    ap.add_argument("--legit-until", default=None,
+                    help="keep only mailbox messages dated before this ISO date, so later ones stay a holdout")
     ap.add_argument("--phish-until", default=None,
                     help="drop phishing dated on/after this ISO date (and undated phishing) so a later "
                          "window can be held out for generalization testing")
     ap.add_argument("--activate", action="store_true",
                     help="promote the trained model to <out>/active (the directory the API serves)")
+    ap.add_argument("--allow-personal-data", action="store_true",
+                    help="allow promoting a model trained on personal mail. Such a model is derived from "
+                         "private data: keep it local, never commit it, never bake it into an image")
     ap.add_argument("--limit", type=int, default=None, help="max emails per class (corpus mode)")
     ap.add_argument("--out", default="models")
     ap.add_argument("--reports", default="reports")
@@ -82,13 +119,47 @@ def main(argv=None) -> dict:
 
     provenance = {"phish_dir": args.phish_dir, "legit_dir": args.legit_dir, "phish_until": args.phish_until,
                   "phish_min_date": None, "phish_max_date": None, "legit_min_date": None, "legit_max_date": None,
-                  "phish_undated_dropped": 0, "n_phish": 0, "n_legit": 0}
+                  "phish_undated_dropped": 0, "n_phish": 0, "n_legit": 0,
+                  "legit_mailbox": args.legit_mailbox, "legit_until": args.legit_until,
+                  "legit_mailbox_min_date": None, "legit_mailbox_max_date": None,
+                  "n_legit_mailbox": 0, "contains_personal_data": bool(args.legit_mailbox)}
     if args.source == "synthetic":
         samples = synthetic.build_samples(n=args.n, seed=args.seed)
         data_source = "synthetic (pipeline check only, NOT a result)"
     else:
-        phish = corpus.load_dir(args.phish_dir, 1, args.limit)
-        legit = corpus.load_dir(args.legit_dir, 0, args.limit)
+        if not args.phish_dir or not (args.legit_dir or args.legit_mailbox):
+            raise SystemExit("corpus mode needs --phish-dir and at least one of --legit-dir / --legit-mailbox")
+        # The date cutoff is applied before --limit: Nazario is stored as per-year archives, so a limit
+        # taken first would keep only the oldest years and the cutoff would have no effect.
+        phish_stats: dict = {}
+        legit_stats: dict = {}
+        mailbox_stats: dict = {}
+        phish = corpus.load_dir(args.phish_dir, 1, stats=phish_stats)
+        legit = corpus.load_dir(args.legit_dir, 0, stats=legit_stats) if args.legit_dir else []
+        mailbox = []
+        if args.legit_mailbox:
+            mailbox = corpus.load_mailbox(args.legit_mailbox, label=0, stats=mailbox_stats)
+            if args.legit_until:
+                until = corpus.parse_cli_date(args.legit_until)
+                kept, late, undated = [], 0, 0
+                for s in mailbox:
+                    d = corpus.parse_date(s.date)
+                    if d is None:
+                        undated += 1
+                    elif d >= until:
+                        late += 1
+                    else:
+                        kept.append(s)
+                print(f"mailbox cutoff {args.legit_until}: kept {len(kept)}, dropped {late} dated on/after the "
+                      f"cutoff and {undated} undated messages")
+                mailbox = kept
+            if args.limit:
+                mailbox = mailbox[:args.limit]
+            print(f"mailbox legitimate messages used for training: {len(mailbox)} "
+                  f"(personal data: the model derived from it must not be published)")
+            provenance["n_legit_mailbox"] = len(mailbox)
+            provenance["legit_mailbox_min_date"] = corpus.date_range(mailbox)["min"]
+            provenance["legit_mailbox_max_date"] = corpus.date_range(mailbox)["max"]
         if args.phish_until:
             until = corpus.parse_cli_date(args.phish_until)
             kept, late, undated = [], 0, 0
@@ -104,10 +175,18 @@ def main(argv=None) -> dict:
                   f"{undated} undated messages")
             provenance["phish_undated_dropped"] = undated
             phish = kept
-        samples = phish + legit
-        data_source = f"corpus: phish={args.phish_dir} legit={args.legit_dir}"
+        if args.limit:
+            phish = phish[:args.limit]
+            legit = legit[:args.limit]
+        if not phish:
+            raise SystemExit("no phishing messages left after the date cutoff and --limit")
+        if not legit and not mailbox:
+            raise SystemExit("no legitimate messages left after the date cutoff and --limit")
+        samples = phish + legit + mailbox
+        data_source = f"corpus: phish={args.phish_dir} legit={args.legit_dir or args.legit_mailbox}"
         provenance["n_phish"] = len(phish)
         provenance["n_legit"] = len(legit)
+        provenance["loader_drops"] = {"phish": phish_stats, "legit": legit_stats, "mailbox": mailbox_stats}
         provenance.update({
             "phish_min_date": corpus.date_range(phish)["min"],
             "phish_max_date": corpus.date_range(phish)["max"],
@@ -124,6 +203,8 @@ def main(argv=None) -> dict:
         keep = ~taint
         print(f"Excluding {int(taint.sum())} messages with sender domain spamassassin.taint.org (corpus artefact).")
         X, y, groups = X[keep], y[keep], groups[keep]
+    provenance["n_dropped_taint"] = int(taint.sum())
+    provenance["n_samples_after_filter"] = int(len(y))
 
     rest, test = split_groups(groups, 0.25, args.seed)
     fit_i, val_i = split_groups(groups[rest], 0.2, args.seed)
@@ -161,6 +242,11 @@ def main(argv=None) -> dict:
 
     tag = f"{best}-{args.source}-{datetime.now(UTC).replace(tzinfo=None):%Y%m%d}-s{args.seed}"
     out = Path(args.out) / tag
+    if out.exists():
+        # Two runs on the same day would otherwise share a tag and the second would overwrite the
+        # first candidate, so a report could be re-attributed to different content.
+        tag = f"{tag}-{hashlib.sha256(f'{args.source}{args.seed}{t0}'.encode()).hexdigest()[:6]}"
+        out = Path(args.out) / tag
     out.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, out / "model.joblib")
     joblib.dump(iso, out / "calibrator.joblib")
@@ -174,9 +260,8 @@ def main(argv=None) -> dict:
     (out / "meta.json").write_text(json.dumps(meta, indent=2))
     active = Path(args.out) / "active"
     if args.activate:
-        if active.exists():
-            shutil.rmtree(active)
-        shutil.copytree(out, active)
+        check_activation_allowed(provenance, args.allow_personal_data)
+        activate(out, active)
         print(f"activated {tag} -> {active}")
     else:
         print(f"candidate model written to {out}. Not activated; pass --activate to replace {active}.")

@@ -73,6 +73,8 @@ def test_ham_summary_breaks_down_auth_and_flagged_domains():
     result = ham_summary(X, p, scores, groups, low_max=29, high_min=70)
 
     assert result["fpr_at_band_boundary"] == 0.5
+    assert result["fpr_at_probability_0_29"] == 0.5
+    assert result["fpr_at_probability_0_5"] == 0.0
     assert result["auth"]["auth_missing"] == 0.5
     assert result["top_false_positive_domains"][0]["domain"] == "b.com"
 
@@ -115,12 +117,14 @@ def test_leakage_check_detects_overlap_clear_and_unknown():
     assert leakage_check({"training": {}}, since, until) == "unknown"
 
 
-def test_guard_leakage_blocks_overlap_unless_allowed():
+def test_guard_leakage_blocks_overlap_and_unknown_provenance():
     with pytest.raises(SystemExit):
-        guard_leakage("overlap", "xgboost-corpus-test", allow=False)
-    guard_leakage("overlap", "xgboost-corpus-test", allow=True)
-    guard_leakage("clear", "xgboost-corpus-test", allow=False)
-    guard_leakage("unknown", "xgboost-corpus-test", allow=False)
+        guard_leakage("overlap", "xgboost-corpus-test", allow_overlap=False)
+    with pytest.raises(SystemExit):
+        guard_leakage("unknown", "xgboost-corpus-test", allow_overlap=False)
+    guard_leakage("overlap", "xgboost-corpus-test", allow_overlap=True)
+    guard_leakage("unknown", "xgboost-corpus-test", allow_overlap=True, allow_unknown=True)
+    guard_leakage("clear", "xgboost-corpus-test", allow_overlap=False)
 
 
 def test_probability_summary_reports_the_threshold_shares():
@@ -134,6 +138,58 @@ def test_probability_summary_reports_the_threshold_shares():
 def test_default_window_keeps_the_newest_archive_as_holdout():
     assert DEFAULT_PHISH_SINCE == "2015-01-01"
     assert DEFAULT_PHISH_UNTIL == "2024-01-01"
+
+
+def test_ham_leakage_is_distinct_for_a_different_mailbox_file(tmp_path: Path):
+    from training.evaluate_modern import ham_leakage
+
+    meta = {"training": {"legit_mailbox": str(tmp_path / "trained.mbox"),
+                          "legit_mailbox_min_date": "2020-01-01T00:00:00+00:00",
+                          "legit_mailbox_max_date": "2023-12-31T00:00:00+00:00"}}
+    other = tmp_path / "other.mbox"
+    other.write_text("")
+
+    assert ham_leakage(meta, str(other), None, None) == "distinct"
+    assert ham_leakage(meta, str(tmp_path / "trained.mbox"), None, None) == "overlap"
+    assert ham_leakage({}, str(other), None, None) == "unknown"
+
+
+def test_activation_refuses_a_personal_data_model_without_acknowledgement():
+    from training.train import check_activation_allowed
+
+    with pytest.raises(SystemExit):
+        check_activation_allowed({"contains_personal_data": True}, allow_personal_data=False)
+    check_activation_allowed({"contains_personal_data": True}, allow_personal_data=True)
+    check_activation_allowed({"contains_personal_data": False}, allow_personal_data=False)
+
+
+def test_activation_keeps_the_previous_model_servable_when_the_copy_fails(tmp_path: Path):
+    from training.train import activate
+
+    active = tmp_path / "active"
+    active.mkdir()
+    (active / "meta.json").write_text("{}")
+
+    with pytest.raises(Exception):
+        activate(tmp_path / "does-not-exist", active)
+
+    assert (active / "meta.json").exists(), "a failed promotion must not remove the serving model"
+
+
+def test_activation_swaps_the_candidate_in_and_keeps_the_previous(tmp_path: Path):
+    from training.train import activate
+
+    candidate = tmp_path / "candidate"
+    candidate.mkdir()
+    (candidate / "meta.json").write_text('{"version_tag": "new"}')
+    active = tmp_path / "active"
+    active.mkdir()
+    (active / "meta.json").write_text('{"version_tag": "old"}')
+
+    activate(candidate, active)
+
+    assert json.loads((active / "meta.json").read_text())["version_tag"] == "new"
+    assert json.loads((active.with_name("active.prev") / "meta.json").read_text())["version_tag"] == "old"
 
 
 def test_training_writes_a_candidate_model_and_provenance_without_activating(tmp_path: Path):
