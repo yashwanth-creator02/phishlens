@@ -13,7 +13,7 @@
       "backend_app_features_behavioral_features_extract",
       "backend_app_features_behavioral_features_py_datetime",
       "backend_app_features_behavioral_features_rationale_1",
-      "backend_app_features_behavioral_features_rationale_26",
+      "backend_app_features_behavioral_features_rationale_29",
       "backend_app_features_behavioral_features_style_vector",
       "backend_app_features_common",
       "backend_app_features_common_clip",
@@ -27,6 +27,8 @@
       "backend_app_features_common_scale_days",
       "backend_app_features_common_split_host",
       "backend_app_features_feature_vector",
+      "backend_app_features_feature_vector_extract_all",
+      "backend_app_features_feature_vector_featureresult",
       "backend_app_features_feature_vector_rationale_1",
       "backend_app_features_header_features",
       "backend_app_features_header_features_extract",
@@ -68,19 +70,19 @@
       "backend_tests_test_features_test_inline_forward_marks_authentication_missing",
       "backend_tests_test_features_test_legit_sample_is_quiet",
       "backend_tests_test_features_test_phishing_sample_triggers_expected_features",
+      "backend_tests_test_features_test_url_features_tolerate_malformed_port",
       "backend_tests_test_parser",
       "backend_tests_test_parser_test_attachment_metadata_only",
       "backend_tests_test_parser_test_direct_message_fields",
       "backend_tests_test_parser_test_forward_as_attachment_keeps_original_headers",
       "backend_tests_test_parser_test_inline_forward_recovers_original_sender_and_marks_auth_missing",
       "bs4",
-      "dataclasses",
       "docs_diagrams_make_matplotlib_figures",
       "docs_diagrams_make_matplotlib_figures_snake",
+      "docs_report_2026_11_10_feature_expansion_report_what_changed",
       "email",
       "email_message",
       "email_utils",
-      "hashlib",
       "math",
       "matplotlib",
       "matplotlib_patches",
@@ -88,71 +90,38 @@
       "re",
       "textwrap",
       "tldextract",
+      "typing",
       "urllib_parse",
       "zlib"
     ],
     "1": [
-      "backend_app_db_models",
-      "backend_app_db_models_analysis",
-      "backend_app_db_models_base",
-      "backend_app_db_models_emailraw",
-      "backend_app_db_models_explanation",
-      "backend_app_db_models_featurevalue",
-      "backend_app_db_models_modelversion",
-      "backend_app_db_models_new_id",
-      "backend_app_db_models_rationale_1",
-      "backend_app_db_models_senderprofile",
-      "backend_app_db_models_useralias",
-      "backend_app_db_repository",
-      "backend_app_db_repository_delete_analysis",
-      "backend_app_db_repository_get_or_create_alias",
-      "backend_app_db_repository_load_profile",
-      "backend_app_db_repository_load_sender_profile",
-      "backend_app_db_repository_purge_expired",
-      "backend_app_db_repository_py_datetime",
-      "backend_app_db_repository_py_session",
-      "backend_app_db_repository_rationale_1",
-      "backend_app_db_repository_rationale_69",
-      "backend_app_db_repository_rationale_74",
-      "backend_app_db_repository_rationale_89",
-      "backend_app_db_repository_save_profile",
+      "backend_app_api_deps",
+      "backend_app_api_deps_active_model",
+      "backend_app_api_init",
+      "backend_app_api_webhooks",
+      "backend_app_api_webhooks_rationale_1",
+      "backend_app_core_config",
+      "backend_app_core_config_get_settings",
+      "backend_app_core_config_rationale_1",
+      "backend_app_db_init",
       "backend_app_db_session",
       "backend_app_db_session_get_db",
       "backend_app_db_session_get_engine",
       "backend_app_db_session_get_sessionmaker",
       "backend_app_db_session_init_db",
       "backend_app_db_session_py_session",
-      "backend_app_features_behavioral_features_rationale_85",
-      "backend_app_features_behavioral_features_update_profile",
-      "backend_app_features_common_nulldomainage",
-      "backend_app_features_common_nulldomainage_age_days",
-      "backend_app_features_common_profiledata",
-      "backend_app_features_common_rationale_37",
-      "backend_app_features_common_rationale_45",
-      "backend_app_features_feature_vector_extract_all",
-      "backend_app_features_feature_vector_featureresult",
-      "backend_app_scoring_risk_bands",
-      "backend_app_scoring_risk_bands_band_for",
-      "backend_app_scoring_risk_bands_rationale_1",
-      "backend_app_scoring_risk_bands_to_score",
-      "backend_app_services_analysis_service",
-      "backend_app_services_analysis_service_add_baseline",
-      "backend_app_services_analysis_service_analyze",
-      "backend_app_services_analysis_service_baselineresult",
-      "backend_app_services_analysis_service_build_features",
+      "backend_app_main",
+      "backend_app_main_health",
+      "backend_app_main_lifespan",
+      "backend_app_main_py_get",
+      "backend_app_ml_registry",
+      "backend_app_ml_registry_load_active",
+      "backend_app_ml_registry_modelnotavailable",
+      "backend_app_ml_registry_py_path",
+      "backend_app_ml_registry_rationale_1",
       "backend_app_services_analysis_service_delete_analysis",
-      "backend_app_services_analysis_service_load_sender_profile",
-      "backend_app_services_analysis_service_purge_expired",
-      "backend_app_services_analysis_service_py_datetime",
-      "backend_app_services_analysis_service_py_session",
-      "backend_app_services_analysis_service_rationale_1",
       "backend_app_services_analysis_service_rationale_101",
-      "backend_app_services_analysis_service_rationale_116",
-      "backend_app_services_analysis_service_rationale_124",
-      "backend_app_services_analysis_service_rationale_130",
-      "backend_app_services_analysis_service_rationale_42",
-      "backend_app_services_analysis_service_store_raw",
-      "backend_tests_test_reasons_and_bands_test_bands_and_scores",
+      "backend_app_services_init",
       "backend_tests_test_retention_and_cold_start",
       "backend_tests_test_retention_and_cold_start_rationale_1",
       "backend_tests_test_retention_and_cold_start_save_case",
@@ -161,16 +130,16 @@
       "backend_tests_test_retention_and_cold_start_test_delete_removes_children_and_file",
       "backend_tests_test_retention_and_cold_start_test_first_time_sender_is_neutral",
       "backend_tests_test_retention_and_cold_start_test_purge_expired_removes_old_across_users_and_files",
+      "binascii",
       "collections_abc",
-      "datetime",
-      "declarativebase",
-      "scripts_purge_old",
-      "scripts_purge_old_rationale_2",
-      "secrets",
-      "sqlalchemy",
+      "contextlib",
+      "fastapi",
+      "fastapi_middleware_cors",
+      "functools",
+      "pydantic_settings",
+      "runtimeerror",
       "sqlalchemy_orm",
-      "sys",
-      "uuid"
+      "threading"
     ],
     "2": [
       "frontend_e2e_smoke_spec",
@@ -210,9 +179,50 @@
       "ref_types_react_dom",
       "ref_typescript",
       "ref_vite",
-      "ref_vitejs_plugin_react"
+      "ref_vitejs_plugin_react",
+      "ref_vitest"
     ],
     "3": [
+      "backend_app_db_repository_load_profile",
+      "backend_app_db_repository_load_sender_profile",
+      "backend_app_db_repository_py_session",
+      "backend_app_db_repository_rationale_69",
+      "backend_app_db_repository_save_profile",
+      "backend_app_explain_shap_engine",
+      "backend_app_explain_shap_engine_contributions",
+      "backend_app_explain_shap_engine_explainer",
+      "backend_app_explain_shap_engine_rationale_1",
+      "backend_app_features_behavioral_features_rationale_92",
+      "backend_app_features_behavioral_features_update_profile",
+      "backend_app_features_common_profiledata",
+      "backend_app_features_common_rationale_45",
+      "backend_app_ml_registry_modelbundle",
+      "backend_app_ml_registry_modelbundle_algorithm",
+      "backend_app_ml_registry_modelbundle_predict",
+      "backend_app_ml_registry_modelbundle_version_tag",
+      "backend_app_scoring_risk_bands",
+      "backend_app_scoring_risk_bands_band_for",
+      "backend_app_scoring_risk_bands_rationale_1",
+      "backend_app_scoring_risk_bands_to_score",
+      "backend_app_services_analysis_service",
+      "backend_app_services_analysis_service_add_baseline",
+      "backend_app_services_analysis_service_analyze",
+      "backend_app_services_analysis_service_baselineresult",
+      "backend_app_services_analysis_service_build_features",
+      "backend_app_services_analysis_service_load_sender_profile",
+      "backend_app_services_analysis_service_purge_expired",
+      "backend_app_services_analysis_service_py_datetime",
+      "backend_app_services_analysis_service_py_session",
+      "backend_app_services_analysis_service_rationale_1",
+      "backend_app_services_analysis_service_rationale_116",
+      "backend_app_services_analysis_service_rationale_124",
+      "backend_app_services_analysis_service_rationale_130",
+      "backend_app_services_analysis_service_rationale_42",
+      "backend_app_services_analysis_service_store_raw",
+      "backend_tests_test_reasons_and_bands_test_bands_and_scores",
+      "shap"
+    ],
+    "4": [
       "backend_app_explain_reasons",
       "backend_app_explain_reasons_build_reasons",
       "backend_app_explain_reasons_fallback_reason",
@@ -249,9 +259,48 @@
       "backend_tests_test_reasons_and_bands_test_negative_contributions_never_become_reasons",
       "backend_tests_test_reasons_and_bands_test_reason_with_evidence_uses_real_values",
       "backend_tests_test_reasons_and_bands_test_reason_without_evidence_is_discarded",
-      "backend_tests_test_reasons_and_bands_test_top_k_and_group_diversity"
+      "backend_tests_test_reasons_and_bands_test_top_k_and_group_diversity",
+      "dataclasses"
     ],
-    "4": [
+    "5": [
+      "backend_app_ml_registry_clear_cache",
+      "backend_tests_conftest",
+      "backend_tests_conftest_client",
+      "backend_tests_conftest_make_client",
+      "backend_tests_conftest_make_client_make",
+      "backend_tests_conftest_model_dir",
+      "backend_tests_conftest_py_fixture",
+      "backend_tests_conftest_py_path",
+      "backend_tests_conftest_rationale_15",
+      "backend_tests_conftest_reset_caches",
+      "backend_tests_conftest_token_for",
+      "backend_tests_test_api",
+      "backend_tests_test_api_test_auth_required_and_users_are_isolated",
+      "backend_tests_test_api_test_baseline_builds_history_and_high_risk_does_not_pollute_it",
+      "backend_tests_test_api_test_health_reports_model",
+      "backend_tests_test_api_test_inline_forward_is_analysed",
+      "backend_tests_test_api_test_legitimate_mail_is_low",
+      "backend_tests_test_api_test_list_detail_features_delete",
+      "backend_tests_test_api_test_model_endpoint",
+      "backend_tests_test_api_test_phishing_is_scored_high_with_verified_reasons",
+      "backend_tests_test_api_test_rejects_empty_upload",
+      "backend_tests_test_api_test_webhook_requires_secret_and_known_alias",
+      "backend_tests_test_api_upload",
+      "backend_tests_test_auth_supabase",
+      "backend_tests_test_auth_supabase_auth",
+      "backend_tests_test_auth_supabase_test_expired_token_returns_401",
+      "backend_tests_test_auth_supabase_test_missing_subject_returns_401",
+      "backend_tests_test_auth_supabase_test_missing_token_returns_401",
+      "backend_tests_test_auth_supabase_test_valid_token_returns_user_rows",
+      "backend_tests_test_auth_supabase_test_wrong_audience_returns_401",
+      "backend_tests_test_auth_supabase_token",
+      "base64",
+      "fastapi_testclient",
+      "jwt",
+      "testclient",
+      "time"
+    ],
+    "6": [
       "docs_report_sources_lib",
       "docs_report_sources_lib_b",
       "docs_report_sources_lib_border",
@@ -289,7 +338,7 @@
       "ref_fs",
       "ref_path"
     ],
-    "5": [
+    "7": [
       "agents_phishlens",
       "docs_04_architecture_modular_monolith",
       "docs_10_api_reference_webhooks",
@@ -326,7 +375,7 @@
       "docs_decisions_readme",
       "docs_decisions_readme_decision_log_architecture_decision_records"
     ],
-    "6": [
+    "8": [
       "backend_app_api_analyses",
       "backend_app_api_analyses_delete_analysis",
       "backend_app_api_analyses_detail",
@@ -337,6 +386,8 @@
       "backend_app_api_analyses_my_alias",
       "backend_app_api_analyses_own",
       "backend_app_api_analyses_purge_old",
+      "backend_app_api_analyses_py_get",
+      "backend_app_api_analyses_py_post",
       "backend_app_api_analyses_py_session",
       "backend_app_api_analyses_rationale_108",
       "backend_app_api_analyses_rationale_52",
@@ -344,6 +395,7 @@
       "backend_app_api_analyses_read",
       "backend_app_api_analyses_upload_baseline",
       "backend_app_api_analyses_upload_eml",
+      "backend_app_db_models_analysis",
       "backend_app_schemas",
       "backend_app_schemas_aliasout",
       "backend_app_schemas_analysisdetail",
@@ -357,12 +409,69 @@
       "backend_app_schemas_reasonout",
       "basemodel",
       "delete",
-      "get",
-      "post",
       "pydantic",
       "uploadfile"
     ],
-    "7": [
+    "9": [
+      "backend_app_db_models",
+      "backend_app_db_models_base",
+      "backend_app_db_models_emailraw",
+      "backend_app_db_models_explanation",
+      "backend_app_db_models_featurevalue",
+      "backend_app_db_models_modelversion",
+      "backend_app_db_models_new_id",
+      "backend_app_db_models_rationale_1",
+      "backend_app_db_models_senderprofile",
+      "backend_app_db_models_useralias",
+      "backend_app_db_repository",
+      "backend_app_db_repository_delete_analysis",
+      "backend_app_db_repository_get_or_create_alias",
+      "backend_app_db_repository_purge_expired",
+      "backend_app_db_repository_py_datetime",
+      "backend_app_db_repository_rationale_1",
+      "backend_app_db_repository_rationale_56",
+      "backend_app_db_repository_rationale_74",
+      "backend_app_db_repository_rationale_89",
+      "backend_app_db_repository_sync_model_version",
+      "datetime",
+      "declarativebase",
+      "scripts_purge_old",
+      "scripts_purge_old_rationale_2",
+      "secrets",
+      "sqlalchemy",
+      "sys",
+      "uuid"
+    ],
+    "10": [
+      "backend_tests_test_evaluate_modern_test_fpr_with_ci_is_deterministic_for_a_fixed_seed",
+      "backend_tests_test_evaluate_modern_test_fpr_with_ci_macro_is_unweighted_domain_mean",
+      "backend_tests_test_evaluate_modern_test_ham_summary_breaks_down_auth_and_flagged_domains",
+      "backend_tests_test_evaluate_modern_test_leakage_check_detects_overlap_clear_and_unknown",
+      "backend_tests_test_evaluate_modern_test_threshold_metrics_reports_probability_and_band_boundaries",
+      "backend_training_evaluate_modern",
+      "backend_training_evaluate_modern_band_counts",
+      "backend_training_evaluate_modern_binary_metrics",
+      "backend_training_evaluate_modern_feature_rates",
+      "backend_training_evaluate_modern_fpr_with_ci",
+      "backend_training_evaluate_modern_guard_leakage",
+      "backend_training_evaluate_modern_ham_summary",
+      "backend_training_evaluate_modern_leakage_check",
+      "backend_training_evaluate_modern_main",
+      "backend_training_evaluate_modern_parse_iso",
+      "backend_training_evaluate_modern_phish_summary",
+      "backend_training_evaluate_modern_py_datetime",
+      "backend_training_evaluate_modern_rationale_1",
+      "backend_training_evaluate_modern_rationale_116",
+      "backend_training_evaluate_modern_rationale_126",
+      "backend_training_evaluate_modern_rationale_82",
+      "backend_training_evaluate_modern_render",
+      "backend_training_evaluate_modern_score_samples",
+      "backend_training_evaluate_modern_threshold_metrics",
+      "backend_training_synthetic_samples_to_matrix",
+      "collections",
+      "numpy"
+    ],
+    "11": [
       "backend_app_features_common_domainageprovider",
       "backend_app_features_common_domainageprovider_age_days",
       "backend_training_synthetic",
@@ -374,7 +483,6 @@
       "backend_training_synthetic_filler",
       "backend_training_synthetic_legit_message",
       "backend_training_synthetic_phish_message",
-      "backend_training_synthetic_py_emailmessage",
       "backend_training_synthetic_rand_domain",
       "backend_training_synthetic_rationale_1",
       "backend_training_synthetic_sender",
@@ -387,10 +495,13 @@
       "docs_03_plan_and_roadmap_open_decisions_need_the_team",
       "docs_03_plan_and_roadmap_strategy",
       "docs_03_plan_and_roadmap_task_checklist",
+      "emailmessage",
       "protocol",
       "random"
     ],
-    "8": [
+    "12": [
+      "docs_02_project_log_10_auth_deployment_and_frontend_foundation",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_6_frontend_api_and_auth_foundation",
       "frontend_src_api_client_api",
       "frontend_src_app",
       "frontend_src_app_app",
@@ -400,9 +511,7 @@
       "frontend_src_components_uploadbox_props",
       "frontend_src_components_uploadbox_uploadbox",
       "frontend_src_components_uploadbox_uploadbox_handlefile",
-      "frontend_src_pages_dashboard",
       "frontend_src_pages_dashboard_dashboard",
-      "frontend_src_pages_dashboard_scope_label",
       "frontend_src_pages_howitworks",
       "frontend_src_pages_howitworks_howitworkspage",
       "frontend_src_pages_model",
@@ -418,7 +527,7 @@
       "frontend_src_types_modelinfo",
       "ref_react"
     ],
-    "9": [
+    "13": [
       "frontend_package_dependencies",
       "frontend_package_dependencies_react",
       "frontend_package_dependencies_react_dom",
@@ -428,6 +537,8 @@
       "frontend_src_auth_authcontext",
       "frontend_src_auth_authvalue",
       "frontend_src_auth_sessionprovider",
+      "frontend_src_components_sessionexpired",
+      "frontend_src_components_sessionexpired_sessionexpired",
       "frontend_src_main",
       "frontend_src_pages_login",
       "frontend_src_pages_login_login",
@@ -441,57 +552,60 @@
       "frontend_src_supabase_supabase",
       "frontend_src_supabase_url",
       "ref_react_dom",
-      "ref_supabase_supabase_js",
-      "ref_vitest"
+      "ref_react_router_dom",
+      "ref_supabase_supabase_js"
     ],
-    "10": [
-      "frontend_src_components_appshell",
-      "frontend_src_components_appshell_appshell",
-      "frontend_src_components_appshell_links",
-      "frontend_src_components_appshell_shell",
-      "frontend_src_components_appshell_test",
-      "frontend_src_components_confirmdialog",
-      "frontend_src_components_confirmdialog_confirmapi",
-      "frontend_src_components_confirmdialog_confirmcontext",
-      "frontend_src_components_confirmdialog_confirmprovider",
-      "frontend_src_components_confirmdialog_options",
-      "frontend_src_components_confirmdialog_useconfirm",
-      "frontend_src_components_sessionexpired",
-      "frontend_src_components_sessionexpired_sessionexpired",
-      "frontend_src_components_toast",
-      "frontend_src_components_toast_toastapi",
-      "frontend_src_components_toast_toastcontext",
-      "frontend_src_components_toast_toastitem",
-      "frontend_src_components_toast_toastprovider",
-      "frontend_src_components_toast_tone",
-      "frontend_src_components_toast_usetoast",
-      "frontend_src_styles_shell",
-      "ref_react_router_dom"
+    "14": [
+      "backend_tests_test_download_datasets",
+      "backend_tests_test_download_datasets_rationale_1",
+      "backend_tests_test_download_datasets_tar_bz2",
+      "backend_tests_test_download_datasets_test_multi_source_download_writes_manifest",
+      "backend_tests_test_download_datasets_test_multi_source_download_writes_manifest_fake_fetch",
+      "backend_training_download_datasets",
+      "backend_training_download_datasets_build_manifest",
+      "backend_training_download_datasets_download_dataset",
+      "backend_training_download_datasets_existing_for",
+      "backend_training_download_datasets_extract_archive",
+      "backend_training_download_datasets_fetch",
+      "backend_training_download_datasets_has_emails",
+      "backend_training_download_datasets_is_corpus_file",
+      "backend_training_download_datasets_iter_email_files",
+      "backend_training_download_datasets_main",
+      "backend_training_download_datasets_py_path",
+      "backend_training_download_datasets_rationale_1",
+      "backend_training_download_datasets_rationale_123",
+      "backend_training_download_datasets_rationale_73",
+      "backend_training_download_datasets_sha256",
+      "backend_training_download_datasets_write_manifest",
+      "io",
+      "tarfile"
     ],
-    "11": [
-      "backend_app_api_deps",
-      "backend_app_api_deps_active_model",
-      "backend_app_api_init",
-      "backend_app_core_config",
-      "backend_app_core_config_get_settings",
-      "backend_app_core_config_rationale_1",
-      "backend_app_db_repository_rationale_56",
-      "backend_app_db_repository_sync_model_version",
-      "backend_app_main",
-      "backend_app_main_health",
-      "backend_app_main_lifespan",
-      "backend_app_main_py_get",
-      "backend_app_ml_registry_load_active",
-      "backend_app_ml_registry_modelnotavailable",
-      "backend_app_ml_registry_py_path",
-      "contextlib",
-      "fastapi",
-      "fastapi_middleware_cors",
-      "functools",
-      "pydantic_settings",
-      "runtimeerror"
+    "15": [
+      "docs_file_inventory_frontend",
+      "frontend_src_components_bandbar",
+      "frontend_src_components_bandbar_bandbar",
+      "frontend_src_components_evidencepanel",
+      "frontend_src_components_evidencepanel_evidencepanel",
+      "frontend_src_components_featuretable",
+      "frontend_src_components_featuretable_featuretable",
+      "frontend_src_components_featuretable_sortcontributions",
+      "frontend_src_components_featuretable_test",
+      "frontend_src_components_reasoncard",
+      "frontend_src_components_reasoncard_group_label",
+      "frontend_src_components_reasoncard_grouplabel",
+      "frontend_src_components_reasoncard_reasoncard",
+      "frontend_src_components_riskbadge_riskbadge",
+      "frontend_src_pages_analysisdetail",
+      "frontend_src_pages_analysisdetail_analysisdetailpage",
+      "frontend_src_pages_analysisdetail_buildsummary",
+      "frontend_src_pages_analysisdetail_deletesection",
+      "frontend_src_pages_analysisdetail_scope_label",
+      "frontend_src_styles_report",
+      "frontend_src_types_analysisdetail",
+      "frontend_src_types_featurerow",
+      "frontend_src_types_reason"
     ],
-    "12": [
+    "16": [
       "docker_compose",
       "docker_compose_args_vite_supabase_anon_key",
       "docker_compose_args_vite_supabase_url",
@@ -514,7 +628,30 @@
       "docker_compose_volumes_phishlens_models",
       "docker_compose_volumes_phishlens_storage"
     ],
-    "13": [
+    "17": [
+      "docs_02_project_log",
+      "docs_03_plan_and_roadmap",
+      "docs_11_security_privacy",
+      "docs_11_security_privacy_11_security_and_privacy",
+      "docs_11_security_privacy_data_handling_summary",
+      "docs_11_security_privacy_database_isolation_verification",
+      "docs_12_deployment",
+      "docs_13_testing_and_evaluation",
+      "docs_15_risks_and_limitations",
+      "docs_16_demo_script",
+      "docs_17_real_corpus_evaluation",
+      "docs_19_teammate_training_guide",
+      "docs_20_model_parameters_and_features",
+      "docs_datasets_readme",
+      "docs_readme",
+      "docs_readme_phishlens_documentation_index",
+      "docs_report_04_methodology_part_2_and_outcomes",
+      "docs_report_04_methodology_part_2_and_outcomes_6_conclusion",
+      "docs_report_final_report",
+      "docs_summary",
+      "readme_phishlens"
+    ],
+    "18": [
       "github_workflows_ci",
       "github_workflows_ci_backend_defaults",
       "github_workflows_ci_backend_runs_on",
@@ -537,29 +674,93 @@
       "github_workflows_ci_with_node_version",
       "github_workflows_ci_with_python_version"
     ],
-    "14": [
-      "frontend_src_components_bandbar_bandbar",
-      "frontend_src_components_evidencepanel",
-      "frontend_src_components_evidencepanel_evidencepanel",
-      "frontend_src_components_featuretable",
-      "frontend_src_components_featuretable_featuretable",
-      "frontend_src_components_featuretable_sortcontributions",
-      "frontend_src_components_featuretable_test",
-      "frontend_src_components_reasoncard",
-      "frontend_src_components_reasoncard_group_label",
-      "frontend_src_components_reasoncard_grouplabel",
-      "frontend_src_components_reasoncard_reasoncard",
-      "frontend_src_pages_analysisdetail",
-      "frontend_src_pages_analysisdetail_analysisdetailpage",
-      "frontend_src_pages_analysisdetail_buildsummary",
-      "frontend_src_pages_analysisdetail_deletesection",
-      "frontend_src_pages_analysisdetail_scope_label",
-      "frontend_src_styles_report",
-      "frontend_src_types_analysisdetail",
-      "frontend_src_types_featurerow",
-      "frontend_src_types_reason"
+    "19": [
+      "backend_app_features_common_nulldomainage",
+      "backend_app_features_common_nulldomainage_age_days",
+      "backend_app_features_common_rationale_37",
+      "backend_tests_test_corpus_loading",
+      "backend_tests_test_corpus_loading_py_path",
+      "backend_tests_test_corpus_loading_rationale_1",
+      "backend_tests_test_corpus_loading_test_load_dir_accepts_extensionless_hash_named_files",
+      "backend_tests_test_corpus_loading_test_load_dir_reads_mbox_next_to_loose_files",
+      "backend_tests_test_corpus_loading_test_load_mailbox_excludes_sent_drafts_and_chat",
+      "backend_tests_test_corpus_loading_test_load_mailbox_excludes_sent_drafts_and_chat_message",
+      "backend_tests_test_corpus_loading_test_load_mailbox_filters_spam_and_trash",
+      "backend_training_corpus_iter_raw",
+      "backend_training_corpus_load_dir",
+      "backend_training_corpus_load_mailbox",
+      "backend_training_corpus_py_path",
+      "backend_training_corpus_rationale_114",
+      "backend_training_init",
+      "hashlib",
+      "mailbox",
+      "pathlib"
     ],
-    "15": [
+    "20": [
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_7_app_shell_routes_and_shared_overlays",
+      "frontend_src_components_appshell",
+      "frontend_src_components_appshell_appshell",
+      "frontend_src_components_appshell_links",
+      "frontend_src_components_appshell_shell",
+      "frontend_src_components_appshell_test",
+      "frontend_src_components_confirmdialog",
+      "frontend_src_components_confirmdialog_confirmapi",
+      "frontend_src_components_confirmdialog_confirmcontext",
+      "frontend_src_components_confirmdialog_confirmprovider",
+      "frontend_src_components_confirmdialog_options",
+      "frontend_src_components_confirmdialog_useconfirm",
+      "frontend_src_components_toast",
+      "frontend_src_components_toast_toastapi",
+      "frontend_src_components_toast_toastcontext",
+      "frontend_src_components_toast_toastitem",
+      "frontend_src_components_toast_toastprovider",
+      "frontend_src_components_toast_tone",
+      "frontend_src_components_toast_usetoast",
+      "frontend_src_styles_shell"
+    ],
+    "21": [
+      "backend_tests_test_evaluate_modern",
+      "backend_tests_test_evaluate_modern_sample",
+      "backend_tests_test_evaluate_modern_test_date_range_counts_undated_messages",
+      "backend_tests_test_evaluate_modern_test_default_window_keeps_the_newest_archive_as_holdout",
+      "backend_tests_test_evaluate_modern_test_in_window_keeps_dated_messages_and_drops_undated",
+      "backend_tests_test_evaluate_modern_test_parse_cli_date_treats_naive_input_as_utc",
+      "backend_tests_test_evaluate_modern_test_parse_date_accepts_rfc2822_and_rejects_garbage",
+      "backend_training_corpus",
+      "backend_training_corpus_date_range",
+      "backend_training_corpus_in_window",
+      "backend_training_corpus_parse_cli_date",
+      "backend_training_corpus_parse_date",
+      "backend_training_corpus_py_datetime",
+      "backend_training_corpus_rationale_1",
+      "backend_training_corpus_rationale_25",
+      "backend_training_corpus_rationale_38",
+      "backend_training_corpus_rationale_46",
+      "backend_training_evaluate_modern_date_range",
+      "backend_training_synthetic_sample"
+    ],
+    "22": [
+      "docs_19_teammate_training_guide_expected_output",
+      "docs_19_teammate_training_guide_expected_output_261",
+      "docs_19_teammate_training_guide_further_reading",
+      "docs_19_teammate_training_guide_if_something_goes_wrong",
+      "docs_19_teammate_training_guide_known_artefact_read_before_you_are_surprised",
+      "docs_19_teammate_training_guide_prerequisites",
+      "docs_19_teammate_training_guide_rules_you_must_not_break",
+      "docs_19_teammate_training_guide_step_1_clone_the_repository",
+      "docs_19_teammate_training_guide_step_2_create_the_virtual_environment_and_install_dependencies",
+      "docs_19_teammate_training_guide_step_3_train_the_synthetic_demo_model_plumbing_check_five_minutes",
+      "docs_19_teammate_training_guide_step_4_download_the_real_corpora",
+      "docs_19_teammate_training_guide_step_5_run_the_evaluation_the_number_you_may_report",
+      "docs_19_teammate_training_guide_step_6_train_the_real_model_and_promote_it_into_models_active",
+      "docs_19_teammate_training_guide_step_7_verify_the_newly_trained_model_locally",
+      "docs_19_teammate_training_guide_step_8_ingesting_modern_mailbox_data_avoiding_era_artifacts",
+      "docs_19_teammate_training_guide_step_8_ship_it_to_the_live_service",
+      "docs_19_teammate_training_guide_train_the_phishlens_model_on_the_real_corpora_teammate_walkthrough",
+      "docs_19_teammate_training_guide_what_these_numbers_do_and_do_not_establish",
+      "docs_19_teammate_training_guide_what_you_are_doing_and_why"
+    ],
+    "23": [
       "frontend_tsconfig",
       "frontend_tsconfig_compileroptions",
       "frontend_tsconfig_compileroptions_allowimportingtsextensions",
@@ -580,47 +781,12 @@
       "frontend_tsconfig_compileroptions_usedefineforclassfields",
       "frontend_tsconfig_include"
     ],
-    "16": [
-      "github_workflows_deploy_space",
-      "github_workflows_deploy_space_deploy_runs_on",
-      "github_workflows_deploy_space_deploy_steps",
-      "github_workflows_deploy_space_env_hf_space_id",
-      "github_workflows_deploy_space_env_hf_token",
-      "github_workflows_deploy_space_jobs",
-      "github_workflows_deploy_space_jobs_deploy",
-      "github_workflows_deploy_space_name",
-      "github_workflows_deploy_space_on",
-      "github_workflows_deploy_space_on_push",
-      "github_workflows_deploy_space_on_workflow_dispatch",
-      "github_workflows_deploy_space_push_branches",
-      "github_workflows_deploy_space_push_paths",
-      "github_workflows_deploy_space_steps_env",
-      "github_workflows_deploy_space_steps_name",
-      "github_workflows_deploy_space_steps_run",
-      "github_workflows_deploy_space_steps_uses",
-      "github_workflows_deploy_space_steps_with",
-      "github_workflows_deploy_space_with_python_version"
-    ],
-    "17": [
-      "backend_app_explain_shap_engine",
-      "backend_app_explain_shap_engine_contributions",
-      "backend_app_explain_shap_engine_explainer",
-      "backend_app_explain_shap_engine_rationale_1",
-      "backend_app_ml_registry",
-      "backend_app_ml_registry_clear_cache",
-      "backend_app_ml_registry_modelbundle",
-      "backend_app_ml_registry_modelbundle_algorithm",
-      "backend_app_ml_registry_modelbundle_predict",
-      "backend_app_ml_registry_modelbundle_version_tag",
-      "backend_app_ml_registry_rationale_1",
-      "joblib",
-      "numpy",
-      "shap",
-      "threading",
-      "typing"
-    ],
-    "18": [
-      "backend_training_synthetic_samples_to_matrix",
+    "24": [
+      "backend_app_ml_registry_load_model_dir",
+      "backend_app_ml_registry_rationale_55",
+      "backend_tests_test_evaluate_modern_py_path",
+      "backend_tests_test_evaluate_modern_test_training_activates_only_when_asked",
+      "backend_tests_test_evaluate_modern_test_training_writes_a_candidate_model_and_provenance_without_activating",
       "backend_training_train",
       "backend_training_train_main",
       "backend_training_train_make_models",
@@ -628,94 +794,37 @@
       "backend_training_train_rationale_1",
       "backend_training_train_render_report",
       "backend_training_train_split_groups",
+      "joblib",
+      "json",
       "shutil",
       "sklearn_ensemble",
       "sklearn_isotonic",
-      "sklearn_linear_model",
-      "sklearn_metrics",
-      "sklearn_model_selection",
-      "xgboost"
+      "sklearn_linear_model"
     ],
-    "19": [
-      "frontend_src_components_bandbar",
-      "frontend_src_components_riskbadge",
-      "frontend_src_components_riskbadge_riskbadge",
-      "frontend_src_lib_cases",
-      "frontend_src_lib_cases_filtercases",
-      "frontend_src_lib_cases_paginate",
-      "frontend_src_lib_cases_test",
-      "frontend_src_lib_cases_test_mockcases",
-      "frontend_src_pages_cases",
-      "frontend_src_pages_cases_cases",
-      "frontend_src_pages_cases_scope_label",
-      "frontend_src_pages_cases_sortkey",
-      "frontend_src_types",
-      "frontend_src_types_analysissummary",
-      "frontend_src_types_band"
+    "25": [
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_approaches_considered",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_architecture",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_builder_check_resolutions",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_constraints",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_data",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_frontend_surface",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_gmail_path_stretch",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_goals",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_intent",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_non_goals",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_open_decisions",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_phishlens_mini_project_scope_and_design",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_plan",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_risks",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_security_and_privacy",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_verification",
+      "docs_superpowers_specs_2026_11_05_phishlens_miniproject_scope_design_work_plan"
     ],
-    "20": [
-      "backend_training_download_datasets",
-      "backend_training_download_datasets_build_manifest",
-      "backend_training_download_datasets_download_dataset",
-      "backend_training_download_datasets_extract_archive",
-      "backend_training_download_datasets_fetch",
-      "backend_training_download_datasets_has_emails",
-      "backend_training_download_datasets_is_corpus_file",
-      "backend_training_download_datasets_iter_email_files",
-      "backend_training_download_datasets_py_path",
-      "backend_training_download_datasets_rationale_1",
-      "backend_training_download_datasets_rationale_106",
-      "backend_training_download_datasets_sha256",
-      "backend_training_download_datasets_write_manifest",
-      "tarfile"
-    ],
-    "21": [
-      "docs_02_project_log",
-      "docs_03_plan_and_roadmap",
-      "docs_06_frontend_design",
-      "docs_11_security_privacy",
-      "docs_11_security_privacy_11_security_and_privacy",
-      "docs_11_security_privacy_data_handling_summary",
-      "docs_12_deployment",
-      "docs_13_testing_and_evaluation",
-      "docs_15_risks_and_limitations",
-      "docs_readme",
-      "docs_readme_phishlens_documentation_index",
-      "docs_report_04_methodology_part_2_and_outcomes",
-      "docs_report_04_methodology_part_2_and_outcomes_6_conclusion",
-      "readme_phishlens"
-    ],
-    "22": [
-      "backend_app_api_webhooks",
-      "backend_app_api_webhooks_inbound",
-      "backend_app_api_webhooks_py_post",
-      "backend_app_api_webhooks_py_session",
-      "backend_app_api_webhooks_rationale_1",
-      "backend_app_db_init",
-      "backend_app_db_repository_user_for_alias_token",
-      "backend_app_services_init",
-      "backend_tests_test_api_test_webhook_requires_secret_and_known_alias",
-      "base64",
-      "binascii",
-      "hmac",
-      "request"
-    ],
-    "23": [
-      "backend_tests_test_corpus_loading",
-      "backend_tests_test_corpus_loading_py_path",
-      "backend_tests_test_corpus_loading_rationale_1",
-      "backend_tests_test_corpus_loading_test_load_dir_accepts_extensionless_hash_named_files",
-      "backend_tests_test_corpus_loading_test_load_dir_reads_mbox_next_to_loose_files",
-      "backend_training_corpus",
-      "backend_training_corpus_iter_raw",
-      "backend_training_corpus_load_dir",
-      "backend_training_corpus_py_path",
-      "backend_training_corpus_rationale_1",
-      "backend_training_init",
-      "backend_training_synthetic_sample",
-      "mailbox"
-    ],
-    "24": [
+    "26": [
+      "docs_01_project_overview_project_overview",
+      "docs_04_architecture_feature_engine",
+      "docs_08_ml_pipeline_feature_set",
       "docs_diagrams_fig2_pipeline_diagram",
       "docs_diagrams_fig3_sequence_diagram",
       "docs_diagrams_fig6_mlworkflow_diagram",
@@ -730,7 +839,121 @@
       "docs_report_readme",
       "docs_report_readme_project_report_markdown_source"
     ],
-    "25": [
+    "27": [
+      "docs_02_project_log_02_project_log_what_was_done_in_order_and_why",
+      "docs_02_project_log_0_starting_point",
+      "docs_02_project_log_11_cors_hardening_browser_smoke_test_and_submission_docs",
+      "docs_02_project_log_1_architecture_design_done",
+      "docs_02_project_log_2026_11_06_deployment_branches_merged_frontend_live_on_vercel_supabase_provisioned",
+      "docs_02_project_log_2026_11_06_later_real_corpus_download_loader_fix_and_the_first_measured_result",
+      "docs_02_project_log_2026_11_10_feature_expansion_retrained_model_and_parameter_documentation",
+      "docs_02_project_log_2026_11_10_full_nazario_corpus_fetch_and_a_one_page_project_summary",
+      "docs_02_project_log_2_visualisations_done",
+      "docs_02_project_log_3_literature_survey_problem_identification_methodology_project_report_content_partial",
+      "docs_02_project_log_4_review_1_slide_deck_done",
+      "docs_02_project_log_5_repository_v0_1_this_zip_done_with_stated_limits",
+      "docs_02_project_log_6_decisions_awaiting_the_team",
+      "docs_02_project_log_7_local_run_verification_windows_done",
+      "docs_02_project_log_8_run_shortcuts",
+      "docs_02_project_log_9_supabase_rls_contract"
+    ],
+    "28": [
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_self_review",
+      "frontend_src_components_riskbadge",
+      "frontend_src_lib_cases",
+      "frontend_src_lib_cases_filtercases",
+      "frontend_src_lib_cases_paginate",
+      "frontend_src_lib_cases_test",
+      "frontend_src_lib_cases_test_mockcases",
+      "frontend_src_pages_cases",
+      "frontend_src_pages_cases_cases",
+      "frontend_src_pages_cases_scope_label",
+      "frontend_src_pages_cases_sortkey",
+      "frontend_src_pages_dashboard",
+      "frontend_src_pages_dashboard_scope_label",
+      "frontend_src_types",
+      "frontend_src_types_analysissummary",
+      "frontend_src_types_band"
+    ],
+    "29": [
+      "backend_app_api_deps_current_user",
+      "backend_app_api_deps_rationale_11",
+      "backend_app_api_deps_rationale_36",
+      "backend_app_api_deps_verify_supabase_token",
+      "backend_app_api_webhooks_inbound",
+      "backend_app_api_webhooks_py_post",
+      "backend_app_api_webhooks_py_session",
+      "backend_app_core_config_settings",
+      "backend_app_core_config_settings_cors_origin_list",
+      "backend_app_db_repository_user_for_alias_token",
+      "backend_tests_test_auth_supabase_test_unconfigured_supabase_returns_401",
+      "basesettings",
+      "hmac",
+      "request"
+    ],
+    "30": [
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_global_constraints",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_phishlens_mini_project_delivery_plan",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_review_focus",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_10_settings_login_and_status",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_11_vercel_frontend_deployment",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_12_end_to_end_smoke_and_submission_docs",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_1_supabase_schema_and_rls_verification",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_2_real_data_evaluation_pipeline",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_3_supabase_auth_and_postgres_serving",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_4_retention_delete_cascade_and_cold_start_senders",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_5_hugging_face_space_deployment",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_8_dashboard_and_cases_list",
+      "docs_superpowers_plans_2026_11_05_phishlens_miniproject_task_9_case_report_model_card_and_method_pages"
+    ],
+    "31": [
+      "render",
+      "render_envvars_generatevalue",
+      "render_envvars_key",
+      "render_envvars_sync",
+      "render_envvars_value",
+      "render_services",
+      "render_services_dockercontext",
+      "render_services_dockerfilepath",
+      "render_services_envvars",
+      "render_services_healthcheckpath",
+      "render_services_name",
+      "render_services_plan",
+      "render_services_runtime",
+      "render_services_type"
+    ],
+    "32": [
+      "backend_tests_test_evaluate",
+      "backend_tests_test_evaluate_test_evaluation_no_cwd_reports",
+      "backend_tests_test_evaluate_test_evaluation_rejects_missing_corpora",
+      "backend_tests_test_evaluate_test_evaluation_uses_grouped_split",
+      "backend_tests_test_evaluate_write_fixtures",
+      "backend_training_evaluate",
+      "backend_training_evaluate_metrics",
+      "backend_training_evaluate_py_path",
+      "backend_training_evaluate_rationale_1",
+      "backend_training_evaluate_run_evaluation",
+      "sklearn_metrics",
+      "sklearn_model_selection",
+      "xgboost"
+    ],
+    "33": [
+      "docs_20_model_parameters_and_features_1_model_selection_and_training_parameters",
+      "docs_20_model_parameters_and_features_2_scoring_and_decision_parameters",
+      "docs_20_model_parameters_and_features_3_feature_vector_65_in_model_order",
+      "docs_20_model_parameters_and_features_4_what_the_new_v0_2_features_do_and_do_not_buy",
+      "docs_20_model_parameters_and_features_5_related_pages",
+      "docs_20_model_parameters_and_features_action_6",
+      "docs_20_model_parameters_and_features_attachment_8",
+      "docs_20_model_parameters_and_features_behaviour_10",
+      "docs_20_model_parameters_and_features_candidate_hyperparameters",
+      "docs_20_model_parameters_and_features_header_13",
+      "docs_20_model_parameters_and_features_model_parameters_and_features_v0_2",
+      "docs_20_model_parameters_and_features_text_10",
+      "docs_20_model_parameters_and_features_url_18"
+    ],
+    "34": [
       "docs_report_04_methodology_part_2_and_outcomes_4_10_risk_scoring_and_bands",
       "docs_report_04_methodology_part_2_and_outcomes_4_11_backend_and_api_design",
       "docs_report_04_methodology_part_2_and_outcomes_4_12_data_model",
@@ -745,38 +968,101 @@
       "docs_report_04_methodology_part_2_and_outcomes_4_21_project_risks_and_mitigation",
       "docs_report_04_methodology_part_2_and_outcomes_4_continued_proposed_methodology_implementation_view_then_expected_outcomes_and_conclusion"
     ],
-    "26": [
-      "backend_tests_conftest_token_for",
-      "backend_tests_test_api",
-      "backend_tests_test_api_test_auth_required_and_users_are_isolated",
-      "backend_tests_test_api_test_baseline_builds_history_and_high_risk_does_not_pollute_it",
-      "backend_tests_test_api_test_health_reports_model",
-      "backend_tests_test_api_test_inline_forward_is_analysed",
-      "backend_tests_test_api_test_legitimate_mail_is_low",
-      "backend_tests_test_api_test_list_detail_features_delete",
-      "backend_tests_test_api_test_model_endpoint",
-      "backend_tests_test_api_test_phishing_is_scored_high_with_verified_reasons",
-      "backend_tests_test_api_test_rejects_empty_upload",
-      "backend_tests_test_api_upload"
+    "35": [
+      "docs_report_final_report_10_reading_path",
+      "docs_report_final_report_1_abstract",
+      "docs_report_final_report_2_problem_and_objectives",
+      "docs_report_final_report_3_1_pipeline",
+      "docs_report_final_report_3_2_interfaces",
+      "docs_report_final_report_3_what_was_built",
+      "docs_report_final_report_4_verification_what_is_actually_tested",
+      "docs_report_final_report_5_data_and_evaluation_status",
+      "docs_report_final_report_6_security_and_privacy",
+      "docs_report_final_report_7_deployment",
+      "docs_report_final_report_8_limitations",
+      "docs_report_final_report_9_future_work",
+      "docs_report_final_report_phishlens_final_report"
     ],
-    "27": [
-      "backend_tests_test_evaluate",
-      "backend_tests_test_evaluate_test_evaluation_no_cwd_reports",
-      "backend_tests_test_evaluate_test_evaluation_rejects_missing_corpora",
-      "backend_tests_test_evaluate_test_evaluation_uses_grouped_split",
-      "backend_tests_test_evaluate_write_fixtures",
-      "backend_training_evaluate",
+    "36": [
+      "backend_tests_test_cors",
+      "backend_tests_test_cors_rationale_1",
+      "backend_tests_test_cors_test_configured_origin_is_allowed",
+      "backend_tests_test_cors_test_unknown_origin_gets_no_cors_header",
+      "backend_tests_test_cors_test_wildcard_origin_is_rejected",
+      "backend_tests_test_evaluate_modern_test_guard_leakage_blocks_overlap_unless_allowed",
+      "backend_tests_test_rls_contract",
+      "backend_tests_test_rls_contract_py_fixture",
+      "backend_tests_test_rls_contract_supabase_config",
+      "backend_tests_test_rls_contract_test_rls_hides_other_users_case",
+      "httpx",
+      "pytest"
+    ],
+    "37": [
+      "docs_17_real_corpus_evaluation_artefacts",
+      "docs_17_real_corpus_evaluation_corpus",
+      "docs_17_real_corpus_evaluation_known_gaps",
+      "docs_17_real_corpus_evaluation_model_under_evaluation",
+      "docs_17_real_corpus_evaluation_per_group_ablation_65_features_xgboost",
+      "docs_17_real_corpus_evaluation_promoted_serving_model_measured_the_same_way",
+      "docs_17_real_corpus_evaluation_real_corpus_evaluation_measured",
+      "docs_17_real_corpus_evaluation_reproducing",
+      "docs_17_real_corpus_evaluation_results",
+      "docs_17_real_corpus_evaluation_split",
+      "docs_17_real_corpus_evaluation_what_this_does_and_does_not_establish",
+      "docs_17_real_corpus_evaluation_what_was_run"
+    ],
+    "38": [
+      "argparse",
+      "backend_scripts_verify_rls",
+      "backend_scripts_verify_rls_main",
+      "backend_scripts_verify_rls_main_query",
+      "backend_scripts_verify_rls_rationale_2",
       "backend_training_evaluate_main",
-      "backend_training_evaluate_metrics",
-      "backend_training_evaluate_py_path",
-      "backend_training_evaluate_rationale_1",
-      "backend_training_evaluate_run_evaluation",
-      "json"
+      "os",
+      "scripts_send_sample",
+      "scripts_send_sample_rationale_2",
+      "urllib_error",
+      "urllib_request"
     ],
-    "28": [
-      "docs_01_project_overview_project_overview",
+    "39": [
+      "docs_12_deployment_12_deployment",
+      "docs_12_deployment_current_frontend_deployment",
+      "docs_12_deployment_current_supabase_project",
+      "docs_12_deployment_docker_compose",
+      "docs_12_deployment_hosting_options_provider_not_fixed",
+      "docs_12_deployment_inbound_email",
+      "docs_12_deployment_local_no_docker",
+      "docs_12_deployment_render_free_backend",
+      "docs_12_deployment_scaling_and_the_async_path",
+      "docs_12_deployment_supabase",
+      "docs_12_deployment_vercel_frontend_free"
+    ],
+    "40": [
+      "docs_file_inventory",
+      "docs_file_inventory_backend_app_fastapi_service",
+      "docs_file_inventory_backend_data_sample_emails",
+      "docs_file_inventory_backend_tests",
+      "docs_file_inventory_backend_training_and_backend_scripts",
+      "docs_file_inventory_docs",
+      "docs_file_inventory_file_inventory",
+      "docs_file_inventory_other",
+      "docs_file_inventory_repository_root",
+      "docs_file_inventory_supabase_migrations"
+    ],
+    "41": [
+      "docs_summary_how_it_decides_in_one_line_per_step",
+      "docs_summary_phishlens_in_one_page",
+      "docs_summary_run_it_locally_windows",
+      "docs_summary_the_idea",
+      "docs_summary_the_live_demo_is_a_pipeline_demo_not_the_model_above",
+      "docs_summary_the_numbers_with_their_caveats",
+      "docs_summary_what_a_user_does",
+      "docs_summary_what_is_built",
+      "docs_summary_what_it_does_not_do_yet",
+      "docs_summary_where_to_read_more"
+    ],
+    "42": [
       "docs_04_architecture_email_parser",
-      "docs_04_architecture_feature_engine",
       "docs_04_architecture_ml_inference",
       "docs_04_architecture_reason_engine",
       "docs_04_architecture_risk_scorer",
@@ -784,81 +1070,9 @@
       "docs_05_backend_design_analysis_service",
       "docs_07_data_model_analyses",
       "docs_07_data_model_sender_profiles",
-      "docs_08_ml_pipeline_feature_set",
       "docs_09_explainability_evidence_verification"
     ],
-    "29": [
-      "backend_tests_conftest",
-      "backend_tests_conftest_client",
-      "backend_tests_conftest_make_client",
-      "backend_tests_conftest_make_client_make",
-      "backend_tests_conftest_model_dir",
-      "backend_tests_conftest_py_path",
-      "backend_tests_conftest_rationale_15",
-      "backend_tests_conftest_reset_caches",
-      "fastapi_testclient",
-      "fixture",
-      "testclient"
-    ],
-    "30": [
-      "backend_tests_test_cors",
-      "backend_tests_test_cors_rationale_1",
-      "backend_tests_test_cors_test_configured_origin_is_allowed",
-      "backend_tests_test_cors_test_unknown_origin_gets_no_cors_header",
-      "backend_tests_test_cors_test_wildcard_origin_is_rejected",
-      "backend_tests_test_rls_contract",
-      "backend_tests_test_rls_contract_supabase_config",
-      "backend_tests_test_rls_contract_test_rls_hides_other_users_case",
-      "httpx",
-      "os",
-      "pytest"
-    ],
-    "31": [
-      "argparse",
-      "backend_scripts_verify_rls",
-      "backend_scripts_verify_rls_main",
-      "backend_scripts_verify_rls_main_query",
-      "backend_scripts_verify_rls_rationale_2",
-      "backend_training_download_datasets_main",
-      "scripts_send_sample",
-      "scripts_send_sample_rationale_2",
-      "urllib_error",
-      "urllib_request"
-    ],
-    "32": [
-      "backend_tests_test_auth_supabase",
-      "backend_tests_test_auth_supabase_auth",
-      "backend_tests_test_auth_supabase_test_expired_token_returns_401",
-      "backend_tests_test_auth_supabase_test_missing_subject_returns_401",
-      "backend_tests_test_auth_supabase_test_missing_token_returns_401",
-      "backend_tests_test_auth_supabase_test_valid_token_returns_user_rows",
-      "backend_tests_test_auth_supabase_test_wrong_audience_returns_401",
-      "backend_tests_test_auth_supabase_token",
-      "jwt",
-      "time"
-    ],
-    "33": [
-      "docs_02_project_log_02_project_log_what_was_done_in_order_and_why",
-      "docs_02_project_log_0_starting_point",
-      "docs_02_project_log_1_architecture_design_done",
-      "docs_02_project_log_2_visualisations_done",
-      "docs_02_project_log_3_literature_survey_problem_identification_methodology_project_report_content_partial",
-      "docs_02_project_log_4_review_1_slide_deck_done",
-      "docs_02_project_log_5_repository_v0_1_this_zip_done_with_stated_limits",
-      "docs_02_project_log_6_decisions_awaiting_the_team",
-      "docs_02_project_log_7_local_run_verification_windows_done"
-    ],
-    "34": [
-      "backend_app_api_deps_current_user",
-      "backend_app_api_deps_rationale_11",
-      "backend_app_api_deps_rationale_36",
-      "backend_app_api_deps_verify_supabase_token",
-      "backend_app_core_config_settings",
-      "backend_app_core_config_settings_cors_origin_list",
-      "backend_tests_test_auth_supabase_test_unconfigured_supabase_returns_401",
-      "basesettings"
-    ],
-    "35": [
+    "43": [
       "copy",
       "docs_presentation_edit_deck",
       "docs_presentation_edit_deck_dup_para",
@@ -868,7 +1082,7 @@
       "docs_presentation_edit_deck_shape",
       "pptx"
     ],
-    "36": [
+    "44": [
       "frontend_src_api_client",
       "frontend_src_api_client_apierror",
       "frontend_src_api_client_apierror_constructor",
@@ -878,25 +1092,16 @@
       "frontend_src_api_client_form",
       "frontend_src_api_client_test"
     ],
-    "37": [
-      "backend_tests_test_download_datasets",
-      "backend_tests_test_download_datasets_rationale_1",
-      "backend_tests_test_download_datasets_tar_bz2",
-      "backend_tests_test_download_datasets_test_multi_source_download_writes_manifest",
-      "backend_tests_test_download_datasets_test_multi_source_download_writes_manifest_fake_fetch",
-      "io",
-      "pathlib"
+    "45": [
+      "docs_datasets_readme_corpus_preparation",
+      "docs_datasets_readme_dataset_card_and_corpus_guide",
+      "docs_datasets_readme_licences_and_terms",
+      "docs_datasets_readme_note_on_git",
+      "docs_datasets_readme_sizes_and_statistics",
+      "docs_datasets_readme_sources_and_upstream_urls",
+      "docs_datasets_readme_train_test_split_rule"
     ],
-    "38": [
-      "docs_12_deployment_12_deployment",
-      "docs_12_deployment_docker_compose",
-      "docs_12_deployment_hosting_options_provider_not_fixed",
-      "docs_12_deployment_inbound_email",
-      "docs_12_deployment_local_no_docker",
-      "docs_12_deployment_scaling_and_the_async_path",
-      "docs_12_deployment_supabase"
-    ],
-    "39": [
+    "46": [
       "docs_original_first_architecture_design_doc",
       "docs_original_first_architecture_design_email_parser",
       "docs_original_first_architecture_design_feature_extraction_engine",
@@ -905,7 +1110,48 @@
       "docs_original_first_architecture_design_shap_engine",
       "docs_original_original_project_idea_doc"
     ],
-    "40": [
+    "47": [
+      "docs_report_2026_11_10_feature_expansion_report",
+      "docs_report_2026_11_10_feature_expansion_report_decisions",
+      "docs_report_2026_11_10_feature_expansion_report_documentation",
+      "docs_report_2026_11_10_feature_expansion_report_feature_expansion_retrained_model_and_parameter_documentation",
+      "docs_report_2026_11_10_feature_expansion_report_follow_ups",
+      "docs_report_2026_11_10_feature_expansion_report_retrained_model",
+      "docs_report_2026_11_10_feature_expansion_report_verification"
+    ],
+    "48": [
+      "backend_app_db_session_normalize_url",
+      "backend_tests_test_db_url",
+      "backend_tests_test_db_url_test_a_raw_at_sign_in_the_password_is_encoded",
+      "backend_tests_test_db_url_test_an_already_encoded_password_is_not_double_encoded",
+      "backend_tests_test_db_url_test_other_urls_are_left_alone",
+      "backend_tests_test_db_url_test_postgres_urls_select_the_psycopg_driver"
+    ],
+    "49": [
+      "docs_13_testing_and_evaluation_13_testing_and_evaluation",
+      "docs_13_testing_and_evaluation_automated_tests_cd_backend_python_m_pytest_q_52_passing_1_skipped",
+      "docs_13_testing_and_evaluation_evaluation_experiments_to_run_on_real_data",
+      "docs_13_testing_and_evaluation_frontend",
+      "docs_13_testing_and_evaluation_real_data_evaluation_harness",
+      "docs_13_testing_and_evaluation_what_not_to_claim"
+    ],
+    "50": [
+      "docs_16_demo_script_16_demo_script",
+      "docs_16_demo_script_before_the_session_do_the_day_before_not_in_the_room",
+      "docs_16_demo_script_closing_30_seconds",
+      "docs_16_demo_script_demo_flow",
+      "docs_16_demo_script_fallbacks",
+      "docs_16_demo_script_questions_to_expect"
+    ],
+    "51": [
+      "docs_18_open_manual_actions",
+      "docs_18_open_manual_actions_1_optional_send_the_demo_through_the_real_model_15_minutes_on_your_machine",
+      "docs_18_open_manual_actions_2_optional_restore_push_to_deploy_for_the_backend_2_minutes",
+      "docs_18_open_manual_actions_3_fallback_if_render_ever_refuses_you",
+      "docs_18_open_manual_actions_already_handled_do_not_redo",
+      "docs_18_open_manual_actions_open_manual_actions"
+    ],
+    "52": [
       "docs_report_04_methodology_part_2_and_outcomes_5_1_deliverables",
       "docs_report_04_methodology_part_2_and_outcomes_5_2_planned_measurable_targets_to_be_validated_not_results",
       "docs_report_04_methodology_part_2_and_outcomes_5_3_expected_contributions",
@@ -913,7 +1159,7 @@
       "docs_report_04_methodology_part_2_and_outcomes_5_5_anticipated_limitations_and_future_work",
       "docs_report_04_methodology_part_2_and_outcomes_5_expected_outcomes"
     ],
-    "41": [
+    "53": [
       "frontend_vercel",
       "frontend_vercel_buildcommand",
       "frontend_vercel_framework",
@@ -921,164 +1167,159 @@
       "frontend_vercel_rewrites",
       "frontend_vercel_schema"
     ],
-    "42": [
+    "54": [
       "docs_demo_training_report_synthetic",
       "docs_demo_training_report_synthetic_ablation_xgboost_drop_one_feature_group",
       "docs_demo_training_report_synthetic_held_out_test_set_uncalibrated_models",
       "docs_demo_training_report_synthetic_selected_model_after_isotonic_calibration_test",
       "docs_demo_training_report_synthetic_training_report"
     ],
-    "43": [
+    "55": [
       "docs_frontend_refinement_report",
       "docs_frontend_refinement_report_implemented_items",
       "docs_frontend_refinement_report_phishlens_frontend_refinement_and_defect_resolution_report",
       "docs_frontend_refinement_report_summary_of_work",
       "docs_frontend_refinement_report_verification"
     ],
-    "44": [
-      "docs_13_testing_and_evaluation_13_testing_and_evaluation",
-      "docs_13_testing_and_evaluation_automated_tests_cd_backend_python_m_pytest_q_28_passing",
-      "docs_13_testing_and_evaluation_evaluation_experiments_to_run_on_real_data",
-      "docs_13_testing_and_evaluation_what_not_to_claim"
-    ],
-    "45": [
+    "56": [
+      "docs_06_frontend_design",
       "docs_06_frontend_design_06_frontend_design",
       "docs_06_frontend_design_next_ui_work",
       "docs_06_frontend_design_screenshots_captured_from_the_running_app_with_the_synthetic_demo_model"
     ],
-    "46": [
+    "57": [
       "docs_15_risks_and_limitations_15_risks_and_limitations",
       "docs_15_risks_and_limitations_known_limitations_of_v0_1_honest_list",
       "docs_15_risks_and_limitations_project_risks"
     ],
-    "47": [
+    "58": [
       "frontend_src_vite_env_d",
       "frontend_src_vite_env_d_importmeta",
       "frontend_src_vite_env_d_importmetaenv"
     ],
-    "48": [
+    "59": [
       "backend_entrypoint",
       "backend_entrypoint_sh__entry"
     ],
-    "49": [
+    "60": [
       "docs_report_sources_readme",
       "docs_report_sources_readme_report_generator_sources_node_docx_js"
     ],
-    "50": [
+    "61": [
       "backend"
     ],
-    "51": [
+    "62": [
       "backend_app_core_init"
     ],
-    "52": [
+    "63": [
       "backend_app_explain_init"
     ],
-    "53": [
+    "64": [
       "backend_app_ingestion_init"
     ],
-    "54": [
+    "65": [
       "backend_app_init"
     ],
-    "55": [
+    "66": [
       "backend_app_ml_init"
     ],
-    "56": [
+    "67": [
       "backend_app_scoring_init"
     ],
-    "57": [
+    "68": [
       "backend_tests_init"
     ],
-    "58": [
+    "69": [
       "docs_14_user_study_evaluation_study"
     ],
-    "59": [
+    "70": [
       "docs_diagrams_fig4_erd_diagram"
     ],
-    "60": [
+    "71": [
       "docs_diagrams_fig5_deploy_diagram"
     ],
-    "61": [
+    "72": [
       "docs_diagrams_fig8_gantt_diagram"
     ],
-    "62": [
+    "73": [
       "docs_diagrams_fig9_explain_diagram"
     ],
-    "63": [
+    "74": [
       "docs_presentation_readme_doc"
     ],
-    "64": [
+    "75": [
       "docs_report_sources_ch12"
     ],
-    "65": [
+    "76": [
       "docs_report_sources_ch3"
     ],
-    "66": [
+    "77": [
       "docs_report_sources_ch4a"
     ],
-    "67": [
+    "78": [
       "frontend"
     ]
   },
   "cohesion": {
-    "0": 0.061542390194075584,
-    "1": 0.06361570918532944,
-    "2": 0.06685633001422475,
-    "3": 0.07657657657657657,
-    "4": 0.07936507936507936,
-    "5": 0.06554621848739496,
-    "6": 0.1568627450980392,
-    "7": 0.14461538461538462,
-    "8": 0.16923076923076924,
-    "9": 0.10869565217391304,
-    "10": 0.12121212121212122,
-    "11": 0.16666666666666666,
-    "12": 0.09523809523809523,
-    "13": 0.11428571428571428,
-    "14": 0.18947368421052632,
-    "15": 0.10526315789473684,
-    "16": 0.10526315789473684,
-    "17": 0.2,
-    "18": 0.18095238095238095,
-    "19": 0.29523809523809524,
-    "20": 0.32967032967032966,
-    "21": 0.26373626373626374,
-    "22": 0.1794871794871795,
-    "23": 0.24358974358974358,
-    "24": 0.1794871794871795,
-    "25": 0.15384615384615385,
-    "26": 0.2727272727272727,
-    "27": 0.30303030303030304,
-    "28": 0.16666666666666666,
-    "29": 0.2909090909090909,
-    "30": 0.2727272727272727,
-    "31": 0.24444444444444444,
-    "32": 0.4888888888888889,
-    "33": 0.2222222222222222,
-    "34": 0.32142857142857145,
-    "35": 0.35714285714285715,
-    "36": 0.39285714285714285,
-    "37": 0.3333333333333333,
-    "38": 0.2857142857142857,
-    "39": 0.3333333333333333,
-    "40": 0.3333333333333333,
-    "41": 0.3333333333333333,
-    "42": 0.4,
-    "43": 0.4,
-    "44": 0.5,
-    "45": 0.6666666666666666,
-    "46": 0.6666666666666666,
-    "47": 0.6666666666666666,
-    "48": 1.0,
-    "49": 1.0,
-    "50": 1.0,
-    "51": 1.0,
-    "52": 1.0,
-    "53": 1.0,
-    "54": 1.0,
-    "55": 1.0,
-    "56": 1.0,
-    "57": 1.0,
-    "58": 1.0,
+    "0": 0.06067845198279981,
+    "1": 0.10909090909090909,
+    "2": 0.06747638326585695,
+    "3": 0.11095305832147938,
+    "4": 0.07539118065433854,
+    "5": 0.10476190476190476,
+    "6": 0.07936507936507936,
+    "7": 0.06554621848739496,
+    "8": 0.1546218487394958,
+    "9": 0.1164021164021164,
+    "10": 0.150997150997151,
+    "11": 0.14153846153846153,
+    "12": 0.15692307692307692,
+    "13": 0.11076923076923077,
+    "14": 0.17391304347826086,
+    "15": 0.17786561264822134,
+    "16": 0.09523809523809523,
+    "17": 0.20476190476190476,
+    "18": 0.11428571428571428,
+    "19": 0.15263157894736842,
+    "20": 0.14210526315789473,
+    "21": 0.21052631578947367,
+    "22": 0.10526315789473684,
+    "23": 0.10526315789473684,
+    "24": 0.1830065359477124,
+    "25": 0.1111111111111111,
+    "26": 0.14166666666666666,
+    "27": 0.125,
+    "28": 0.2833333333333333,
+    "29": 0.16483516483516483,
+    "30": 0.14285714285714285,
+    "31": 0.14285714285714285,
+    "32": 0.24358974358974358,
+    "33": 0.15384615384615385,
+    "34": 0.15384615384615385,
+    "35": 0.15384615384615385,
+    "36": 0.22727272727272727,
+    "37": 0.16666666666666666,
+    "38": 0.23636363636363636,
+    "39": 0.18181818181818182,
+    "40": 0.2,
+    "41": 0.2,
+    "42": 0.2222222222222222,
+    "43": 0.35714285714285715,
+    "44": 0.39285714285714285,
+    "45": 0.2857142857142857,
+    "46": 0.3333333333333333,
+    "47": 0.2857142857142857,
+    "48": 0.6,
+    "49": 0.3333333333333333,
+    "50": 0.3333333333333333,
+    "51": 0.3333333333333333,
+    "52": 0.3333333333333333,
+    "53": 0.3333333333333333,
+    "54": 0.4,
+    "55": 0.4,
+    "56": 0.5,
+    "57": 0.6666666666666666,
+    "58": 0.6666666666666666,
     "59": 1.0,
     "60": 1.0,
     "61": 1.0,
@@ -1087,7 +1328,18 @@
     "64": 1.0,
     "65": 1.0,
     "66": 1.0,
-    "67": 1.0
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0
   },
   "gods": [
     {
@@ -1096,23 +1348,33 @@
       "degree": 32
     },
     {
+      "id": "backend_app_core_config_settings",
+      "label": "Settings",
+      "degree": 28
+    },
+    {
       "id": "backend_app_features_common_extractioncontext",
       "label": "ExtractionContext",
       "degree": 27
     },
     {
-      "id": "backend_app_core_config_settings",
-      "label": "Settings",
-      "degree": 26
-    },
-    {
       "id": "backend_app_ingestion_email_parser_parse_email",
       "label": "parse_email()",
-      "degree": 26
+      "degree": 27
     },
     {
-      "id": "backend_app_features_common_profiledata",
-      "label": "ProfileData",
+      "id": "backend_app_ml_registry_modelbundle",
+      "label": "ModelBundle",
+      "degree": 20
+    },
+    {
+      "id": "backend_training_train_main",
+      "label": "main()",
+      "degree": 20
+    },
+    {
+      "id": "backend_training_evaluate_modern_main",
+      "label": "main()",
       "degree": 19
     },
     {
@@ -1126,22 +1388,56 @@
       "degree": 18
     },
     {
-      "id": "backend_app_ml_registry_modelbundle",
-      "label": "ModelBundle",
-      "degree": 17
-    },
-    {
-      "id": "backend_training_synthetic_build_samples",
-      "label": "build_samples()",
-      "degree": 17
-    },
-    {
-      "id": "frontend_tsconfig_compileroptions",
-      "label": "compilerOptions",
+      "id": "backend_app_features_common_profiledata",
+      "label": "ProfileData",
       "degree": 17
     }
   ],
   "surprises": [
+    {
+      "source": "If something goes wrong",
+      "target": "health()",
+      "source_files": [
+        "docs/19-teammate-training-guide.md",
+        "backend/app/main.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `If something goes wrong` unexpectedly reaches hub `health()`"
+    },
+    {
+      "source": "Step 4 - Download the real corpora",
+      "target": "load_dir()",
+      "source_files": [
+        "docs/19-teammate-training-guide.md",
+        "backend/training/corpus.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc \u2194 code); connects across different repos/directories; bridges separate communities; peripheral node `Step 4 - Download the real corpora` unexpectedly reaches hub `load_dir()`"
+    },
+    {
+      "source": "2026-11-06 (deployment) - Branches merged, frontend live on Vercel, Supabase provisioned",
+      "target": "init_db()",
+      "source_files": [
+        "docs/02-project-log.md",
+        "backend/app/db/session.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc \u2194 code); connects across different repos/directories; bridges separate communities; peripheral node `2026-11-06 (deployment) - Branches merged, frontend live on Vercel, Supabase provisioned` unexpectedly reaches hub `init_db()`"
+    },
+    {
+      "source": "2026-11-06 (later) - Real-corpus download, loader fix, and the first measured result",
+      "target": "load_dir()",
+      "source_files": [
+        "docs/02-project-log.md",
+        "backend/training/corpus.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc \u2194 code); connects across different repos/directories; bridges separate communities; peripheral node `2026-11-06 (later) - Real-corpus download, loader fix, and the first measured result` unexpectedly reaches hub `load_dir()`"
+    },
     {
       "source": "Scaling and the async path",
       "target": "analyze()",
@@ -1151,51 +1447,7 @@
       ],
       "confidence": "INFERRED",
       "relation": "references",
-      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `Scaling and the async path` unexpectedly reaches hub `analyze()`"
-    },
-    {
-      "source": "Task checklist",
-      "target": "DomainAgeProvider",
-      "source_files": [
-        "docs/03-plan-and-roadmap.md",
-        "backend/app/features/common.py"
-      ],
-      "confidence": "INFERRED",
-      "relation": "references",
-      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; peripheral node `Task checklist` unexpectedly reaches hub `DomainAgeProvider`"
-    },
-    {
-      "source": "11 - Security and privacy",
-      "target": "_own()",
-      "source_files": [
-        "docs/11-security-privacy.md",
-        "backend/app/api/analyses.py"
-      ],
-      "confidence": "INFERRED",
-      "relation": "references",
-      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities"
-    },
-    {
-      "source": "Detailed Processing Pipeline Diagram",
-      "target": "Report Chapter 4: Proposed Methodology (Part 1)",
-      "source_files": [
-        "docs/diagrams/fig2_pipeline.png",
-        "docs/report/03-proposed-methodology-part-1.md"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "crosses file types (doc \u2194 image); peripheral node `Detailed Processing Pipeline Diagram` unexpectedly reaches hub `Report Chapter 4: Proposed Methodology (Part 1)`"
-    },
-    {
-      "source": "End-to-End Sequence Diagram",
-      "target": "Report Chapter 4: Proposed Methodology (Part 1)",
-      "source_files": [
-        "docs/diagrams/fig3_sequence.png",
-        "docs/report/03-proposed-methodology-part-1.md"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "crosses file types (doc \u2194 image); peripheral node `End-to-End Sequence Diagram` unexpectedly reaches hub `Report Chapter 4: Proposed Methodology (Part 1)`"
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc \u2194 code); connects across different repos/directories; bridges separate communities; peripheral node `Scaling and the async path` unexpectedly reaches hub `analyze()`"
     }
   ],
   "tokens": {
