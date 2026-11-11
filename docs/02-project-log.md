@@ -296,3 +296,37 @@ the synthetic demo.
   and the raw mbox export remains on disk. The aggregate numbers already written into the docs are unaffected, because
   no message content was ever recorded there. `docs/18-open-manual-actions.md` now lists only work that still needs the
   owner, and the decision rows in `docs/21-modern-corpus-evaluation-plan.md` section 10 record what was chosen.
+
+## 2026-11-11 - Four-candidate protocol, the privacy gate, and the released model
+
+- **Four candidates, one protocol, one shared holdout.** The phishing side is split by archive file (13 archives up to
+  2023 train, the 2024 and 2025 archives hold out) because the corpus dates are unusable: some Nazario archives carry
+  dates from 1970 to 2038, so a date-based cutoff admits holdout messages into training. The ham side is split by date.
+  Candidate A had modern ham from one inbox before 2024, B added SpamAssassin 2003, C had both inboxes before 2026 with
+  no 2003 ham, D added 2003 ham to C. Every candidate was scored on ham from 2026 in both inboxes and on the 2024-2025
+  phishing archives: 2,865 legitimate messages and 788 phishing messages, none of them in any training set.
+- **The results, and the trade.** A: FPR@0.5 0.263, recall 0.958. B: 0.071, 0.900. C: 0.008, 0.720. D: 0.022, 0.810.
+  Putting real modern legitimate mail into training cuts the false-positive rate by a factor of thirty, and it costs
+  recall. No candidate passes every gate: recall (0.90) and Brier (0.02) fail for all four, and D misses the
+  domain-macro gate by 0.012. The numbers are in `docs/21-modern-corpus-evaluation-plan.md` section 16 rather than
+  smoothed over.
+- **A privacy gate, so the model could be published at all.** `backend/scripts/audit_model.py` reads the sender
+  domains, email addresses and distinctive subject words out of the mailbox and searches every file of a model
+  directory for them, in plain text, UTF-16, gzip and base64; `backend/scripts/release_model.py` runs that audit and
+  refuses to copy anything that fails. The SHAP background sample is drawn only from non-personal rows and the run
+  aborts if a personal row would land in it. Artifacts record a path digest instead of the mailbox path, and the data
+  source keeps directory names only, so no local account name reaches a published file.
+- **The released model.** Candidate D's configuration was retrained with the current training code, so the artifact
+  comes from the committed code; it reproduced D exactly. The audit reported 395 sender domains, 400 subject words and
+  **0 findings**, with 0 personal rows in the background sample. It is in `backend/release/model/` with the result
+  recorded in `release.json`, and the Docker image copies it into `/app/models/active/`, so Render serves it.
+- **The demo fixtures were unrepresentative.** Both legitimate fixtures scored 53 to 100 under every candidate. The
+  cause was not the era inversion: the fixtures carried one `Received` header, six headers, one short link and a
+  two-sentence body, where real modern mail carries two to four hops, nine to eleven headers and several long
+  tracking links. They were rewritten to the measured real shape, now inside the real 5-95% range on every feature,
+  and they score 3 and 18. Both phishing fixtures still score 100.
+- **Two leakage paths closed.** `phish_leakage` fell back to the unreliable date check for a model with no file
+  provenance; it now fails closed. `ham_leakage` called a directory-trained model "distinct" when evaluated on a file
+  inside it; the comparison is now symmetric. `activate()` also restores the previous model if the final rename fails,
+  so a failed promotion cannot leave the service without one.
+- Suite: 86 passed, 1 skipped. Frontend: 19 unit tests, Playwright smoke suite green, production build clean.
