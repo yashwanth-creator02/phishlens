@@ -277,3 +277,22 @@ the synthetic demo.
   source for training, provide a licensed corpus, accept a synthetic-augmented model, or accept the honest
   limitation) and the privacy cleanup of the mailbox-derived cache. Docs 15, 17, 19, SUMMARY, README and AGENTS.md
   were updated to match. Suite: 68 passed, 1 skipped.
+
+## 2026-11-11 - Owner decision: the mailbox may be used for training, with a privacy constraint
+
+- **The decision.** The owner chose option A of the re-plan in `docs/21-modern-corpus-evaluation-plan.md` section 13:
+  the personal Gmail Takeout mailbox may be used as a modern legitimate-mail training source. That is the only
+  option that fixes the root cause, because the failure was never the features; it was that the training set contained
+  no modern legitimate mail. The corpora-trained model is still not promoted as it stands, the synthetic demo model
+  stays live on Render for now, and the auth-blind trade-off is rejected because the ablation gate failed rather
+  than because a recall loss was judged acceptable.
+- **The constraint is privacy, not permission.** No sensitive information or personal data may end up in committed
+  artifacts or in the public deployment. Concretely: the trained model stays local (`backend/models/` is gitignored),
+  it must not be baked into the Docker image or shipped to Render without a separate explicit decision, and reports
+  and documentation may carry aggregate counts only, never message content, addresses, subjects or Message-IDs. The
+  evaluation design that keeps the measurement honest is a temporal split on the mailbox itself: messages dated
+  before 2024 may train the candidate, and 2024 and later are held out and never seen in training.
+- **The derived cache is deleted; the raw export stays.** On the owner's instruction `.tmp/auth_cache` was deleted
+  and the raw mbox export remains on disk. The aggregate numbers already written into the docs are unaffected, because
+  no message content was ever recorded there. `docs/18-open-manual-actions.md` now lists only work that still needs the
+  owner, and the decision rows in `docs/21-modern-corpus-evaluation-plan.md` section 10 record what was chosen.

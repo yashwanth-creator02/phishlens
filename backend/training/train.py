@@ -123,6 +123,7 @@ def main(argv=None) -> dict:
                   "legit_mailbox": args.legit_mailbox, "legit_until": args.legit_until,
                   "legit_mailbox_min_date": None, "legit_mailbox_max_date": None,
                   "n_legit_mailbox": 0, "contains_personal_data": bool(args.legit_mailbox)}
+    personal = None
     if args.source == "synthetic":
         samples = synthetic.build_samples(n=args.n, seed=args.seed)
         data_source = "synthetic (pipeline check only, NOT a result)"
@@ -183,7 +184,10 @@ def main(argv=None) -> dict:
         if not legit and not mailbox:
             raise SystemExit("no legitimate messages left after the date cutoff and --limit")
         samples = phish + legit + mailbox
-        data_source = f"corpus: phish={args.phish_dir} legit={args.legit_dir or args.legit_mailbox}"
+        # Rows that came from personal mail. Used to keep personal-derived vectors out of the
+        # published artifacts (the SHAP background sample) and out of the served metadata.
+        personal = np.array([False] * (len(phish) + len(legit)) + [True] * len(mailbox))
+        data_source = f"corpus: phish={args.phish_dir} legit={args.legit_dir or 'personal mailbox'}"
         provenance["n_phish"] = len(phish)
         provenance["n_legit"] = len(legit)
         provenance["loader_drops"] = {"phish": phish_stats, "legit": legit_stats, "mailbox": mailbox_stats}
@@ -206,6 +210,8 @@ def main(argv=None) -> dict:
         keep = ~taint
         print(f"Excluding {int(taint.sum())} messages with sender domain spamassassin.taint.org (corpus artefact).")
         X, y, groups = X[keep], y[keep], groups[keep]
+        if personal is not None:
+            personal = personal[keep]
     provenance["n_dropped_taint"] = int(taint.sum())
     provenance["n_samples_after_filter"] = int(len(y))
 
@@ -253,7 +259,17 @@ def main(argv=None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, out / "model.joblib")
     joblib.dump(iso, out / "calibrator.joblib")
-    np.save(out / "background.npy", Xf[np.random.RandomState(args.seed).choice(len(Xf), min(100, len(Xf)), replace=False)])
+    # The SHAP background is a published artifact, so it is sampled only from non-personal rows:
+    # a vector drawn from someone's real mail is derived personal data even without any text in it.
+    bg_pool = np.arange(len(Xf))
+    if personal is not None and personal.any():
+        bg_pool = bg_pool[~personal[fit]]
+        if len(bg_pool) == 0:
+            raise SystemExit("no non-personal rows left for the SHAP background sample")
+        print(f"SHAP background sample: {len(bg_pool)} non-personal rows "
+              f"({int(personal[fit].sum())} personal rows excluded)")
+    bg_pick = np.random.RandomState(args.seed).choice(bg_pool, min(100, len(bg_pool)), replace=False)
+    np.save(out / "background.npy", Xf[bg_pick])
     meta = {"version_tag": tag, "algorithm": best, "trained_at": datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds"),
             "feature_names": FEATURE_NAMES, "data_source": data_source, "n_samples": int(len(y)),
             "split": {"fit": len(fit), "validation": len(val), "test": len(test)},

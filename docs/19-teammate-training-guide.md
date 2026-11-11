@@ -292,8 +292,12 @@ classifier: the only legitimate mail in the corpora is SpamAssassin 2003, which 
 all, so "authenticated mail" reads as "phishing". Removing the authentication features does not fix it. Full
 evidence in [21](21-modern-corpus-evaluation-plan.md) section 7.1.
 
-If you have a modern legitimate-mail source (a licensed export, a shared research corpus), score the candidate
-against it before promoting:
+There are two ways to get a model that works on modern mail. The second is the one this repository now supports.
+
+### Option 1 - a legitimate modern ham corpus you are allowed to use
+
+If you have a licensed export or a shared research corpus of modern legitimate mail, score the candidate against it
+before promoting:
 
 ```powershell
 python -m training.evaluate_modern `
@@ -304,15 +308,48 @@ python -m training.evaluate_modern `
 ```
 
 `--model` points at the candidate directory, so a candidate is scored before it replaces anything. The harness
-refuses to run when the model was trained on phishing from the requested window, because that would report
-in-sample recall as if it were generalization.
+refuses to run when the model was trained on data from the requested window, because that would report in-sample
+recall as if it were generalization.
+
+### Option 2 - train on a modern mailbox with a temporal split (privacy constraint)
+
+The repository can train on a Gmail Takeout export (`backend/data/raw/mailbox/`, gitignored). **This is personal
+data.** The owner of that data decides whether it may be used; if the answer is yes, two rules apply:
+
+1. The trained model is **derived from personal mail**. It stays local, it is never committed (`backend/models/` is
+   gitignored), and it is not baked into the Docker image or shipped to Render without a separate, explicit
+   decision. Reports and docs contain aggregate counts only, never message content, addresses, subjects or
+   Message-IDs.
+2. Training and evaluation use **different messages**, split by date. Train on what came before the cutoff, measure
+   on what came after it, or the measurement is worthless.
+
+```powershell
+# training side: mailbox dated before 2024-01-01, phishing dated before 2024-01-01
+python -m training.train --source corpus `
+    --phish-dir data/raw/nazario --phish-until 2024-01-01 `
+    --legit-mailbox "data/raw/mailbox/All mail Including Spam and Trash.mbox" --legit-until 2024-01-01 `
+    --out models --reports reports
+
+# evaluation side: the holdout the model never saw
+python -m training.evaluate_modern `
+    --model models/<version_tag> `
+    --mailbox "data/raw/mailbox/All mail Including Spam and Trash.mbox" --mailbox-since 2024-01-01 `
+    --phish-dir data/raw/nazario --phish-since 2024-01-01 --phish-until 2026-01-01 `
+    --out reports/modern-holdout
+```
+
+`--legit-until` and `--mailbox-since` are the two halves of the same split, and the harness checks them: if the
+model trained on messages dated inside the evaluation window, the run aborts instead of reporting in-sample numbers.
+Leave `--legit-dir` out when you want modern legitimate mail only. Adding SpamAssassin 2003 ham back in re-creates
+the original shortcut ("no authentication headers means legitimate") because that corpus has none, so measure both
+ways before choosing.
 
 The promotion gates are the ones in [21](21-modern-corpus-evaluation-plan.md) section 9: FPR at probability 0.5
-at most 0.05, FPR at the LOW/MEDIUM boundary at most 0.12, domain-macro FPR at most 0.10, held-out 2015-2023 recall
-at least 0.90, historical grouped macro-F1 at least 0.95, Brier at most 0.02. A partial pass is a fail. If you
-cannot reach those gates because no modern ham corpus exists in your environment, say so in the write-up instead of
-promoting: "measured FPR 0.999 on modern inbox mail, root cause identified, remedy needs data we do not have" is a
-defensible result, and a model that cries wolf on every legitimate mail is not.
+at most 0.05, FPR at the LOW/MEDIUM boundary at most 0.12, domain-macro FPR at most 0.10, held-out modern-phish
+recall at least 0.90, historical grouped macro-F1 at least 0.95, Brier at most 0.02. A partial pass is a fail. If
+your environment has no modern ham corpus at all, say so in the write-up instead of promoting: "measured FPR 0.999
+on modern inbox mail, root cause identified, remedy needs data we do not have" is a defensible result, and a model
+that cries wolf on every legitimate mail is not.
 
 ## Step 7 - Verify the newly trained model locally
 

@@ -61,7 +61,8 @@ phishing. Three separate hypotheses were tested and rejected as the cause:
 The cause is the training data: the only legitimate mail in it is SpamAssassin 2003, so the classifier has never
 seen a modern legitimate message and cannot represent one. Removing features cannot fix that; modern legitimate
 mail has to be in the training set. No free public corpus of modern legitimate mail with real authentication headers
-exists, so the corpora-trained model stays out of the live demo. Evidence and options:
+exists, so the corpora-trained model stays out of the live demo. The owner has now allowed the private mailbox to be
+used for training, under a privacy constraint. Evidence and options:
 [21](21-modern-corpus-evaluation-plan.md).
 
 ## Data on disk
@@ -70,25 +71,22 @@ exists, so the corpora-trained model stays out of the live demo. Evidence and op
 |---|---:|---|---|---|
 | SpamAssassin ham | 2,712 | 2003 | legitimate | yes, but era-biased |
 | Nazario phishing | 4,306 | 2004-2025 | phishing | yes |
-| Google Takeout mailbox | 2,216 | 2020-2026 | modern legitimate evaluation | **evaluation only**, by explicit decision |
+| Google Takeout mailbox | 2,216 | 2020-2026 | modern legitimate training source and evaluation set | **yes**, by owner decision (2026-11-11); pre-2024 trains, 2024+ held out |
 
-Totals after parsing and deduplication: 7,018 public messages, plus the private mailbox for evaluation.
+Totals after parsing and deduplication: 7,018 public messages, plus the private mailbox.
 
-**What is missing:** modern legitimate mail for *training*. There is no free, licence-clean, registration-free
-modern ham corpus. The private mailbox fills the evaluation gap but is off-limits for training unless you explicitly
-change that decision.
+**What is missing:** a licence-clean modern ham corpus that can be shared. There is no free, registration-free public
+one. The private mailbox may now be used for training by owner decision (2026-11-11), so the honest constraint is that
+a model trained on it is personal-data-derived: it stays local and out of the public deployment, and no message
+content, address, subject or Message-ID may reach a committed artifact.
 
 ## What is next
 
-1. Decide the modern-mail story. The recommendation is to keep the synthetic demo model live, keep the corpora model
-   as a documented historical artefact, and publish no accuracy claim for modern mail.
-2. If you want a model that works on modern mail, the only real path is a modern legitimate-mail source for training:
-   a licensed export you can get, or an explicit decision to use the mailbox for training, with the privacy
-   consequence stated in the write-up.
-3. The harness now enforces the temporal holdout rule: `training.train --phish-until` records the cutoff and the
-   phishing date range in the model metadata, and `training/evaluate_modern.py` refuses to report a window the model
-   was trained on. Promotion stays behind an explicit `--activate`.
-4. Keep the synthetic demo live on Render until a model passes the gates: modern FPR at most 5% at 0.50 and 12% at
+1. Train a candidate on the modern legitimate mail the owner approved: mailbox messages dated before 2024, plus
+   pre-2024 phishing, and evaluate it on the 2024-and-later holdout, which the candidate never sees.
+2. A candidate trained on the mailbox is personal-data-derived: it stays local, is not shipped to Render without a
+   separate explicit decision, and no personal data may reach a committed artifact.
+3. Keep the synthetic demo live on Render until a model passes the gates: modern FPR at most 5% at 0.50 and 12% at
    0.29, domain-macro at most 10%, held-out modern recall at least 90%, and legacy grouped F1 at least 0.95.
 
 ## What it does not do yet
