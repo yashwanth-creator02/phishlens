@@ -252,7 +252,42 @@ def _blocks(names: list[str]) -> dict[str, list[int]]:
     return out
 
 
-def run(sources: dict[str, list], tag: str) -> dict:
+def cross_corpus_fpr(matrices: dict[str, np.ndarray], phish_X: np.ndarray, seed: int = SEED) -> list[dict]:
+    """What is the corpus information worth?
+
+    The corpus-classifier test says the features carry corpus information. This
+    test says what that information is worth: train a detector on ONE corpus's
+    legitimate mail plus the phishing, then measure the false-positive rate on
+    every OTHER corpus's legitimate mail.
+
+    If the detector flags another corpus's ham as phishing, then the measured
+    false-positive rate does not transfer to another person's inbox, and no
+    amount of feature engineering in this project will change that.
+    """
+    from sklearn.ensemble import RandomForestClassifier
+
+    if not phish_X.size or len(matrices) < 2:
+        return []
+    out = []
+    for train_name, X_ham_train in matrices.items():
+        X = np.vstack([X_ham_train, phish_X])
+        y = np.concatenate([np.zeros(len(X_ham_train)), np.ones(len(phish_X))])
+        clf = RandomForestClassifier(n_estimators=200, random_state=seed, class_weight="balanced").fit(X, y)
+        for test_name, X_ham_test in matrices.items():
+            if test_name == train_name:
+                continue
+            p = clf.predict_proba(X_ham_test)[:, 1]
+            out.append({
+                "trained_on": train_name,
+                "tested_on": test_name,
+                "fpr_at_0_5": float(np.mean(p >= 0.5)),
+                "mean_probability": float(np.mean(p)),
+                "flagged_median_probability": float(np.median(p)),
+            })
+    return out
+
+
+def run(sources: dict[str, list], tag: str, phish_samples: list | None = None) -> dict:
     order = list(sources)
     X65, Xfmt, Xnorm, y = build_matrices(sources)
     fmt_names = format_feature_names()
@@ -268,7 +303,21 @@ def run(sources: dict[str, list], tag: str) -> dict:
     ]
     abl = [ablation(X65, y, FEATURE_NAMES, "the 65 features"),
            ablation(Xfmt, y, fmt_names, "the format features")]
-    return {"corpora": order, "results": results, "ablation": abl,
+
+    cross = []
+    if phish_samples:
+        print(f"\n--- cross-corpus false-positive rate (train on one corpus's ham, test on the others) ---")
+        ham_matrices = {}
+        offset = 0
+        for label, name in enumerate(order):
+            ham_matrices[name] = X65[offset:offset + len(sources[name][:CAP])]
+            offset += len(sources[name][:CAP])
+        Xp = featurise_65(phish_samples[:CAP])
+        cross = cross_corpus_fpr(ham_matrices, Xp)
+        for row in cross:
+            print(f"    trained on {row['trained_on'][:24]:26s} -> {row['tested_on'][:24]:26s} "
+                  f"FPR {row['fpr_at_0_5']:.3f}  median p {row['flagged_median_probability']:.3f}")
+    return {"corpora": order, "results": results, "ablation": abl, "cross_corpus_fpr": cross,
             "provider_headers": sorted(PROVIDER_HEADERS)}
 
 
@@ -284,9 +333,10 @@ def main() -> int:
     if not ham:
         raise SystemExit("No legitimate corpora found under backend/data/raw. "
                          "Run python -m training.download_datasets first.")
-    report = {"legitimate_only": run(ham, "Part A: legitimate mail only")}
-
     phish = phish_sources()
+    report = {"legitimate_only": run(ham, "Part A: legitimate mail only",
+                                     phish_samples=phish.get("phishing_pot (2022+)") or [])}
+
     if phish and not args.skip_phishing:
         print("\nloading phishing mail from each corpus ...")
         everything = {**ham, **phish}

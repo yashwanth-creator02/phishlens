@@ -21,7 +21,32 @@ now serves it (`xgboost-corpus-20261112-s7`).
 
 **Done when:** You confirm acceptance to the agent.
 
-## 2. Restart Windows once, so Docker's engine can start (2 minutes)
+## 2. Get a second person's mailbox for the final false-positive test (20 minutes for them)
+
+**Why:** the model's false-positive rate is currently measured on **your** inbox, which is also part of its training
+data. The reviewer's point is that this number cannot be read as a general false-positive rate: the feature set
+identifies the mail provider and the era, not only the message (`docs/22-…` has the measurement). A second inbox from
+a different provider is the only way to find out whether the number transfers, and it is the final test set - nothing
+is tuned on it.
+
+**Steps:** ask a friend or a classmate, with their clear consent, for their legitimate mail. The cleanest route is for
+them to run the extraction script locally and send only the feature CSV, never the raw emails:
+
+1. In Google Takeout, select **Mail only** (not Spam or Trash) and download the export. Put the `.mbox` in
+   `backend/data/raw/mailbox-second/` - that directory is gitignored, and it must never be committed.
+2. Or run the extraction locally and send only the CSV:
+   ```powershell
+   cd backend
+   .\.venv\Scripts\python.exe -m training.profile_corpus --mailbox <path-to-their-export> --out <their-csv>
+   ```
+   The CSV has one row per message and 65 numbers per row. It contains no text, no addresses and no subjects.
+
+**Their data never enters training.** It is the test set, and it is used once.
+
+**Done when:** the folder `backend/data/raw/mailbox-second/` has the export (or the CSV is handed over), and the
+agent can report the false-positive rate at the shipped thresholds on mail the model has never seen.
+
+## 3. Restart Windows once, so Docker's engine can start (2 minutes)
 
 **Why:** Docker Desktop 4.99 is installed, and its Linux engine needs WSL2. The two Windows optional features it
 requires were enabled on 2026-11-12, but enabling them only takes effect after a restart, so the engine still reports
@@ -39,7 +64,7 @@ docker build -f backend/Dockerfile -t phishlens-api backend
 **Why it is optional:** the deployed backend does not depend on the local build. Render builds the same Dockerfile on
 the same base image, and that is what runs in production.
 
-## 2. Optional: restore push-to-deploy for the backend (2 minutes)
+## 4. Optional: restore push-to-deploy for the backend (2 minutes)
 
 **Why:** the `phishlens-api` service already has `autoDeploy = yes` and the `main` push rebuilt it once; this is now
 just housekeeping. The one thing it cannot do is the first step, which is already done.
@@ -49,13 +74,13 @@ just housekeeping. The one thing it cannot do is the first step, which is alread
 
 **Done when:** a push to `main` produces a new Render build on its own (it already does).
 
-## 3. Fallback if Render ever refuses you
+## 5. Fallback if Render ever refuses you
 
 If Render asks for a card or blocks the account, say so and the agent will instead expose the local backend through a
 cloudflared quick tunnel for the demo. Trade-off: the URL changes on every restart, exists only while your machine and
 the tunnel are running, and the Vercel build has to be redeployed each time it changes.
 
-## 4. Enable anonymous sign-ins in Supabase (1 minute)
+## 6. Enable anonymous sign-ins in Supabase (1 minute)
 
 **Why:** the login screen now has a "Try it as a guest" button. Supabase refuses to create an anonymous session
 until this provider is switched on, so the button currently fails with "Anonymous sign-ins are disabled".
@@ -70,7 +95,7 @@ emails, and correctly gets no forwarding address, because there is no confirmed 
 **Already done by the agent:** the button and the guest-aware Profile panel are built and unit-tested
 (`frontend/src/pages/Login.test.tsx`, `frontend/src/pages/Profile.test.tsx`).
 
-## 5. Turn on Google sign-in (10 minutes)
+## 7. Turn on Google sign-in (10 minutes)
 
 **Why:** the login screen has a "Continue with Google" button, but Google sign-in needs OAuth credentials that
 only you can create, because they belong to your Google account. Until they exist, the button returns Google's
@@ -95,7 +120,7 @@ in, with the six screens visible.
 **Already done by the agent:** the button, its error handling and its unit test are in place; the backend needs no
 change, because a Google session is a normal Supabase JWT and is verified by the same path as a password sign-in.
 
-## 6. Give the bot a real email address (30-60 minutes, needs a domain)
+## 8. Give the bot a real email address (30-60 minutes, needs a domain)
 
 **Why:** the alias domain is still the placeholder `phishlens.example`, which is not a real mailbox, so
 forwarding a suspicious email does not reach the system yet. This is the last piece of the forwarding path, and

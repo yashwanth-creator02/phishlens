@@ -53,17 +53,18 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | Path | Purpose |
 |---|---|
 | `training/synthetic.py` | Generated demo corpus (pipeline checks only) |
-| `training/corpus.py` | Real corpus loading with grouped split keys (URL host, sender domain) |
+| `training/corpus.py` | Real corpus loading with grouped split keys (campaign for phishing, sender domain for legitimate mail) |
 | `training/download_datasets.py` | Nazario + SpamAssassin fetch with SHA-256 manifests |
 | `training/download_kaggle.py` | Kaggle CSV corpora rebuilt as `.eml`, CSV verified against a recorded SHA-256 |
 | `training/download_phishing_pot.py` | Phishing Pot fetch, Date header filter, and phishing@pot shortcut masking |
-| `training/train.py` | Training entry point, model selection, calibration, reports; takes several corpus directories |
+| `training/train.py` | Training entry point, model selection, calibration, reports; takes several corpus directories; the temporal split, the validation-set operating points and the seed sweep live here |
+| `training/format_features.py` | The format-only fingerprint of a message - header names, Date and Message-ID shape, charset, MIME structure, line endings, Received-chain length - used to find a provider shortcut |
 | `training/evaluate.py` | Grouped-split evaluation, cold start, random-split baseline |
 | `training/evaluate_modern.py` | Modern-mailbox evaluation with leakage guard and dual thresholds |
 | `scripts/verify_rls.py` | Live Supabase RLS isolation check in both directions |
 | `scripts/audit_model.py` | Publish gate: scans a model directory for sender domains, addresses and subject words |
 | `scripts/release_model.py` | Audits a candidate, then copies it into `backend/release/model/` |
-| `scripts/source_leak_test.py` | Measures whether the feature set identifies the corpus a legitimate email came from |
+| `scripts/source_leak_test.py` | Measures whether the feature set identifies the corpus a legitimate email came from, and what that is worth as a cross-corpus false-positive rate |
 | `scripts/released_model_importances.py` | Gain share of the released model, and how much sits in the provider/era features |
 | `release/model/` | The audited model the Docker image serves; empty until a release passes the audit |
 
@@ -147,6 +148,7 @@ legitimate bank alert.
 | `19-teammate-training-guide.md` | Step-by-step corpora download, evaluation, training and promotion, with expected outputs and the header artefact caveat |
 | `20-model-parameters-and-features.md` | Canonical list of the 65 features, candidate hyperparameters, selection rule, calibration, bands and reason thresholds |
 | `21-modern-corpus-evaluation-plan.md` | Modern-mail evaluation: measured 99.9% FPR on a modern inbox, the ablation that ruled out the obvious cause, the promotion gates, and the mailbox-training decision with its privacy constraint |
+| `22-training-methodology-and-measurements.md` | The training method and every measurement it produced: the shortcut test, the temporal split, the operating points, the seed sweep, the confidence intervals, and the list of what is not tested |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |

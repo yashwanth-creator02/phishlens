@@ -432,6 +432,10 @@ def main(argv=None) -> dict:
     ops = chosen["operating_points"]
     provenance["split_mode"] = args.split
     provenance["seeds"] = seeds
+    for name, idx in (("fit", fit), ("validation", val), ("test", test)):
+        if len(idx):
+            ph = int(y[idx].sum())
+            print(f"  {name}: {len(idx)} messages, {ph} phishing, {len(idx) - ph} legitimate")
     if ops:
         print(f"operating points on validation: " + ", ".join(
             f"FPR<={k.split('_')[1]}: threshold {v['score_threshold']} "

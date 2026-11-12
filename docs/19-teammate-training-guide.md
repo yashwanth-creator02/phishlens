@@ -268,6 +268,56 @@ What `training.train --source corpus` does:
 training run must never replace the serving model. The command above writes a candidate directory. When you have
 evaluated the candidate and want to serve it, add `--activate` (or copy the tag directory over `models/active/`).
 
+### Step 6b - The modern corpus, the temporal split and the seed sweep
+
+The command in step 6 is the original one, and it trains on 2003-2023 research corpora. Two additions make the result
+defensible, and both are implemented:
+
+```powershell
+# The modern phishing corpus. CC BY-NC 4.0, attribution required, non-commercial.
+python -m training.download_phishing_pot --since-year 2022
+
+# Train with the temporal split and a seed sweep.
+python -m training.train --source corpus `
+    --phish-dir data/raw/nazario data/raw/phishing_pot `
+    --legit-dir data/raw/spamassassin/easy_ham data/raw/spamassassin/hard_ham `
+                data/raw/kaggle/ceas08/legitimate `
+    --legit-mailbox data/raw/mailbox --legit-until 2026-01-01 `
+    --split temporal --seeds 7,8,9 `
+    --out models-eval --reports reports/modern
+```
+
+What these add:
+
+- `--split temporal` splits by **time** instead of at random. The oldest mail fits, a later slice validates, the
+  newest tests. A group (a campaign for phishing, a sender domain for legitimate mail) is placed by its **earliest**
+  date, so a campaign that spans years never straddles a boundary. Groups with no usable date go to the fit
+  partition. The command prints the class balance of each partition, so check it.
+- `--legit-until 2026-01-01` keeps the owner's 2026 mail out of the training data entirely; that is the holdout the
+  false-positive rate is measured on.
+- `--seeds 7,8,9` runs the whole pipeline once per seed and reports the mean and the spread of the test macro F1,
+  the ROC-AUC and the false-positive rate. One number from one split is not a result.
+- The operating point is computed on the **validation** set and never on the test set: the thresholds that hold the
+  false-positive rate inside 1% and inside 5%, with the recall and the precision at each, and the bands they imply.
+  The shipped bands are a product decision; the report prints the validation-derived ones next to them.
+- Each message records which corpus it came from, and `meta.json` carries the per-corpus counts under
+  `training.source_counts`, so a report can say how much of the model came from where.
+
+Before any of it is published, run the privacy audit and the shortcut test:
+
+```powershell
+python -m scripts.audit_model --model models-eval/<tag> --mailbox data/raw/mailbox
+python -m scripts.source_leak_test --out ..\.tmp\leak
+```
+
+The second one is the one that matters for honesty: it measures whether the features identify **which corpus** a
+legitimate email came from rather than the message being legitimate. The result so far is that they do (0.981
+accuracy at recovering the source of legitimate mail, against a chance of 0.333), and that the shortcut is
+**redundant** - removing the whole header group only takes it to 0.885, so there is no feature to patch away. That is
+why a **second person's inbox** is the test that matters, and why the false-positive rate on the owner's own inbox
+must never be quoted as a general one. `docs/22-training-methodology-and-measurements.md` has the full method and
+the measurements, including the list of what is **not** tested.
+
 A useful flag for a quick sanity run before the full one: `--limit 500` caps emails per class. Do not use it for the
 model you promote.
 

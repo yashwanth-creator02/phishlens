@@ -124,6 +124,9 @@ python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir
 # Score a model on modern mail (evaluation only; never writes a model)
 python -m training.evaluate_modern --model-dir models --phish-dir data/raw/nazario --out reports/modern
 
+# Does the feature set identify the corpus instead of the message?
+python -m scripts.source_leak_test --out ..\.tmp\leak
+
 # Privacy audit before publishing a model (required for any model fitted on a personal mailbox)
 python -m scripts.audit_model --model models/active --mailbox data/raw/mailbox
 
@@ -182,6 +185,11 @@ Also upload at least one sample email through the UI or API and confirm a scored
   is classified by source with 0.981 accuracy (0.980 on the header features alone). The released model leans on
   those features for 10.1% of its gain, so the 0.018 false-positive rate describes held-out mail from the owner's
   own inbox and is **not** a general false-positive rate. See `docs/21-modern-corpus-evaluation-plan.md` section 17.
+- The shortcut is **redundant**, so no single feature can be patched away: removing the whole 13-feature header group
+  only takes the corpus-recovery accuracy from 0.981 to 0.885, and the format-only fingerprint reaches 0.999 and
+  survives dropping the MIME block (0.988) and the transport headers. The fix is training data from one world and a
+  second inbox to test on, not feature engineering. `python -m scripts.source_leak_test` reproduces it;
+  `docs/22-training-methodology-and-measurements.md` records it.
 - The **LOW band is not "safe"**: the model predicts 2.5% risk there and the observed phishing rate is 6.1%, so 181
   of 788 phishing messages land in LOW. The HIGH band is calibrated (predicted 0.930, observed 0.949) and can be
   trusted. Do not present LOW as safety in the UI. See `docs/21-modern-corpus-evaluation-plan.md` section 18.
