@@ -1,22 +1,38 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useSession } from "../auth";
+import { useForwardingAlias } from "../hooks/useForwardingAlias";
+import { supabase } from "../supabase";
 import UploadBox from "../components/UploadBox";
 
 export default function Profile() {
   const { user, signOut } = useSession();
   const nav = useNavigate();
-  const [alias, setAlias] = useState<string | null>(null);
-  const [aliasError, setAliasError] = useState<string | null>(null);
+  const aliasState = useForwardingAlias();
+
   const [baselineMsg, setBaselineMsg] = useState<string | null>(null);
   const [baselineError, setBaselineError] = useState<string | null>(null);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
-  useEffect(() => {
-    api.alias()
-      .then((a) => setAlias(a.address))
-      .catch((e) => setAliasError((e as Error).message));
-  }, []);
+  const handleResend = async () => {
+    if (!user?.email || !supabase) return;
+    setResending(true);
+    setResendError(null);
+    setResendStatus(null);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: user.email,
+    });
+    setResending(false);
+    if (error) {
+      setResendError(error.message);
+    } else {
+      setResendStatus("Verification email sent. Check your inbox.");
+    }
+  };
 
   return (
     <>
@@ -55,19 +71,50 @@ export default function Profile() {
 
       <section className="card" aria-labelledby="profile-alias-heading">
         <h2 id="profile-alias-heading">Forwarding address</h2>
-        {aliasError ? (
-          <p className="error" role="alert">Could not load your forwarding address: {aliasError}</p>
-        ) : alias ? (
+        {aliasState.status === "loading" && (
+          <p className="muted">Loading your forwarding address...</p>
+        )}
+        {aliasState.status === "verified" && (
           <>
-            <p className="mono big" style={{ margin: "8px 0 0 0" }}>{alias}</p>
+            <p className="mono big" style={{ margin: "8px 0 0 0" }}>{aliasState.address}</p>
             <p className="muted" style={{ margin: "12px 0 0 0", maxWidth: "68ch" }}>
               Forward suspicious emails to this address. Forward them as an attachment so the original
               authentication headers (SPF, DKIM, DMARC) stay intact. Inline forwarding drops them, and
               the system then reports them as missing rather than failed.
             </p>
           </>
-        ) : (
-          <p className="muted">Loading your forwarding address...</p>
+        )}
+        {aliasState.status === "unverified" && (
+          <div className="card medium" role="region" aria-labelledby="verify-heading" style={{ marginTop: "12px" }}>
+            <h3 id="verify-heading" style={{ marginTop: 0 }}>Verify your email address</h3>
+            <p className="muted">Account email: <span className="mono">{user?.email ?? "unknown"}</span></p>
+            <p className="muted" style={{ maxWidth: "68ch" }}>
+              Forwarding alias remains unavailable until your email address is confirmed.
+            </p>
+            <div className="report-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleResend}
+                disabled={resending || !user?.email}
+              >
+                {resending ? "Sending..." : "Resend verification email"}
+              </button>
+            </div>
+            {resendStatus && <p className="muted" style={{ marginTop: "8px", color: "var(--low)" }}>{resendStatus}</p>}
+            {resendError && <p className="error" role="alert" style={{ marginTop: "8px" }}>{resendError}</p>}
+          </div>
+        )}
+        {aliasState.status === "unconfigured" && (
+          <div className="card medium" role="region" aria-labelledby="unconfigured-heading" style={{ marginTop: "12px" }}>
+            <h3 id="unconfigured-heading" style={{ marginTop: 0 }}>Email verification not configured</h3>
+            <p className="muted" style={{ maxWidth: "68ch" }}>
+              Email verification is not configured on this server yet. Forwarding alias is temporarily unavailable.
+            </p>
+          </div>
+        )}
+        {aliasState.status === "error" && (
+          <p className="error" role="alert">Could not load your forwarding address: {aliasState.message}</p>
         )}
       </section>
 
