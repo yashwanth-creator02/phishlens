@@ -1,24 +1,40 @@
-"""Does the 65-feature contract identify WHICH CORPUS a legitimate email came from?
+"""Can the features tell which CORPUS a message came from?
 
-The reviewer's test. If the features encode the mail provider or the era rather
-than the message being legitimate, then the phishing model can score an unseen
-mailbox on the shape of its provider instead of on its content, and the measured
-false-positive rate will not transfer to another person's inbox.
+The reviewer's test, in two parts.
 
-Method: take legitimate mail only, from three corpora with different providers
-and eras, and train a classifier to predict the SOURCE. A classifier that does
-well has found a shortcut. Chance is 1/3.
+**Part A - the false-positive claim.** Take legitimate mail only, from corpora
+with different providers and eras, and train a classifier to predict the
+SOURCE. If the features encode the provider or the era rather than the message
+being legitimate, then the measured false-positive rate does not transfer to
+another person's mailbox. Chance is 1/n.
 
-The same test is run with the header-and-format features alone, which is where
-a provider fingerprint would show up first.
+**Part B - the shortcut test.** Add the phishing corpora and ask the same
+question across all of them. A source that is perfectly separable has a
+fingerprint, and a model trained on it will learn the fingerprint instead of
+the content.
+
+Three feature sets are scored, because the point is to find out WHICH features
+are the leak:
+
+1. the 65 features the model actually uses
+2. the format features alone - header names, Date and Message-ID shape,
+   charset, MIME structure, line endings, Received-chain length
+3. the format features with the transport headers removed - no Received, no
+   X-Gmail-*, no ARC-*, no Authentication-Results, no Return-Path
+
+If the leak survives (3), it is in something the model actually needs and the
+fix is a different corpus. If it disappears, the leak was the transport and
+the fix is to not train on those headers.
 
 Needs the gitignored corpora, so this is a script and not a pytest case:
 
     cd backend
-    python -m scripts.source_leak_test
+    python -m scripts.source_leak_test --out reports/leak
 """
 from __future__ import annotations
 
+import argparse
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -32,6 +48,8 @@ from app.features.common import ExtractionContext  # noqa: E402
 from app.features.feature_vector import FEATURE_GROUP, FEATURE_NAMES, extract_all  # noqa: E402
 from app.ingestion.email_parser import parse_email  # noqa: E402
 from training import corpus  # noqa: E402
+from training.format_features import (PROVIDER_HEADERS, format_feature_names,  # noqa: E402
+                                      format_features, normalised_format_features)
 
 RAW = ROOT / "data" / "raw"
 CAP = 1500
@@ -39,17 +57,35 @@ SEED = 7
 CACHE = Path(tempfile.gettempdir())
 
 
-def load_sources() -> dict[str, list]:
+def ham_sources() -> dict[str, list]:
     """Legitimate mail only, one bucket per corpus."""
-    return {
-        "mailbox (2020-2026, owner)": corpus.load_mailbox(RAW / "mailbox", label=0, limit=CAP),
-        "spamassassin (2003)": (corpus.load_dir(RAW / "spamassassin" / "easy_ham", 0, limit=CAP)
-                                 + corpus.load_dir(RAW / "spamassassin" / "hard_ham", 0, limit=CAP)),
-        "ceas (2008)": corpus.load_dir(RAW / "kaggle" / "ceas08" / "legitimate", 0, limit=CAP),
-    }
+    out: dict[str, list] = {}
+    mailbox = RAW / "mailbox"
+    if mailbox.exists():
+        out["mailbox (2020-2026, owner)"] = corpus.load_mailbox(mailbox, label=0, limit=CAP)
+    sa = RAW / "spamassassin"
+    if sa.exists():
+        out["spamassassin (2003)"] = (corpus.load_dir(sa / "easy_ham", 0, limit=CAP)
+                                      + corpus.load_dir(sa / "hard_ham", 0, limit=CAP))
+    ceas = RAW / "kaggle" / "ceas08" / "legitimate"
+    if ceas.exists():
+        out["ceas (2008)"] = corpus.load_dir(ceas, 0, limit=CAP)
+    return {k: v for k, v in out.items() if v}
 
 
-def featurise(samples: list) -> np.ndarray:
+def phish_sources() -> dict[str, list]:
+    """Phishing corpora, one bucket each."""
+    out: dict[str, list] = {}
+    nazario = RAW / "nazario"
+    if nazario.exists():
+        out["nazario (2004-2025)"] = corpus.load_dir(nazario, 1, limit=CAP)
+    pot = RAW / "phishing_pot"
+    if pot.exists():
+        out["phishing_pot (2022+)"] = corpus.load_dir(pot, 1, limit=CAP)
+    return {k: v for k, v in out.items() if v}
+
+
+def featurise_65(samples: list) -> np.ndarray:
     ctx = ExtractionContext()
     rows = []
     for s in samples:
@@ -60,61 +96,103 @@ def featurise(samples: list) -> np.ndarray:
     return np.asarray(rows, dtype=float)
 
 
-def source_report(X: np.ndarray, y: np.ndarray, title: str) -> None:
+def featurise_format(samples: list, normalised: bool) -> np.ndarray:
+    fn = normalised_format_features if normalised else format_features
+    return np.asarray([fn(s.raw) for s in samples], dtype=float)
+
+
+def source_report(X: np.ndarray, y: np.ndarray, names: list[str], title: str,
+                  order: list[str]) -> dict:
+    """How well can a classifier recover the corpus, and which features do it?"""
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import accuracy_score
     from sklearn.model_selection import train_test_split
 
+    if len(set(y.tolist())) < 2 or len(y) < 20:
+        return {"title": title, "skipped": "not enough data"}
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=SEED, stratify=y)
     clf = RandomForestClassifier(n_estimators=300, random_state=SEED, class_weight="balanced")
     clf.fit(X_tr, y_tr)
-    acc = accuracy_score(y_te, clf.predict(X_te))
-    chance = 1.0 / len(set(y.tolist()))
-    print(f"\n--- {title} ---")
-    print(f"  n={len(X)}  classes={len(set(y.tolist()))}  chance={chance:.3f}  accuracy={acc:.3f}"
-          f"  {'LEAK' if acc > chance + 0.10 else 'no strong leak'}")
-    importances = sorted(zip(clf.feature_importances_, range(len(FEATURE_NAMES))), reverse=True)[:8]
-    for score, idx in importances:
-        name = FEATURE_NAMES[idx]
-        group = FEATURE_GROUP.get(name, "?")
-        means = [float(X[y == c, idx].mean()) for c in sorted(set(y.tolist()))]
-        print(f"    {name:28s} [{group:11s}] imp={score:.3f}  per-source mean="
-              + " ".join(f"{m:7.3f}" for m in means))
-    print("    per-source mean order: 0 = mailbox, 1 = spamassassin 2003, 2 = ceas 2008")
     pred = clf.predict(X_te)
+    acc = float(accuracy_score(y_te, pred))
+    chance = 1.0 / len(set(y.tolist()))
+    classes = sorted(set(y.tolist()))
+    print(f"\n--- {title} ---")
+    print(f"  n={len(X)}  classes={len(classes)}  chance={chance:.3f}  accuracy={acc:.3f}"
+          f"  {'LEAK' if acc > chance + 0.10 else 'no strong leak'}")
+    importances = sorted(zip(clf.feature_importances_, range(len(names))), reverse=True)[:8]
+    for score, idx in importances:
+        means = [float(X[y == c, idx].mean()) for c in classes]
+        print(f"    {names[idx]:34s} imp={score:.3f}  " +
+              " ".join(f"{order[c][:12]}={m:.3f}" for c, m in zip(classes, means)))
     print("    confusion (rows=truth, cols=predicted):")
-    for c in sorted(set(y.tolist())):
-        row = [int(((y_te == c) & (pred == p)).sum()) for p in sorted(set(y.tolist()))]
-        print(f"      {c}: {row}")
+    confusion = {}
+    for c in classes:
+        row = [int(((y_te == c) & (pred == p)).sum()) for p in classes]
+        confusion[order[c]] = {order[p]: row[i] for i, p in enumerate(classes)}
+        print(f"      {order[c][:20]:22s} {row}")
+    return {
+        "title": title, "n": int(len(X)), "chance": round(chance, 4),
+        "accuracy": round(acc, 4), "leak": bool(acc > chance + 0.10),
+        "confusion": confusion,
+        "top_features": [{"feature": names[i], "importance": round(float(s), 4),
+                          "per_source_mean": {order[c]: round(float(X[y == c, i].mean()), 4)
+                                              for c in classes}}
+                         for s, i in importances],
+    }
+
+
+def run(sources: dict[str, list], tag: str) -> dict:
+    order = list(sources)
+    labels, m65, mfmt, mnorm = [], [], [], []
+    for label, samples in enumerate(sources.values()):
+        capped = samples[:CAP]
+        m65.append(featurise_65(capped))
+        mfmt.append(featurise_format(capped, normalised=False))
+        mnorm.append(featurise_format(capped, normalised=True))
+        labels.append(np.full(len(capped), label))
+        print(f"  {order[label]}: {len(capped)} messages")
+    y = np.concatenate(labels)
+    X65, Xfmt, Xnorm = np.vstack(m65), np.vstack(mfmt), np.vstack(mnorm)
+    fmt_names = format_feature_names()
+
+    print(f"\n=== {tag}: can the corpus be recovered? ===")
+    header_idx = [i for i, n in enumerate(FEATURE_NAMES) if FEATURE_GROUP.get(n) == "header"]
+    results = [
+        source_report(X65, y, FEATURE_NAMES, "the 65 features the model uses", order),
+        source_report(X65[:, header_idx], y, [FEATURE_NAMES[i] for i in header_idx],
+                      "the 13 header/format features only", order),
+        source_report(Xfmt, y, fmt_names, "format features only (raw headers)", order),
+        source_report(Xnorm, y, fmt_names, "format features, transport headers removed", order),
+    ]
+    return {"corpora": order, "results": results,
+            "provider_headers": sorted(PROVIDER_HEADERS)}
 
 
 def main() -> int:
-    cache_x = CACHE / "phishlens_source_leak_X.npy"
-    cache_y = CACHE / "phishlens_source_leak_y.npy"
-    if cache_x.exists() and cache_y.exists():
-        print("using cached feature matrices")
-        X = np.load(cache_x)
-        y = np.load(cache_y)
-    else:
-        print("loading legitimate mail from each corpus ...")
-        sources = load_sources()
-        labels, matrices = [], []
-        for label, samples in enumerate(sources.values()):
-            Xs = featurise(samples[:CAP])
-            print(f"  {list(sources)[label]}: {len(Xs)} feature vectors")
-            labels.append(np.full(len(Xs), label))
-            matrices.append(Xs)
-        X = np.vstack(matrices)
-        y = np.concatenate(labels)
-        np.save(cache_x, X)
-        np.save(cache_y, y)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default="reports/leak", help="directory for the JSON report")
+    ap.add_argument("--skip-phishing", action="store_true",
+                    help="run only the legitimate-mail part")
+    args = ap.parse_args()
 
-    header_idx = [i for i, n in enumerate(FEATURE_NAMES) if FEATURE_GROUP.get(n) == "header"]
-    print(f"\nheader/format features ({len(header_idx)}): "
-          + ", ".join(FEATURE_NAMES[i] for i in header_idx))
+    print("loading legitimate mail from each corpus ...")
+    ham = ham_sources()
+    if not ham:
+        raise SystemExit("No legitimate corpora found under backend/data/raw. "
+                         "Run python -m training.download_datasets first.")
+    report = {"legitimate_only": run(ham, "Part A: legitimate mail only")}
 
-    source_report(X, y, "all 65 features")
-    source_report(X[:, header_idx], y, "header/format features only")
+    phish = phish_sources()
+    if phish and not args.skip_phishing:
+        print("\nloading phishing mail from each corpus ...")
+        everything = {**ham, **phish}
+        report["with_phishing"] = run(everything, "Part B: every corpus")
+
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "source_leak.json").write_text(json.dumps(report, indent=2))
+    print(f"\nwrote {out / 'source_leak.json'}")
     return 0
 
 

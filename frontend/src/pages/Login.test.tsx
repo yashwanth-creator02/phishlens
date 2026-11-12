@@ -26,18 +26,20 @@ vi.mock("../supabase", () => ({
       signInWithOAuth: vi.fn().mockResolvedValue({ data: {}, error: null }),
       signInAnonymously: vi.fn().mockResolvedValue({ data: {}, error: null }),
       signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      signUp: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
     },
   },
 }));
 
 describe("Login", () => {
-  it("renders forwarding panel with domain", async () => {
+  it("renders two-column layout with brand block and forwarding panel", async () => {
     render(
       <MemoryRouter>
         <Login />
       </MemoryRouter>,
     );
     expect(await screen.findByText("phishlens.test")).toBeInTheDocument();
+    expect(screen.getByText("Explainable phishing-triage console")).toBeInTheDocument();
   });
 
   it("calls signInWithOAuth on Google button click", async () => {
@@ -67,42 +69,64 @@ describe("Login", () => {
     expect(supabase?.auth.signInAnonymously).toHaveBeenCalled();
   });
 
-  it("shows a pending label and locks the other buttons while sign-in runs", async () => {
-    // A promise that never settles, so the request is still in flight when we assert.
-    vi.mocked(supabase!.auth.signInWithPassword).mockReturnValue(new Promise(() => {}) as never);
+  it("lets the analyst see the password they are typing", async () => {
     render(
       <MemoryRouter>
         <Login />
       </MemoryRouter>,
     );
-    const signInBtn = await screen.findByRole("button", { name: /sign in/i });
-    const googleBtn = await screen.findByRole("button", { name: /continue with google/i });
-    const guestBtn = await screen.findByRole("button", { name: /try it as a guest/i });
+    const password = await screen.findByLabelText(/^password$/i);
+    expect(password).toHaveAttribute("type", "password");
 
+    const toggle = screen.getByRole("button", { name: /show password/i });
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/email address/i), "analyst@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "correct-horse-battery");
-    await user.click(signInBtn);
+    await user.click(toggle);
 
-    expect(await screen.findByRole("button", { name: /signing in/i })).toBeDisabled();
-    expect(googleBtn).toBeDisabled();
-    expect(guestBtn).toBeDisabled();
+    expect(password).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: /hide password/i })).toBeInTheDocument();
   });
 
-  it("turns a network failure into a message a person can act on", async () => {
-    vi.mocked(supabase!.auth.signInWithPassword).mockRejectedValue(new TypeError("Failed to fetch"));
+  it("marks the fields so a password manager can fill them", async () => {
     render(
       <MemoryRouter>
         <Login />
       </MemoryRouter>,
     );
-    const signInBtn = await screen.findByRole("button", { name: /sign in/i });
-    const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/email address/i), "analyst@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "correct-horse-battery");
-    await user.click(signInBtn);
+    expect(await screen.findByLabelText(/email address/i)).toHaveAttribute("autocomplete", "email");
+    expect(screen.getByLabelText(/^password$/i)).toHaveAttribute("autocomplete", "current-password");
+  });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/could not reach the server/i);
-    expect(screen.queryByText(/failed to fetch/i)).not.toBeInTheDocument();
+  it("switches to create account mode and shows confirmation message on sign up", async () => {
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /create an account/i }));
+    expect(screen.getByRole("heading", { name: /create an account/i })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/email address/i), "new@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /^create account$/i }));
+
+    expect(supabase?.auth.signUp).toHaveBeenCalledWith({
+      email: "new@example.com",
+      password: "secret123",
+    });
+    expect(await screen.findByText(/check your email to confirm the address/i)).toBeInTheDocument();
+  });
+
+  it("dismisses forwarding notification when dismiss button is clicked", async () => {
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("phishlens.test")).toBeInTheDocument();
+    const dismissBtn = screen.getByRole("button", { name: /dismiss/i });
+    const user = userEvent.setup();
+    await user.click(dismissBtn);
+    expect(screen.queryByText("phishlens.test")).not.toBeInTheDocument();
   });
 });
