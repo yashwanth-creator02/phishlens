@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { SessionProvider } from "../auth";
@@ -29,5 +29,14 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /^model$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^status$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^profile$/i })).toBeInTheDocument();
+  });
+
+  it("renders theme toggle button and toggles theme", () => {
+    renderShell("/");
+    const toggle = screen.getByRole("button", { name: /theme/i });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-pressed");
+    fireEvent.click(toggle);
+    expect(toggle).toBeInTheDocument();
   });
 });
