@@ -12,8 +12,8 @@ from app.features.feature_vector import FEATURE_NAMES
 from app.ml.registry import load_model_dir
 from training.corpus import date_range, parse_cli_date
 from training.evaluate_modern import (DEFAULT_PHISH_SINCE, DEFAULT_PHISH_UNTIL, fpr_with_ci, guard_leakage,
-                                      ham_summary, in_window, leakage_check, parse_date, probability_summary,
-                                      threshold_metrics)
+                                      ham_summary, in_window, leakage_check, parse_date, probability_bins,
+                                      probability_summary, recall_at_fixed_fpr, reliability, threshold_metrics)
 from training.synthetic import Sample
 
 
@@ -363,3 +363,63 @@ def test_training_activates_only_when_asked(tmp_path: Path):
                 "--activate"])
 
     assert (out / "active" / "meta.json").exists()
+
+
+def test_recall_at_fixed_fpr_finds_the_highest_tolerable_threshold():
+    # 1,000 legitimate messages below 0.2 and 100 phishing messages above 0.8, all distinct.
+    y = np.array([0] * 1000 + [1] * 100)
+    p = np.concatenate([np.linspace(0.01, 0.20, 1000), np.linspace(0.80, 1.00, 100)])
+    out = recall_at_fixed_fpr(y, p, fpr_targets=(0.01, 0.05))
+    assert out["at_fpr_0.01"]["fpr"] <= 0.01
+    assert out["at_fpr_0.01"]["recall"] == 1.0
+    assert out["at_fpr_0.01"]["flagged_ham"] == 10
+    assert out["at_fpr_0.05"]["fpr"] <= 0.05
+
+
+def test_recall_at_fixed_fpr_raises_the_threshold_past_a_tie():
+    # 50 legitimate messages sit at 0.95 and 10 phishing share that probability. The budget
+    # allows one false positive, so the threshold must go above 0.95, which also means the
+    # phishing at 0.95 cannot be caught. Reporting a recall of 1.0 here would be a lie.
+    y = np.array([0] * 50 + [1] * 50 + [1] * 10)
+    p = np.array([0.95] * 50 + [0.01] * 50 + [0.95] * 10)
+    out = recall_at_fixed_fpr(y, p, fpr_targets=(0.01,))
+    assert out["at_fpr_0.01"]["fpr"] <= 0.01
+    assert out["at_fpr_0.01"]["flagged_ham"] == 0
+    assert out["at_fpr_0.01"]["recall"] == 0.0
+
+
+def test_recall_at_fixed_fpr_still_catches_phishing_above_a_tie():
+    # 60 legitimate messages at 0.5, 40 at 0.9, and phishing at 0.95. Lifting the threshold
+    # past the 0.9 tie keeps the false-positive rate at zero and still catches the phishing.
+    y = np.array([0] * 60 + [1] * 40 + [1] * 10)
+    p = np.array([0.5] * 60 + [0.9] * 40 + [0.95] * 10)
+    out = recall_at_fixed_fpr(y, p, fpr_targets=(0.05,))
+    assert out["at_fpr_0.05"]["fpr"] <= 0.05
+    assert out["at_fpr_0.05"]["recall"] == 1.0
+    assert out["at_fpr_0.05"]["precision"] == 1.0
+
+
+def test_recall_at_fixed_fpr_needs_both_classes():
+    assert recall_at_fixed_fpr(np.array([0, 0]), np.array([0.1, 0.2]), (0.01,)) == {}
+
+
+def test_reliability_shows_whether_a_band_means_what_it_says():
+    y = np.array([0] * 40 + [1] * 60)
+    p = np.array([0.05] * 40 + [0.95] * 60)
+    scores = np.array([5] * 40 + [90] * 60, dtype=float)
+    bands = reliability(y, p, scores, low_max=29, high_min=70)
+    assert bands["LOW"]["n"] == 40
+    assert bands["LOW"]["observed_phishing_rate"] == 0.0
+    assert bands["HIGH"]["observed_phishing_rate"] == 1.0
+    assert bands["MEDIUM"]["n"] == 0
+
+
+def test_probability_bins_skip_empty_bins_and_report_observed_rates():
+    y = np.array([0, 0, 1, 1])
+    p = np.array([0.01, 0.02, 0.95, 0.96])
+    rows = probability_bins(y, p, bins=10)
+    filled = [r for r in rows if r["n"] > 0]
+    assert len(filled) == 2
+    assert filled[0]["observed_rate"] == 0.0
+    assert filled[1]["observed_rate"] == 1.0
+    assert all(r["n"] > 0 for r in rows)

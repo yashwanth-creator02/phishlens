@@ -438,3 +438,25 @@ the synthetic demo.
   bare `GET /health`; the frontend bundle carries the sidebar, the theme toggle, the verification gate and the
   data-handling notice.
 - Suite: 115 backend tests passed, 1 skipped. Frontend: 23 unit tests in 6 files, production build clean.
+
+## 2026-11-12 - The two numbers a triage tool is judged on
+- **The reviewer's evaluation critique was correct: the harness had neither number.** It reported recall at a fixed
+  probability and at the band boundary, which is not how a triage product is judged, and it reported a Brier score
+  without ever checking that the probabilities mean anything.
+- **Recall at a fixed false-positive rate** is now produced. On the shared 2026 holdout, a 1% budget catches 522 of
+  788 phishing messages at 94.9% precision (28 false alarms in 2,865 legitimate messages); a 5% budget catches 635 at
+  87.0% precision. Both describe the product better than the band-boundary recall of 0.770.
+- **Calibration is now produced**, per band and as a ten-bin reliability curve. The result is worth knowing: the
+  HIGH band is calibrated (predicted 0.930, observed 0.949) and can be trusted, while the LOW band is not (predicted
+  0.025, observed 0.061). 181 of the 788 phishing messages land in LOW, so LOW must not be presented as "safe".
+- **The threshold logic had to be made honest about ties.** If more legitimate messages share a probability than the
+  false-positive budget allows, the threshold has to rise above that value - and the phishing at that probability
+  then cannot be caught. Reporting a recall of 1.0 there would be a lie, so the function raises the threshold and
+  reports the smaller recall. Two of the new tests exist to pin that behaviour down.
+- The numbers are in `docs/21` section 18, `docs/13`, `docs/SUMMARY.md`, the final report, and `AGENTS.md`.
+- Suite: 121 backend tests passed, 1 skipped.
+- **The reviewer's dataset suggestions were checked rather than assumed.** `phishing_pot` is CC BY-NC 4.0: usable for
+  a non-commercial academic project, but it requires attribution and its addresses are all rewritten to
+  `phishing@pot`, which is a class shortcut that must be masked before training. The Tóth dataset is *PhishFuzzer*,
+  LLM-paraphrased derivatives of corpora already in the project, in a coarser JSON schema - skipped. The URL feeds
+  have nothing to feed, because the feature contract has no URL-reputation or domain-popularity feature.

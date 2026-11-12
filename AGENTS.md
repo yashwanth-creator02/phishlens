@@ -25,7 +25,7 @@ combination and not real-world detection. See `docs/21-modern-corpus-evaluation-
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (115 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (121 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/release/` | The audited model the Docker image serves; empty until a release passes the privacy audit |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
@@ -173,6 +173,9 @@ Also upload at least one sample email through the UI or API and confirm a scored
   is classified by source with 0.981 accuracy (0.980 on the header features alone). The released model leans on
   those features for 10.1% of its gain, so the 0.018 false-positive rate describes held-out mail from the owner's
   own inbox and is **not** a general false-positive rate. See `docs/21-modern-corpus-evaluation-plan.md` section 17.
+- The **LOW band is not "safe"**: the model predicts 2.5% risk there and the observed phishing rate is 6.1%, so 181
+  of 788 phishing messages land in LOW. The HIGH band is calibrated (predicted 0.930, observed 0.949) and can be
+  trusted. Do not present LOW as safety in the UI. See `docs/21-modern-corpus-evaluation-plan.md` section 18.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
