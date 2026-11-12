@@ -13,7 +13,15 @@ The 2026-11-12 work needed nothing from you. The Kaggle corpora were ingested, t
 picked was released through the privacy audit (`backend/scripts/release_model.py`, 0 findings), and Render rebuilt and
 now serves it (`xgboost-corpus-20261112-s7`).
 
-## 1. Restart Windows once, so Docker's engine can start (2 minutes)
+## 1. Confirm acceptance of Phishing Pot licence terms (CC BY-NC 4.0) (1 minute)
+
+**Why:** Using the Phishing Pot corpus (`rf-peixoto/phishing_pot`) requires attribution and is licensed under CC BY-NC 4.0 (Non-Commercial). Before using this data for training or inclusion in a released model, the user must confirm that the project is non-commercial and that attribution will be included.
+
+**Steps:** Review the repository at https://github.com/rf-peixoto/phishing_pot and confirm acceptance of CC BY-NC 4.0 terms.
+
+**Done when:** You confirm acceptance to the agent.
+
+## 2. Restart Windows once, so Docker's engine can start (2 minutes)
 
 **Why:** Docker Desktop 4.99 is installed, and its Linux engine needs WSL2. The two Windows optional features it
 requires were enabled on 2026-11-12, but enabling them only takes effect after a restart, so the engine still reports

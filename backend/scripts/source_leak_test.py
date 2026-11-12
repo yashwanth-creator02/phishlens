@@ -142,18 +142,119 @@ def source_report(X: np.ndarray, y: np.ndarray, names: list[str], title: str,
     }
 
 
-def run(sources: dict[str, list], tag: str) -> dict:
-    order = list(sources)
+def _cache_path(tag: str) -> Path:
+    return CACHE / f"phishlens_leak_{tag}.npy"
+
+
+def build_matrices(sources: dict[str, list]) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """The three feature matrices and the labels, cached per corpus."""
     labels, m65, mfmt, mnorm = [], [], [], []
     for label, samples in enumerate(sources.values()):
+        name = list(sources)[label]
         capped = samples[:CAP]
-        m65.append(featurise_65(capped))
-        mfmt.append(featurise_format(capped, normalised=False))
-        mnorm.append(featurise_format(capped, normalised=True))
+        c65, cfmt, cnorm = _cache_path(f"65_{label}"), _cache_path(f"fmt_{label}"), _cache_path(f"norm_{label}")
+        if c65.exists() and cfmt.exists() and cnorm.exists():
+            X65, Xfmt, Xnorm = np.load(c65), np.load(cfmt), np.load(cnorm)
+        else:
+            X65 = featurise_65(capped)
+            Xfmt = featurise_format(capped, normalised=False)
+            Xnorm = featurise_format(capped, normalised=True)
+            np.save(c65, X65)
+            np.save(cfmt, Xfmt)
+            np.save(cnorm, Xnorm)
+        print(f"  {name}: {len(capped)} messages")
+        m65.append(X65)
+        mfmt.append(Xfmt)
+        mnorm.append(Xnorm)
         labels.append(np.full(len(capped), label))
-        print(f"  {order[label]}: {len(capped)} messages")
-    y = np.concatenate(labels)
-    X65, Xfmt, Xnorm = np.vstack(m65), np.vstack(mfmt), np.vstack(mnorm)
+    return np.vstack(m65), np.vstack(mfmt), np.vstack(mnorm), np.concatenate(labels)
+
+
+def ablation(X: np.ndarray, y: np.ndarray, names: list[str], title: str) -> dict:
+    """Which feature is the leak?
+
+    Drop one feature at a time and re-measure how well the corpus can still be
+    recovered. The features whose removal collapses the accuracy are the
+    carriers, and dropping all of them is the fix.
+    """
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score
+    from sklearn.model_selection import train_test_split
+
+    if len(set(y.tolist())) < 2:
+        return {"title": title, "skipped": "not enough data"}
+
+    def accuracy(cols: list[int]) -> float:
+        X_tr, X_te, y_tr, y_te = train_test_split(X[:, cols], y, test_size=0.3,
+                                                    random_state=SEED, stratify=y)
+        clf = RandomForestClassifier(n_estimators=200, random_state=SEED, class_weight="balanced")
+        clf.fit(X_tr, y_tr)
+        return float(accuracy_score(y_te, clf.predict(X_te)))
+
+    all_cols = list(range(X.shape[1]))
+    base = accuracy(all_cols)
+    chance = 1.0 / len(set(y.tolist()))
+    print(f"\n--- ablation: {title} ---")
+    print(f"  baseline accuracy={base:.3f} (chance {chance:.3f}), {X.shape[1]} features")
+    drops = []
+    for i in all_cols:
+        acc = accuracy([c for c in all_cols if c != i])
+        drops.append({"feature": names[i], "accuracy_without_it": round(acc, 4),
+                      "drop": round(base - acc, 4)})
+    drops.sort(key=lambda d: -d["drop"])
+    print("  the features whose removal hurts the most (these are the carriers):")
+    for d in drops[:8]:
+        print(f"    {d['feature']:34s} without it: {d['accuracy_without_it']:.3f}  (-{d['drop']:.3f})")
+
+    # Removing one feature at a time is not enough: the leak is REDUNDANT, because several
+    # features each independently identify the corpus. The actionable question is what happens
+    # when a whole CLASS of features goes, so the groups are dropped as blocks.
+    blocks = _blocks(names)
+    block_results = []
+    print("  dropping a whole class of features at once:")
+    for block, cols in blocks.items():
+        keep = [c for c in all_cols if c not in cols]
+        if not keep:
+            continue
+        acc = accuracy(keep)
+        block_results.append({"block": block, "features_removed": len(cols),
+                              "accuracy_without_block": round(acc, 4),
+                              "leak_survives": bool(acc > chance + 0.10)})
+        print(f"    without {block:14s} ({len(cols):2d} features): accuracy={acc:.3f}"
+              f"  {'LEAK SURVIVES' if acc > chance + 0.10 else 'no strong leak'}")
+
+    carriers = [d["feature"] for d in drops if d["drop"] > 0.02]
+    idx = [i for i, n in enumerate(names) if n not in carriers]
+    after = accuracy(idx) if idx else base
+    print(f"  dropping all {len(carriers)} single-feature carriers at once: accuracy={after:.3f}"
+          f"  {'LEAK SURVIVES' if after > chance + 0.10 else 'no strong leak'}")
+    return {"title": title, "baseline_accuracy": round(base, 4), "chance": round(chance, 4),
+            "single_feature_carriers": carriers,
+            "accuracy_without_carriers": round(after, 4),
+            "leak_survives": bool(after > chance + 0.10),
+            "blocks": block_results,
+            "per_feature": drops}
+
+
+def _blocks(names: list[str]) -> dict[str, list[int]]:
+    """The classes of features, for the block ablation."""
+    if names and names[0].startswith("header:"):
+        out: dict[str, list[int]] = {}
+        for i, n in enumerate(names):
+            key = n.split(":", 1)[0]
+            if key == "header":
+                key = "header (all)"
+            out.setdefault(key, []).append(i)
+        return out
+    out = {}
+    for i, n in enumerate(names):
+        out.setdefault(FEATURE_GROUP.get(n, "other"), []).append(i)
+    return out
+
+
+def run(sources: dict[str, list], tag: str) -> dict:
+    order = list(sources)
+    X65, Xfmt, Xnorm, y = build_matrices(sources)
     fmt_names = format_feature_names()
 
     print(f"\n=== {tag}: can the corpus be recovered? ===")
@@ -165,7 +266,9 @@ def run(sources: dict[str, list], tag: str) -> dict:
         source_report(Xfmt, y, fmt_names, "format features only (raw headers)", order),
         source_report(Xnorm, y, fmt_names, "format features, transport headers removed", order),
     ]
-    return {"corpora": order, "results": results,
+    abl = [ablation(X65, y, FEATURE_NAMES, "the 65 features"),
+           ablation(Xfmt, y, fmt_names, "the format features")]
+    return {"corpora": order, "results": results, "ablation": abl,
             "provider_headers": sorted(PROVIDER_HEADERS)}
 
 

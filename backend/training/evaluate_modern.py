@@ -367,6 +367,34 @@ def ham_summary(X, p_cal, scores, groups, low_max: int, high_min: int) -> dict:
     }
 
 
+def recall_with_ci(caught, groups, n_boot: int = 1000, seed: int = 7) -> dict:
+    """Recall with a bootstrap 95% CI over the campaign groups.
+
+    Phishing messages from one campaign share a template, so they are correlated with
+    each other. The bootstrap therefore resamples campaigns, which is the unit the
+    recall is averaged over - resampling messages would pretend they were
+    independent and would report a confidence interval that is far too narrow.
+    """
+    caught = np.asarray(caught, dtype=float)
+    groups = np.asarray([str(g) for g in groups])
+    if caught.size == 0:
+        return {"pooled": 0.0, "pooled_ci95": [0.0, 0.0], "groups": 0}
+    campaigns = sorted(set(groups.tolist()))
+    idx_by_campaign = {c: np.where(groups == c)[0] for c in campaigns}
+    pooled = float(caught.mean())
+    rng = np.random.default_rng(seed)
+    boot = []
+    for _ in range(n_boot):
+        picks = rng.choice(campaigns, size=len(campaigns), replace=True)
+        idx = np.concatenate([idx_by_campaign[c] for c in picks])
+        boot.append(float(caught[idx].mean()))
+    return {
+        "pooled": pooled,
+        "pooled_ci95": [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))],
+        "groups": len(campaigns),
+    }
+
+
 def phish_summary(p_cal, scores, low_max: int, high_min: int) -> dict:
     return {
         "count": int(len(p_cal)),
@@ -537,6 +565,10 @@ def main(argv=None) -> dict:
             "raw_probability": probability_summary(pp_raw),
             "calibrated_probability": probability_summary(pp),
             **phish_summary(pp, sp, settings.band_low_max, settings.band_high_min),
+            # The CI resamples campaigns, because phishing messages from one campaign are
+            # near-duplicates of each other and are not independent samples.
+            "recall_at_band_boundary_ci95": recall_with_ci(sp > settings.band_low_max, gp),
+            "recall_at_probability_0_5_ci95": recall_with_ci(pp >= 0.5, gp),
         }
         y_all = np.concatenate([yh, yp])
         p_all = np.concatenate([ph, pp])

@@ -56,6 +56,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `training/corpus.py` | Real corpus loading with grouped split keys (URL host, sender domain) |
 | `training/download_datasets.py` | Nazario + SpamAssassin fetch with SHA-256 manifests |
 | `training/download_kaggle.py` | Kaggle CSV corpora rebuilt as `.eml`, CSV verified against a recorded SHA-256 |
+| `training/download_phishing_pot.py` | Phishing Pot fetch, Date header filter, and phishing@pot shortcut masking |
 | `training/train.py` | Training entry point, model selection, calibration, reports; takes several corpus directories |
 | `training/evaluate.py` | Grouped-split evaluation, cold start, random-split baseline |
 | `training/evaluate_modern.py` | Modern-mailbox evaluation with leakage guard and dual thresholds |
@@ -82,6 +83,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `test_corpus_loading.py` | Extensionless hash-named corpus files and mbox-plus-loose-file loading |
 | `test_download_datasets.py` | Archive fetch, checksum manifest, idempotent reruns, tar traversal rejection |
 | `test_download_kaggle.py` | CSV-to-`.eml` conversion, hostile header values, manifest verification |
+| `test_download_phishing_pot.py` | Date-header filtering, year thresholds, and phishing@pot shortcut masking tests |
 | `test_evaluate_modern.py` | Leakage guard, dual-threshold metrics, domain-macro FPR, corpus-label collisions |
 | `test_rls_contract.py` | Live-only PostgreSQL RLS contract (skips without credentials) |
 | `test_email_verification.py` | The alias gate: unconfirmed 403, confirmed 200, unconfigured 503, and no alias row on refusal |

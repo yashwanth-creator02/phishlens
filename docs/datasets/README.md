@@ -94,6 +94,19 @@ are the same era as SpamAssassin, which is the era the released model already ha
 single message from the 2015-2025 campaigns. The measured effect is in
 [21](21-modern-corpus-evaluation-plan.md) section 15.
 
+## Phishing Pot corpus
+
+`backend/training/download_phishing_pot.py` fetches the Phishing Pot corpus (`rf-peixoto/phishing_pot`, <https://github.com/rf-peixoto/phishing_pot.git>), which contains real phishing samples collected via honeypots:
+
+```powershell
+cd backend
+python -m training.download_phishing_pot --since-year 2022
+```
+
+- **Licence**: CC BY-NC 4.0 (Attribution-NonCommercial). Non-commercial academic use is permitted with required attribution.
+- **Date-header filter**: Filters out messages without a valid Date header or whose year is older than `--since-year` (default 2022).
+- **Shortcut masking**: Replaces every occurrence of `phishing@pot` with `user@example.com` in raw message bytes to prevent the model from learning the upstream contributor's address rewrite as a class giveaway.
+
 ## Train/test split rule
 
 Dedupe by raw hash, Message-ID, and body-content hash before splitting. The primary evaluation uses a **grouped
