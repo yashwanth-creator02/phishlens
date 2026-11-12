@@ -17,10 +17,11 @@ The design bet: an explanation the user can check is worth more than a slightly 
 | Piece | State |
 |---|---|
 | End-to-end pipeline | Parse -> 65 features -> calibrated XGBoost -> SHAP -> verified reasons -> store |
-| Web UI (React + TypeScript) | Six screens: dashboard, history, analysis detail, model, profile, status; 20 unit tests and a Playwright smoke suite |
+| Web UI (React + TypeScript) | Six screens behind a sidebar with icons, in a light or dark theme; 23 unit tests and a Playwright smoke suite |
 | Auth and storage | Supabase Auth (JWT verified in the backend) and Postgres with Row-Level Security |
 | Deployment | Frontend on Vercel, backend on Render free tier, Supabase for auth and database |
-| Training and evaluation | Public corpora -> dedupe -> grouped split -> train -> calibrate -> report; 86 backend tests pass (1 live-only Supabase test skips without credentials) |
+| Training and evaluation | Public corpora -> dedupe -> grouped split -> train -> calibrate -> report; 115 backend tests pass (1 live-only Supabase test skips without credentials) |
+| Forwarding alias | Issued only to an account whose email address is confirmed; the check fails closed rather than guessing |
 | Model release gate | `audit_model.py` proves a model carries no personal data before it may be published |
 
 ## The number that matters, and the catch
@@ -113,6 +114,26 @@ and shifted the operating point rather than improving the model.
 
 The corpora are 2002-2008 material. They added volume from the era the model already handled, not modern campaigns,
 so the recall gap is a data-vintage problem that more 2008 phishing will not close.
+
+## The source-leak test (2026-11-12)
+
+The only modern legitimate mail in the training set is one inbox, so the features might identify the mail provider
+and the era rather than the message being legitimate. Measured, on legitimate mail only, three corpora, 1,500
+messages each:
+
+| Test | Accuracy | Chance |
+|---|---|---|
+| A classifier told only to predict the corpus, using all 65 features | **0.981** | 0.333 |
+| The same, using only the 13 header and format features | **0.980** | 0.333 |
+
+The fingerprint is real and it lives in the headers: `received_hops`, `from_returnpath_mismatch`, `auth_missing` and
+the SPF/DKIM/DMARC results. But the released model leans on those ten features for only **10.1%** of its gain - the
+dominant signal is `subject_reply_without_history` at 41.5% - so it is not simply recognising its own provider.
+
+**What this changes about the headline number.** The 0.018 false-positive rate describes 2,865 held-out 2026
+messages from the owner's own inbox. It is not a false-positive rate for email in general, and this repository has
+no second modern legitimate corpus to measure that with. Detail and reproduction:
+[21-modern-corpus-evaluation-plan.md](21-modern-corpus-evaluation-plan.md) section 17.
 
 ## Data on disk
 

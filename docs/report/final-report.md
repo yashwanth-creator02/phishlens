@@ -90,20 +90,25 @@ Eight design decisions carry the system:
 | Settings | Forwarding alias, environment notices |
 | Login | Supabase sign-in, or an explicit "authentication disabled" notice |
 
+The six screens sit behind a fixed left sidebar with inline SVG icons, in a light or a dark theme that follows the
+operating system until the user picks one. (The table above uses the names the screens had at the time of writing;
+`Cases` is now `History` and `Settings` is now `Profile`.)
+
 ## 4. Verification (what is actually tested)
 
 | Check | Command | Result |
 |---|---|---|
-| Backend suite | `cd backend; python -m pytest -q` | 44 passed, 1 skipped (live-only Supabase RLS test requires credentials) |
-| Frontend unit tests | `cd frontend; npm test` | 18 passed in 5 files |
+| Backend suite | `cd backend; python -m pytest -q` | 115 passed, 1 skipped (live-only Supabase RLS test requires credentials) |
+| Frontend unit tests | `cd frontend; npm test` | 23 passed in 6 files |
 | Frontend E2E smoke | `cd frontend; npm run test:e2e` | 1 passed; the signed-in journey skips without `E2E_EMAIL`/`E2E_PASSWORD` |
-| Production build | `cd frontend; npm run build` | Type-check and bundle pass (211 kB JS, 18 kB CSS before gzip) |
-| API health | `GET /api/health` | `model_loaded: true` with the demo model installed |
+| Production build | `cd frontend; npm run build` | Type-check and bundle pass (221 kB JS, 21 kB CSS before gzip) |
+| Light/dark contrast | `python scripts/check_contrast.py` | Every checked foreground/background pair meets WCAG AA in both themes |
+| API health | `GET /api/health` | `model_loaded: true` with the released model installed |
 
 The backend suite covers parser variants, all six feature groups, evidence-rule rejection, band thresholds,
-API contracts, authentication and cross-user isolation, webhook secret and alias handling, retention deletion, and
-the model endpoint. The reason-engine tests are the important ones for objective 3: they assert that a reason
-without evidence is discarded, not merely down-weighted.
+API contracts, authentication and cross-user isolation, webhook secret and alias handling, the email-verification
+gate on the forwarding alias, retention deletion, and the model endpoint. The reason-engine tests are the important
+ones for objective 3: they assert that a reason without evidence is discarded, not merely down-weighted.
 
 ## 5. Data and evaluation status
 
@@ -156,10 +161,52 @@ the only legitimate mail in the corpora is SpamAssassin 2003, which carries no a
 classifier has never seen a modern legitimate message. Feature removal cannot fix that; modern legitimate mail has
 to be in the training set, and there is no free public corpus of it.
 
-Consequences for this submission: the corpora-trained model is **not** shipped and **no accuracy claim is made for
-modern mail**. The deployed model is the synthetic demo, and the contribution is the pipeline, the evidence-verified
-reason engine, the security model and an honest evaluation that includes a measured failure with its root cause.
-Full evidence, the ablation and the promotion gates: `docs/21-modern-corpus-evaluation-plan.md`.
+Consequences for this submission: adding modern legitimate mail to the training set is what makes the false-positive
+side work, and it costs recall. The released model is a **trade**, not a clean win: it passes the false-positive and
+domain-macro gates and misses the recall and the calibration gate. No accuracy claim is made for mail in general, and
+none for another person's mailbox in particular. The contribution is the pipeline, the evidence-verified reason engine,
+the security model and an honest evaluation that includes a measured failure with its root cause and a measured
+source-leak with its own.
+
+### The released model
+
+Four candidates were trained against one shared 2026 holdout - 2,865 legitimate messages never seen in training and
+788 phishing messages from the 2024-2025 archives - and the candidate the privacy audit cleared is the one that ships:
+
+| Measurement (held-out 2026 split) | Value |
+|---|---|
+| FPR at probability 0.5 | 0.018 |
+| FPR at the LOW/MEDIUM boundary | 0.021 |
+| FPR at the boundary, domain-macro | 0.068 (gate: <= 0.10) |
+| Phishing recall at the boundary | 0.770 (gate: >= 0.90, **missed**) |
+| Combined F1 | 0.829 |
+| ROC-AUC | 0.967 |
+| Brier score | 0.026 (gate: <= 0.02, **missed**) |
+
+The shipped model is `xgboost-corpus-20261112-s7`, an XGBoost over the same 65 features, fitted on the owner's
+mailbox (before 2026-01-01), Nazario phishing before 2024, and the Kaggle CEAS 2008 and 419-scam corpora with
+SpamAssassin ham. It passed `backend/scripts/audit_model.py` with zero findings: no sender domain, no email address
+and no distinctive subject word from the mailbox is in the published artifact, and the SHAP background sample contains
+no personal rows.
+
+### What the feature set can and cannot see
+
+The only modern legitimate mail in the training set is one inbox, so the features might identify the mail provider and
+the era rather than the message being legitimate. That was measured, on legitimate mail only, across three corpora:
+
+| Test | Accuracy | Chance |
+|---|---|---|
+| Classify the corpus of a legitimate email, all 65 features | **0.981** | 0.333 |
+| The same, only the 13 header and format features | **0.980** | 0.333 |
+
+The fingerprint is real and it lives in the headers: `received_hops`, `from_returnpath_mismatch`, `auth_missing` and
+the SPF/DKIM/DMARC results. But the released model leans on those ten features for only **10.1%** of its gain; the
+dominant signal is `subject_reply_without_history` at 41.5%. It is not simply recognising its own provider.
+
+**The consequence for how these numbers may be quoted:** the 0.018 false-positive rate describes 2,865 held-out 2026
+messages from the owner's own inbox. It is not a false-positive rate for email in general, and there is no second
+modern legitimate corpus in this repository to measure that with. Method and reproduction:
+`docs/21-modern-corpus-evaluation-plan.md` section 17.
 
 ## 6. Security and privacy
 
@@ -167,12 +214,14 @@ Full evidence, the ablation and the promotion gates: `docs/21-modern-corpus-eval
 |---|---|
 | Authentication | Supabase JWT verification (HS256 or JWKS) behind `AUTH_MODE=supabase`; the disabled mode is explicitly local-only |
 | Authorization | Owner-scoped queries plus RLS; verified by `backend/scripts/verify_rls.py` |
+| Forwarding alias | Issued only to an account whose email address is confirmed; the check reads the caller's own Supabase record and fails closed (503, never a silent pass) |
 | Webhook abuse | Shared-secret header plus a 32-bit alias, with the secret required when enabled |
 | Request size | Bounded chunked reads with a hard ceiling on both ingest endpoints, and a Content-Length pre-check |
 | CORS | Explicit origin list; a wildcard is rejected at configuration time because Starlette would mirror the caller |
 | Retention | Transactional deletion and an admin-guarded purge |
 | Attachments | Metadata only, never opened |
 | Secrets | Environment-only; no `.env` file is committed |
+| Transparency | The Profile screen states what is stored, how long it is kept, and that forwarding an email processes the sender's personal data |
 
 Known gaps: the 32-bit alias is brute-forceable in principle, development defaults must not be deployed unchanged,
 and Docker Compose has not been executed in this environment.
@@ -191,12 +240,13 @@ was evaluated and rejected as a host (HTTP 402: Docker Spaces are paid, free Zer
 
 ## 8. Limitations
 
-1. Detection quality is measured only on 2003-2007 research corpora (grouped-split F1 0.948, single split, no
-   confidence interval); the shipped model is the synthetic demo model, so nothing in the app's own output has been
-   validated against real mail.
-2. The corpus-trained model was measured on a modern inbox and **fails there**: FPR 0.999 on 2,216 legitimate
-   messages (section 5). The cause is the training data, not the classifier, and it is not fixed by removing
-   features. It is not shipped, and no accuracy claim is made for modern mail.
+1. The released model is fitted on **one person's mail** and on a phishing corpus that is 20 years old. Its measured
+   numbers (section 5) describe that combination: recall 0.770 against a 0.90 gate and Brier 0.026 against a 0.02
+   gate are both missed, and nothing in the app's output has been validated against mail from an unrelated mailbox.
+2. The feature set identifies the mail provider and the era, not only the message: legitimate mail from three corpora
+   is classified by source with 0.981 accuracy, 0.980 on the header features alone. The released model leans on those
+   features for 10.1% of its gain, so the effect is bounded, but the 0.018 false-positive rate is a statement about
+   one inbox and not a general rate (section 5).
 3. Behavioural features need history the system only sees for senders the user has already forwarded; cold start is
    neutral by design.
 4. Inline forwarding loses the original authentication headers.
@@ -204,7 +254,8 @@ was evaluated and rejected as a host (HTTP 402: Docker Spaces are paid, free Zer
    and not implemented.
 6. No domain-age or reputation lookup.
 7. The frontend has no linter, and the dependency audit reports advisories whose fixes are major-version upgrades.
-8. The synthetic demo model must not be presented as a detector in any external material.
+8. The synthetic demo model must not be presented as a detector in any external material, and neither may the corpus
+   model's numbers be quoted without the caveats in section 5.
 
 ## 9. Future work
 

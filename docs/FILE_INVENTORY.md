@@ -16,6 +16,8 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `Makefile` | Cross-platform convenience targets (`setup`, `train-demo`, `backend`, `frontend`, `test`, `build`, `up`) |
 | `docker-compose.yml` | API + UI container stack (untested in this environment) |
 | `render.yaml` | Render blueprint: one free Docker web service for the backend, with its env vars |
+| `backend/pyproject.toml` | Backend project metadata, including the `requires-python = ">=3.11"` floor |
+| `scripts/check_contrast.py` | WCAG contrast check for the light and dark token sets; composites translucent backgrounds over the surface |
 | `backend.ps1` / `frontend.ps1` | Windows launchers; `backend.ps1` refuses a Python older than 3.11 |
 | `.env.example` | Compose-level environment template (Docker paths, not local paths) |
 | `.gitignore` | Excludes virtualenvs, models, storage, DBs, Playwright output, graphify cache and machine state |
@@ -29,7 +31,9 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `api/analyses.py` | List, detail, features, upload, delete endpoints; bounded chunked upload reads |
 | `api/webhooks.py` | Forwarded-email webhook: secret check, alias lookup, bounded body read |
 | `api/deps.py` | Auth dependency (disabled / Supabase JWT), current-user resolution |
+| `api/limits.py` | Shared request-size caps for the upload and inbound-webhook paths |
 | `core/config.py` | `PHISHLENS_*` settings, CORS origin validation (wildcard rejected) |
+| `core/auth.py` | Caller identity and the email-confirmation check that gates a forwarding alias |
 | `db/models.py` | SQLAlchemy tables: analyses, features, explanations, sender profiles |
 | `db/repository.py` | Owner-scoped queries, transactional delete, retention purge |
 | `db/session.py` | Engine and session factory (SQLite locally, PostgreSQL in deployment) |
@@ -58,6 +62,8 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `scripts/verify_rls.py` | Live Supabase RLS isolation check in both directions |
 | `scripts/audit_model.py` | Publish gate: scans a model directory for sender domains, addresses and subject words |
 | `scripts/release_model.py` | Audits a candidate, then copies it into `backend/release/model/` |
+| `scripts/source_leak_test.py` | Measures whether the feature set identifies the corpus a legitimate email came from |
+| `scripts/released_model_importances.py` | Gain share of the released model, and how much sits in the provider/era features |
 | `release/model/` | The audited model the Docker image serves; empty until a release passes the audit |
 
 ## `backend/tests/`
@@ -78,6 +84,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `test_download_kaggle.py` | CSV-to-`.eml` conversion, hostile header values, manifest verification |
 | `test_evaluate_modern.py` | Leakage guard, dual-threshold metrics, domain-macro FPR, corpus-label collisions |
 | `test_rls_contract.py` | Live-only PostgreSQL RLS contract (skips without credentials) |
+| `test_email_verification.py` | The alias gate: unconfirmed 403, confirmed 200, unconfigured 503, and no alias row on refusal |
 
 ## `backend/data/sample_emails/`
 
@@ -89,18 +96,21 @@ legitimate bank alert.
 | Path | Purpose |
 |---|---|
 | `src/App.tsx` | Routes, `RequireAuth`, session provider wiring |
+| `src/main.tsx` | Entry point; applies the stored theme before the first paint so there is no flash |
 | `src/auth.tsx` | Supabase session context |
 | `src/supabase.ts` | Client construction from `VITE_SUPABASE_*` |
 | `src/api/client.ts` | `apiFetch`: base URL, bearer token, typed errors |
 | `src/types.ts` | Response types shared across pages |
 | `src/lib/cases.ts` | Search, filter, sort, pagination helpers (unit tested) |
+| `src/hooks/useForwardingAlias.ts` | Alias endpoint result as a discriminated state: verified, unverified, unconfigured, error |
 | `src/pages/Dashboard.tsx` | Upload, band counters, recent activity list |
 | `src/pages/AnalysisDetail.tsx` | Band bar, verified reasons, SHAP table, features, delete |
 | `src/pages/History.tsx` | Full record list with search, band filter, sort, pagination |
 | `src/pages/Model.tsx` | Active model identity and metrics with the synthetic-data caveat |
 | `src/pages/HowItWorks.tsx` | Pipeline and feature-group explanation |
 | `src/pages/Status.tsx` | Health and model-loaded state |
-| `src/pages/Profile.tsx` | Account identity, forwarding alias, trusted-sender baseline, sign out |
+| `src/pages/Profile.tsx` | Account identity, forwarding alias behind the verification gate, data-handling notice, trusted-sender baseline, sign out |
+| `src/pages/Profile.test.tsx` | Verification gate states and the data-handling section |
 | `src/pages/Login.tsx` | Sign-in, or an explicit authentication-disabled notice |
 | `src/components/` | `AppShell`, `BandBar`, `ConfirmDialog`, `EvidencePanel`, `FeatureTable`, `ReasonCard`, `RiskBadge`, `SessionExpired`, `Toast`, `UploadBox` |
 | `src/styles.css`, `src/styles/*.css` | Design tokens, shell, report, and status styles |

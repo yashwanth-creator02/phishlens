@@ -408,3 +408,33 @@ the synthetic demo.
   (8 tests). Suite: 115 passed, 1 skipped.
 - Two settings need the owner: "Confirm email" turned on in Supabase, and `PHISHLENS_SUPABASE_ANON_KEY` on the Render
   service. Both are written up in `docs/18-open-manual-actions.md` item 5.
+
+## 2026-11-12 - The interface got a sidebar and a theme; the reviewer's leak question got a number
+- **The top navigation became a left sidebar.** A fixed rail with inline SVG icons, two labelled groups (Work:
+  Dashboard, History; Reference: Model, How it works, Status), the account block pinned to the bottom, and a drawer
+  behind a menu button on narrow screens. No new dependency; the icons are inline SVG.
+- **A light and dark theme.** `data-theme` on the document root, applied from `localStorage` before the first paint so
+  there is no flash, and following the operating system until the user chooses. Every colour is a token.
+- **The shipped dark theme failed WCAG AA and was fixed.** The designer had not measured it, so `scripts/check_contrast.py`
+  now composites translucent backgrounds over the surface and reports the ratio for every pair the UI uses. It found
+  `badge.high` at 4.16:1 and `badge.low` at 4.45:1 against their own backgrounds at 0.8rem, and the dark accent at
+  4.28:1 on the surface. All three were re-tuned; every checked pair now passes in both themes, and the script is
+  committed so a later token change cannot silently break it.
+- **The alias gate reached the UI.** The Profile screen shows the address when the account is confirmed, a panel with a
+  resend button when it is not, and a different message when the server cannot check the state. The Dashboard stops
+  telling a user to forward to an address they cannot have yet.
+- **The Profile screen now says what happens to the data.** Five plain facts - what is stored, the 30-day retention,
+  attachments as metadata only, per-account isolation, and the audited model artifact - and the honest part: forwarding
+  an email means the sender's personal data is processed.
+- **The privacy sweep found two real leaks.** Three graphify state files carried 252 absolute Windows paths, and two
+  documentation pages published the password of the live E2E test account. The paths are now gitignored and untracked;
+  the password is out of the docs and is now an item for the owner to rotate.
+- **The reviewer's source-leak question was measured.** A classifier told only to predict the corpus of *legitimate*
+  mail separates three corpora with 0.981 accuracy, and 0.980 using only the header and format features. The
+  fingerprint is real. But the released model leans on those ten features for 10.1% of its gain, against 41.5% for
+  `subject_reply_without_history` alone, so it is not simply recognising its own provider. The consequence is stated
+  everywhere a number is quoted: the 0.018 false-positive rate describes held-out mail from the owner's own inbox.
+- Merged into `main` with `--no-ff` and deployed: the backend serves `xgboost-corpus-20261112-s7` and answers the
+  bare `GET /health`; the frontend bundle carries the sidebar, the theme toggle, the verification gate and the
+  data-handling notice.
+- Suite: 115 backend tests passed, 1 skipped. Frontend: 23 unit tests in 6 files, production build clean.
