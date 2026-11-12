@@ -81,6 +81,88 @@ def threshold_metrics(y, p_cal, scores, low_max: int) -> dict:
     return out
 
 
+def recall_at_fixed_fpr(y, p_cal, fpr_targets=(0.01, 0.05)) -> dict:
+    """How much phishing do we catch if we only flag a given share of legitimate mail?
+
+    For a triage tool this is the operating question: the analyst only looks at
+    what the system flags, so the useful number is the recall at a false-positive
+    rate the analyst can tolerate, not the recall at an arbitrary probability.
+    """
+    negatives = np.asarray(p_cal)[y == 0]
+    positives = np.asarray(p_cal)[y == 1]
+    if negatives.size == 0 or positives.size == 0:
+        return {}
+    out = {}
+    for target in fpr_targets:
+        keep = int(np.floor(target * negatives.size))
+        if keep <= 0:
+            threshold = float(np.max(negatives)) + 1e-9
+        else:
+            candidate = float(np.sort(negatives)[::-1][keep - 1])
+            if int(np.sum(negatives >= candidate)) > keep:
+                # The boundary value is shared by more legitimate messages than the budget
+                # allows, so the threshold has to sit above it.
+                higher = negatives[negatives > candidate]
+                threshold = float(np.min(higher)) if higher.size else candidate + 1e-9
+            else:
+                threshold = candidate
+        flagged_ham = int(np.sum(negatives >= threshold))
+        flagged_phish = int(np.sum(positives >= threshold))
+        out[f"at_fpr_{target:g}"] = {
+            "threshold": threshold,
+            "fpr": float(flagged_ham / negatives.size),
+            "recall": float(flagged_phish / positives.size),
+            "precision": float(flagged_phish / max(1, flagged_phish + flagged_ham)),
+            "flagged_ham": flagged_ham,
+            "flagged_phishing": flagged_phish,
+        }
+    return out
+
+
+def reliability(y, p_cal, scores, low_max: int, high_min: int) -> dict:
+    """Does the score mean what it says?
+
+    Per risk band: how many messages landed there, the mean predicted probability,
+    and the phishing rate actually observed. A band whose observed rate is nowhere
+    near its mean probability is not calibrated, and the band boundaries are
+    meaningless.
+    """
+    out = {}
+    for band, mask in (("LOW", scores <= low_max),
+                       ("MEDIUM", (scores > low_max) & (scores < high_min)),
+                       ("HIGH", scores >= high_min)):
+        n = int(mask.sum())
+        if n == 0:
+            out[band] = {"n": 0}
+            continue
+        out[band] = {
+            "n": n,
+            "mean_predicted_probability": float(np.mean(p_cal[mask])),
+            "observed_phishing_rate": float(np.mean(y[mask])) if len(np.unique(y)) > 1 else None,
+            "phishing_messages": int(np.sum(y[mask])),
+        }
+    return out
+
+
+def probability_bins(y, p_cal, bins: int = 10) -> list:
+    """A reliability curve: predicted probability against observed rate, in ten bins."""
+    edges = np.linspace(0.0, 1.0, bins + 1)
+    rows = []
+    for i in range(bins):
+        lo, hi = edges[i], edges[i + 1]
+        mask = (p_cal >= lo) & ((p_cal < hi) if i < bins - 1 else (p_cal <= hi))
+        n = int(mask.sum())
+        if n == 0:
+            continue
+        rows.append({
+            "range": [round(float(lo), 2), round(float(hi), 2)],
+            "n": n,
+            "mean_predicted": float(np.mean(p_cal[mask])),
+            "observed_rate": float(np.mean(y[mask])) if len(np.unique(y)) > 1 else None,
+        })
+    return rows
+
+
 def _band_counts(scores, low_max: int, high_min: int) -> dict:
     counts = {"LOW": 0, "MEDIUM": 0, "HIGH": 0}
     for score in scores:
@@ -346,6 +428,21 @@ def _render(report: dict) -> str:
                   f"- Samples: {c['count']} ({c['positives']} phishing, {c['negatives']} ham)",
                   f"- F1 at probability 0.5: **{c['at_probability_0_5']['f1']:.3f}**",
                   f"- F1 at LOW/MEDIUM boundary: **{c['at_band_boundary']['f1']:.3f}**"]
+        for name, row in (c.get("recall_at_fixed_fpr") or {}).items():
+            lines.append(f"- Recall at FPR {name.removeprefix('at_fpr_')}: "
+                         f"**{row['recall']:.3f}** (precision {row['precision']:.3f}, "
+                         f"threshold {row['threshold']:.4f})")
+        bands = (c.get("calibration") or {}).get("bands") or {}
+        if bands:
+            lines += ["", "### Calibration by risk band", "",
+                      "| band | n | mean predicted | observed phishing rate |", "|---|---:|---:|---:|"]
+            for band in ("LOW", "MEDIUM", "HIGH"):
+                row = bands.get(band, {})
+                if not row.get("n"):
+                    continue
+                observed = row.get("observed_phishing_rate")
+                lines.append(f"| {band} | {row['n']} | {row['mean_predicted_probability']:.3f} | "
+                             + (f"{observed:.3f}" if observed is not None else "-") + " |")
     return "\n".join(lines) + "\n"
 
 
@@ -447,6 +544,11 @@ def main(argv=None) -> dict:
         report["combined"] = {
             "count": int(len(y_all)), "positives": int(y_all.sum()), "negatives": int((1 - y_all).sum()),
             **threshold_metrics(y_all, p_all, s_all, settings.band_low_max),
+            "recall_at_fixed_fpr": recall_at_fixed_fpr(y_all, p_all),
+            "calibration": {
+                "bands": reliability(y_all, p_all, s_all, settings.band_low_max, settings.band_high_min),
+                "probability_bins": probability_bins(y_all, p_all),
+            },
         }
 
     out = Path(args.out)

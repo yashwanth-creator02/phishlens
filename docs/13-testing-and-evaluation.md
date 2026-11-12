@@ -1,6 +1,6 @@
 # 13 - Testing and evaluation
 
-## Automated tests (`cd backend && python -m pytest -q`) - 115 passing, 1 skipped
+## Automated tests (`cd backend && python -m pytest -q`) - 121 passing, 1 skipped
 | File | What it proves |
 |---|---|
 | `test_parser.py` | direct / forward-as-attachment / inline-forward parsing; inline forward marks authentication as **missing**; attachment metadata only |
