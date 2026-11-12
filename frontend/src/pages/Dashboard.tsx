@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { useForwardingAlias } from "../hooks/useForwardingAlias";
 import RiskBadge from "../components/RiskBadge";
 import UploadBox from "../components/UploadBox";
 import type { AnalysisSummary } from "../types";
@@ -15,6 +16,7 @@ const RECENT_COUNT = 5;
 
 export default function Dashboard() {
   const nav = useNavigate();
+  const aliasState = useForwardingAlias();
   const [items, setItems] = useState<AnalysisSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +117,13 @@ export default function Dashboard() {
           ) : recent.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: "40px" }}>
               <p className="muted" style={{ fontSize: "1.05rem" }}>No analyses yet.</p>
-              <p className="muted">Use the upload area above or forward an email to your alias to begin triage.</p>
+              <p className="muted">
+                {aliasState.status === "verified"
+                  ? "Use the upload area above or forward an email to your alias to begin triage."
+                  : aliasState.status === "unverified" || aliasState.status === "unconfigured"
+                  ? "Confirm your email address to get a forwarding address."
+                  : "Use the upload area above to begin triage."}
+              </p>
             </div>
           ) : (
             <div className="analysis-list">
