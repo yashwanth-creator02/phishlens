@@ -22,6 +22,10 @@ htmlcov/
 graphify-out/cache/
 graphify-out/2026-*/
 graphify-out/*.tmp
+# Machine-specific graphify state: these record absolute local paths.
+graphify-out/.graphify_root
+graphify-out/.graphify_build_state.json
+graphify-out/.graphify_detect.json
 
 # Playwright
 frontend/test-results/

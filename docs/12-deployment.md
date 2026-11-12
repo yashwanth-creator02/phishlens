@@ -111,6 +111,21 @@ To restore push-to-deploy, install the Vercel GitHub App on `yashwanth-creator02
 1. Create a project. 2. Run `supabase/migrations/0001_init.sql` and `0002_auth_hardening.sql` in the SQL editor (tables + RLS). 3. Backend env: `PHISHLENS_DATABASE_URL=postgresql+psycopg://...` (install `requirements-postgres.txt`),
 `PHISHLENS_AUTH_MODE=supabase`, and either `PHISHLENS_SUPABASE_JWT_SECRET=<Project Settings -> API -> JWT secret>` (HS256) or `PHISHLENS_SUPABASE_JWKS_URL=https://<project>.supabase.co/auth/v1/.well-known/jwks.json` (RS256/ES256). 4. Frontend build args: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 5. Raw email files: v0.1 writes to local disk (`storage/`); move to Supabase Storage (private bucket) before real use.
+
+### Email verification
+
+A forwarding alias is a capability: whoever holds it puts mail into that account's history. It is therefore issued
+only to an account whose email address is confirmed.
+
+- Turn **Confirm email** on in Supabase (Authentication -> Sign In / Providers -> Email). With it on, GoTrue refuses
+  to issue a session to an unconfirmed address, so the account cannot sign in at all.
+- The backend re-checks the state itself. It reads the caller's own Supabase user record with
+  `GET <supabase-url>/auth/v1/user`, using the caller's access token and the **anon** key, and looks at
+  `email_confirmed_at`. This needs `PHISHLENS_SUPABASE_ANON_KEY` (a public value, not the service-role key). The API
+  base URL is derived from `PHISHLENS_SUPABASE_JWKS_URL` when `PHISHLENS_SUPABASE_URL` is not set.
+- The check fails closed: if Supabase is unreachable or not configured, the alias endpoint answers **503**, never
+  "verified". `GET /api/me/alias` answers **403** for an unconfirmed account and creates no alias row.
+
 Postgres itself is still **not exercised in tests** (tests use SQLite). RLS isolation has a live-only contract test that skips without credentials; see `docs/11-security-privacy.md`.
 
 ### Current Supabase project

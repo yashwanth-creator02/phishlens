@@ -51,20 +51,28 @@
     "spam/ham" sets that do exist are explicitly synthetic (generated mail with generated headers) and cannot serve as
     ground truth for real-world accuracy. This is why item 12 cannot be fixed by downloading something, and why the
     next step is a decision (see [21](21-modern-corpus-evaluation-plan.md) section 11) rather than more training.
-15. **Phishing recall on 2024-2025 Nazario is in-sample.** The active model trained on those archives, so the 0.999
+16. **Phishing recall on 2024-2025 Nazario is in-sample.** The active model trained on those archives, so the 0.999
     recall measured on them is memorisation of campaigns it already saw. The clean window for that model is
     2015-2023. The harness now refuses to report a window the model was trained on unless it is told to.
-16. **A model fitted on the owner's own mailbox is derived from private data.** It may be released only after
+17. **A model fitted on the owner's own mailbox is derived from private data.** It may be released only after
     `backend/scripts/audit_model.py` reports the artifact clean (no sender domain, no email address and no
     distinctive subject word from the mailbox in any file of the model directory) and only on the owner's explicit
     decision. The audit proves the artifact carries no personal data; it does not make the model accurate, and a
     model fitted on one inbox is fitted on one inbox.
-17. **The published model is fitted on one person's mail and on a phishing corpus that is 20 years old.** Whatever its
+18. **The published model is fitted on one person's mail and on a phishing corpus that is 20 years old.** Whatever its
     measured numbers are, they describe that combination, not phishing detection in general. The honest way to present
     it is as a measured system with a stated domain of validity, not as a detector.
-18. **The credential-phrase matcher is not negation-aware.** It reads "never reveal your OTP" as a credential request,
+19. **The credential-phrase matcher is not negation-aware.** It reads "never reveal your OTP" as a credential request,
     because it matches substrings. It fires on 3.9% of real modern mail, and those messages still score LOW, so it is
     a nuisance today. A negation-aware match would fix it, and the fix would need a retrain.
+20. **The feature set identifies the mail provider and the era, not only the message.** A classifier trained to
+    predict the corpus of *legitimate* mail alone separates three corpora with 0.981 accuracy, and 0.980 using only
+    the 13 header and format features - `received_hops`, `from_returnpath_mismatch`, `auth_missing` and the
+    SPF/DKIM/DMARC results carry it. The released model leans on those ten features for 10.1% of its gain, so the
+    effect is bounded, but it is real. **The consequence for reporting: the 0.018 false-positive rate describes
+    held-out 2026 mail from the owner's own inbox, and must not be quoted as a general false-positive rate.** The
+    measurement, the gain shares and the reproduction steps are in
+    [21](21-modern-corpus-evaluation-plan.md) section 17.
 
 ## Project risks
 | Risk | Likelihood | Impact | Mitigation |
@@ -77,3 +85,4 @@
 | Time (16 weeks, 4 students) | high | medium | scope cut order: browser add-on -> Gmail API -> LLM wording -> async queue |
 | Sender-history poisoning or leakage | low | medium | update only from safe mail (done); "mark as safe" UI |
 | Dependency drift (SHAP/XGBoost versions) | low | medium | `requirements.lock.txt`, CI |
+| The feature set identifies the mail provider and the era, not just the message | high | high | measured: legitimate mail from three corpora is classified by source with 0.981 accuracy (0.980 on header features alone). The released model leans on those features for 10.1% of its gain, so the effect is bounded but real. **Consequence: the 0.018 false-positive rate describes held-out mail from the owner's own inbox and must not be quoted as a general FPR.** Detail and reproduction in [21](21-modern-corpus-evaluation-plan.md) section 17 |

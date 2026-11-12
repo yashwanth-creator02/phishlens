@@ -7,6 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import active_model, current_user
+from app.api.limits import MAX_MESSAGE_BYTES
+from app.core.auth import Principal, is_email_verified
 from app.core.config import Settings, get_settings
 from app.db import repository as repo
 from app.db.models import Analysis
@@ -18,16 +20,18 @@ from app.scoring.risk_bands import GUIDANCE
 from app.services import analysis_service
 
 router = APIRouter(prefix="/api", tags=["analyses"])
-MAX_BYTES = 10 * 1024 * 1024
+CHUNK_SIZE = 1024 * 1024
 
 
 async def _read(upload: UploadFile) -> bytes:
-    data = await upload.read()
+    data = bytearray()
+    while chunk := await upload.read(CHUNK_SIZE):
+        data.extend(chunk)
+        if len(data) > MAX_MESSAGE_BYTES:
+            raise HTTPException(413, "File too large (limit 10 MB)")
     if not data:
         raise HTTPException(400, "Empty file")
-    if len(data) > MAX_BYTES:
-        raise HTTPException(413, "File too large (limit 10 MB)")
-    return data
+    return bytes(data)
 
 
 def _detail(db: Session, a: Analysis) -> AnalysisDetail:
@@ -46,21 +50,21 @@ def _detail(db: Session, a: Analysis) -> AnalysisDetail:
 
 
 @router.post("/analyses/upload", response_model=AnalysisDetail)
-async def upload_eml(file: UploadFile = File(...), user: str = Depends(current_user),
+async def upload_eml(file: UploadFile = File(...), user: Principal = Depends(current_user),
                      db: Session = Depends(get_db), settings: Settings = Depends(get_settings),
                      bundle: ModelBundle = Depends(active_model)) -> AnalysisDetail:
     """Analyse an .eml file (used by the web UI's upload box and by developers)."""
     raw = await _read(file)
-    a = analysis_service.analyze(db, settings, bundle, user, raw)
+    a = analysis_service.analyze(db, settings, bundle, user.id, raw)
     return _detail(db, a)
 
 
 @router.post("/baseline", response_model=BaselineOut)
-async def upload_baseline(file: UploadFile = File(...), user: str = Depends(current_user),
+async def upload_baseline(file: UploadFile = File(...), user: Principal = Depends(current_user),
                           db: Session = Depends(get_db), settings: Settings = Depends(get_settings)) -> BaselineOut:
     """Upload a KNOWN-GOOD email so later emails from the same sender can be compared with it."""
     raw = await _read(file)
-    res = analysis_service.add_baseline(db, settings, user, raw)
+    res = analysis_service.add_baseline(db, settings, user.id, raw)
     return BaselineOut(sender=res.sender, message_count=res.message_count,
                        note="Sender history updated. Behavioural checks start after "
                             f"{settings.min_history_messages} messages.")
@@ -68,37 +72,37 @@ async def upload_baseline(file: UploadFile = File(...), user: str = Depends(curr
 
 @router.get("/analyses", response_model=AnalysisList)
 def list_analyses(limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0),
-                  user: str = Depends(current_user), db: Session = Depends(get_db)) -> AnalysisList:
-    q = select(Analysis).where(Analysis.user_id == user).order_by(Analysis.created_at.desc())
-    total = db.scalar(select(func.count()).select_from(Analysis).where(Analysis.user_id == user)) or 0
+                  user: Principal = Depends(current_user), db: Session = Depends(get_db)) -> AnalysisList:
+    q = select(Analysis).where(Analysis.user_id == user.id).order_by(Analysis.created_at.desc())
+    total = db.scalar(select(func.count()).select_from(Analysis).where(Analysis.user_id == user.id)) or 0
     rows = db.scalars(q.limit(limit).offset(offset)).all()
     return AnalysisList(items=[AnalysisSummary.model_validate(r, from_attributes=True) for r in rows], total=total)
 
 
-def _own(db: Session, user: str, aid: str) -> Analysis:
+def _own(db: Session, user: Principal, aid: str) -> Analysis:
     a = db.get(Analysis, aid)
-    if a is None or a.user_id != user:
+    if a is None or a.user_id != user.id:
         raise HTTPException(404, "Analysis not found")
     return a
 
 
 @router.get("/analyses/{aid}", response_model=AnalysisDetail)
-def get_analysis(aid: str, user: str = Depends(current_user), db: Session = Depends(get_db)) -> AnalysisDetail:
+def get_analysis(aid: str, user: Principal = Depends(current_user), db: Session = Depends(get_db)) -> AnalysisDetail:
     return _detail(db, _own(db, user, aid))
 
 
 @router.get("/analyses/{aid}/features", response_model=list[FeatureOut])
-def get_features(aid: str, user: str = Depends(current_user), db: Session = Depends(get_db)) -> list[FeatureOut]:
+def get_features(aid: str, user: Principal = Depends(current_user), db: Session = Depends(get_db)) -> list[FeatureOut]:
     a = _own(db, user, aid)
     return [FeatureOut(name=f.name, group=f.group, value=f.value, contribution=f.contribution)
             for f in sorted(a.features, key=lambda f: -abs(f.contribution))]
 
 
 @router.delete("/analyses/{aid}", status_code=204)
-def delete_analysis(aid: str, user: str = Depends(current_user), db: Session = Depends(get_db)) -> None:
+def delete_analysis(aid: str, user: Principal = Depends(current_user), db: Session = Depends(get_db)) -> None:
     # _own() raises 404 for missing or other-user rows, so the service only runs for owned rows.
     _own(db, user, aid)
-    if analysis_service.delete_analysis(db, user, aid) is False:
+    if analysis_service.delete_analysis(db, user.id, aid) is False:
         raise HTTPException(404, "Analysis not found")
 
 
@@ -116,9 +120,16 @@ def purge_old(x_admin_token: str | None = Header(default=None, alias="X-Admin-To
 
 
 @router.get("/me/alias", response_model=AliasOut)
-def my_alias(user: str = Depends(current_user), db: Session = Depends(get_db),
+def my_alias(user: Principal = Depends(current_user), db: Session = Depends(get_db),
              settings: Settings = Depends(get_settings)) -> AliasOut:
-    row = repo.get_or_create_alias(db, user)
+    """The forwarding address for this account.
+
+    An alias is a capability: whoever holds it can put mail in this account's
+    history. It is issued only to an account whose email address is confirmed.
+    """
+    if not is_email_verified(user, settings):
+        raise HTTPException(403, "Verify your email address before using a forwarding alias")
+    row = repo.get_or_create_alias(db, user.id)
     return AliasOut(address=f"u-{row.token}@{settings.alias_domain}", token=row.token)
 
 

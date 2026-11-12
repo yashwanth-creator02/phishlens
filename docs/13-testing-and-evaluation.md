@@ -1,6 +1,6 @@
 # 13 - Testing and evaluation
 
-## Automated tests (`cd backend && python -m pytest -q`) - 52 passing, 1 skipped
+## Automated tests (`cd backend && python -m pytest -q`) - 115 passing, 1 skipped
 | File | What it proves |
 |---|---|
 | `test_parser.py` | direct / forward-as-attachment / inline-forward parsing; inline forward marks authentication as **missing**; attachment metadata only |
@@ -14,7 +14,7 @@ The API tests train a small synthetic model once per session (about 10 s).
 
 | Command | Scope | Result |
 |---|---|---|
-| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table | 19 tests in 5 files |
+| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table, verification gate | 22 tests in 6 files |
 | `cd frontend; npm run build` | type-check plus production bundle | passes |
 | `cd frontend; npm run test:e2e` | Playwright smoke against a dev server | 1 passed; signed-in journey skips without `E2E_EMAIL` / `E2E_PASSWORD` |
 | `cd frontend; npm run test:e2e` with `E2E_BASE_URL` set to the deployment | Playwright smoke against production | 2 passed |
@@ -24,13 +24,14 @@ auth modes, and a signed-in journey (dashboard, history, model, how-it-works, pr
 Supabase user. Set `E2E_BASE_URL` to run it against a deployment instead of `localhost:5173`. The vitest
 `include` pattern is limited to `src/**`, so Playwright files are never picked up by the unit runner.
 
-The signed-in journey passes against the live deployment with a dedicated test account:
+The signed-in journey passes against the live deployment with a dedicated test account. The credentials are not
+stored in this repository - set them in your shell from an account you created in Supabase:
 
 ```powershell
 cd frontend
 $env:E2E_BASE_URL = "https://phishlens-gules.vercel.app"
-$env:E2E_EMAIL = "e2e@phishlens.test"
-$env:E2E_PASSWORD = "phishlens-e2e-2026"
+$env:E2E_EMAIL = "<your Supabase account>"
+$env:E2E_PASSWORD = "<its password>"
 npm run test:e2e
 ```
 

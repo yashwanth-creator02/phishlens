@@ -25,7 +25,7 @@ combination and not real-world detection. See `docs/21-modern-corpus-evaluation-
 |---|---|
 | `backend/app/` | FastAPI app, API routes, config, DB models/repository, ingestion, feature extraction, model registry, SHAP reasons, risk bands, analysis service |
 | `backend/training/` | Synthetic/corpus data generation and model training entry point |
-| `backend/tests/` | Pytest suite (86 pass; one live-only Supabase RLS test skips without credentials) |
+| `backend/tests/` | Pytest suite (115 pass; one live-only Supabase RLS test skips without credentials) |
 | `backend/release/` | The audited model the Docker image serves; empty until a release passes the privacy audit |
 | `backend/data/sample_emails/` | Demo `.eml` files used by the UI and tests |
 | `frontend/src/` | React pages, components, typed API client |
@@ -94,6 +94,8 @@ Non-negotiable invariants:
 - A model fitted on a personal mailbox is derived from private data. It may reach a committed artifact or the public
   deployment only after `backend/scripts/audit_model.py` reports the artifact clean and the owner has explicitly
   decided. `backend/scripts/release_model.py` performs both steps together.
+- A forwarding alias is a capability: whoever holds it puts mail into that account's history. It is issued only to an
+  account whose email address is confirmed, and the confirmation check fails closed (503, never a silent pass).
 - Keep the reason engine evidence-verified; do not emit a specific claim that the email does not support.
 - Do not change the feature set, thresholds, or reason rules without updating tests and the relevant `docs/` page.
 
@@ -167,6 +169,10 @@ Also upload at least one sample email through the UI or API and confirm a scored
 - The released model is personal-data-derived and **misses two of its own promotion gates**: recall 0.770
   against 0.90 and Brier 0.026 against 0.02. It passes the domain-macro gate at 0.068. The measurement is in
   `docs/21-modern-corpus-evaluation-plan.md` sections 14 and 15; any claim about it must carry those numbers.
+- The feature set identifies the mail provider and the era, not only the message: legitimate mail from three corpora
+  is classified by source with 0.981 accuracy (0.980 on the header features alone). The released model leans on
+  those features for 10.1% of its gain, so the 0.018 false-positive rate describes held-out mail from the owner's
+  own inbox and is **not** a general false-positive rate. See `docs/21-modern-corpus-evaluation-plan.md` section 17.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix

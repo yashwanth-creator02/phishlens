@@ -1,0 +1,7 @@
+# Metadata for tools that read Python project requirements. The backend runs
+# from source; it is not installed as a package.
+[project]
+name = "phishlens-backend"
+version = "0.1.0"
+description = "PhishLens backend: explainable phishing triage"
+requires-python = ">=3.11"
