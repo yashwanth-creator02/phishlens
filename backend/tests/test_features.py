@@ -62,6 +62,22 @@ Content-Type: text/html
     assert v["has_port"] == 1
 
 
+def test_url_features_tolerate_an_unterminated_ipv6_url():
+    """'http://[a-z' makes the URL parser raise. A hostile link must not stop the analysis."""
+    raw = b"""From: a@b.example
+Subject: hi
+Content-Type: text/html
+
+<p><a href="http://[a-z">here</a></p>
+<p><a href="http://example.com/ok">there</a></p>
+"""
+    v = feats(raw).values
+    # Both links are in the message, but only the parseable one contributes a domain.
+    assert v["url_count"] == 0.1
+    assert v["unique_domain_count"] == 0.1
+    assert v["max_url_length"] > 0
+
+
 def _history(n: int) -> ProfileData:
     prof = ProfileData()
     base = datetime(2026, 9, 1)

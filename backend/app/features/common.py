@@ -23,8 +23,15 @@ def registered_domain(host_or_domain: str) -> str:
 
 
 def split_host(url: str) -> tuple[str, str, str]:
-    """Return (host, registered_domain, subdomain) for a URL."""
-    host = (urlparse(url).hostname or "").lower()
+    """Return (host, registered_domain, subdomain) for a URL.
+
+    A hostile URL can make the parser raise: an unterminated IPv6 literal is the common case.
+    Such a URL has no usable host, so it is reported as empty rather than crashing extraction.
+    """
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return "", "", ""
     ext = _EXTRACT(host)
     return host, (ext.registered_domain.lower() or host), ext.subdomain.lower()
 

@@ -35,7 +35,12 @@ def extract(p: ParsedEmail, ctx: ExtractionContext) -> tuple[dict[str, float], d
     max_encoded = 0.0
 
     for link in p.links:
-        parsed = urlparse(link.href)
+        try:
+            parsed = urlparse(link.href)
+        except ValueError:
+            # A hostile href such as an unterminated IPv6 literal makes the parser raise. The URL
+            # is skipped rather than allowed to stop the whole analysis.
+            continue
         host, reg, sub = split_host(link.href)
         if not host:
             continue
