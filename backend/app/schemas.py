@@ -75,6 +75,17 @@ class AliasOut(BaseModel):
     token: str
 
 
+class ForwardingInfo(BaseModel):
+    """What a visitor needs to know before they have an account.
+
+    The alias itself is per account and cannot be published, so the domain and the
+    shape of the address are what a login screen can show.
+    """
+    alias_domain: str
+    alias_pattern: str
+    inbound_configured: bool
+
+
 class BaselineOut(BaseModel):
     sender: str
     message_count: int

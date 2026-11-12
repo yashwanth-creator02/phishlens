@@ -14,12 +14,22 @@ class Settings(BaseSettings):
     storage_dir: Path = Path("./storage")      # raw emails (encrypt / use Supabase Storage in production)
     model_dir: Path = Path("./models")         # <model_dir>/active/ holds the serving model
 
-    # authentication: "disabled" (local development, single dev user) or "supabase" (verify Supabase JWT)
-    auth_mode: str = "disabled"
-    supabase_url: str = ""
-    supabase_anon_key: str = ""
+    # authentication: "supabase" (verify Supabase JWT) or "disabled" (single-user bypass)
+    auth_mode: str = "supabase"
+    # The three values below are PUBLIC and belong to this project's Supabase instance.
+    # The anon key is a client-side key by design - Supabase ships it in every browser
+    # bundle and it grants only what the `anon` role may do, which here is nothing:
+    # no table in supabase/migrations/ grants the anon role. The JWKS URL is a public
+    # key endpoint. The service_role key is a SECRET: it must never be committed,
+    # logged, or sent to the browser, and it is not needed here.
+    supabase_url: str = "https://vmbtdrmevlovvvfvtqmd.supabase.co"
+    supabase_anon_key: str = (
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtYnRkcm1ldmxvdnZ2"
+        "ZnZ0cW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTMyNDYsImV4cCI6MjEwODY4OTI0Nn0."
+        "KzuP3Lnud5iphPHslZTv4oTC-Fw8-djo9HfUlG7o_80"
+    )
+    supabase_jwks_url: str = "https://vmbtdrmevlovvvfvtqmd.supabase.co/auth/v1/.well-known/jwks.json"
     supabase_jwt_secret: str = ""
-    supabase_jwks_url: str = ""
     dev_user_id: str = "dev-user"
 
     # inbound webhook protection (shared secret sent in the X-Webhook-Secret header)

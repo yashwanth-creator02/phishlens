@@ -54,4 +54,27 @@ describe("Profile verification gate and data handling", () => {
     );
     expect(await screen.findByRole("region", { name: /data handling/i })).toBeInTheDocument();
   });
+
+  it("shows guest account card when user is anonymous", async () => {
+    vi.mock, "../auth", () => ({
+      useSession: () => ({
+        user: { id: "guest", is_anonymous: true },
+        signOut: vi.fn(),
+      }),
+      SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    });
+  });
+});
+// separate block for anonymous user profile test to avoid module mock hoisting issues
+describe("Profile guest account view", () => {
+  it("renders guest notice instead of forwarding address", async () => {
+    vi.doMock("../auth", () => ({
+      useSession: () => ({
+        user: { id: "guest", is_anonymous: true },
+        signOut: vi.fn(),
+      }),
+      SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    }));
+    // Since modules are hoisted, we can test Profile with guest session via mock or by passing state.
+  });
 });

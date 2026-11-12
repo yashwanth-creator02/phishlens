@@ -15,7 +15,7 @@ combination and not real-world detection. See `docs/21-modern-corpus-evaluation-
 ## Stack
 
 - Backend: Python 3.11+ (CI and Docker use 3.12), FastAPI, SQLAlchemy 2, Pydantic Settings, scikit-learn, XGBoost, SHAP, joblib.
-- Frontend: React 18, TypeScript, Vite 5, optional Supabase authentication.
+- Frontend: React 18, TypeScript, Vite 5, Supabase authentication (email + password, Google, or a guest session).
 - Data: SQLite by default for local development; PostgreSQL/Supabase schema in `supabase/migrations/`.
 - Packaging: Docker Compose, Makefiles, GitHub Actions.
 
@@ -63,15 +63,24 @@ Open http://localhost:5173 and upload a file from `backend/data/sample_emails/`.
 
 ## Configuration
 
-Settings come from environment variables with the `PHISHLENS_` prefix, loaded from `backend/.env` when present. Defaults are development-safe only:
+Settings come from environment variables with the `PHISHLENS_` prefix, loaded from `backend/.env` when present.
 
 - `DATABASE_URL=sqlite:///./phishlens.db`
-- `AUTH_MODE=disabled`, `DEV_USER_ID=dev-user`
+- `AUTH_MODE=supabase` - **authentication is on in local development too**, against the same Supabase project as the
+  deployment, so a local checkout exercises the real sign-in, verification and isolation paths. Set
+  `PHISHLENS_AUTH_MODE=disabled` for the single-user bypass.
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWKS_URL` - the defaults point at this project's Supabase
+  instance. These are **public** values: the anon key is a client-side key by design and grants the `anon` role
+  nothing here (no table in `supabase/migrations/` grants it). The `service_role` key is a secret and must never be
+  committed, logged, or sent to the browser.
+- `DEV_USER_ID=dev-user` (only used when `AUTH_MODE=disabled`)
 - `WEBHOOK_SECRET=change-me`
+- `ALIAS_DOMAIN=phishlens.example` - the placeholder domain for the forwarding alias. It is not a real mailbox;
+  `docs/18-open-manual-actions.md` item 6 covers giving the bot a real address.
 - `MODEL_DIR=./models`, `STORAGE_DIR=./storage`
 - `BAND_LOW_MAX=29`, `BAND_HIGH_MIN=70`
 
-`.env.example` is written for Docker Compose (its database path is `/app/data_db/...`). Do not copy it for local development without changing `PHISHLENS_DATABASE_URL`. Never commit any `.env` file. Set a real webhook secret and enable authentication before exposing the service.
+`.env.example` is written for Docker Compose (its database path is `/app/data_db/...`). Do not copy it for local development without changing `PHISHLENS_DATABASE_URL`. Never commit any `.env` file. Set a real webhook secret before exposing the service.
 
 ## Pipeline and invariants
 

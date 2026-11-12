@@ -112,13 +112,33 @@ To restore push-to-deploy, install the Vercel GitHub App on `yashwanth-creator02
 `PHISHLENS_AUTH_MODE=supabase`, and either `PHISHLENS_SUPABASE_JWT_SECRET=<Project Settings -> API -> JWT secret>` (HS256) or `PHISHLENS_SUPABASE_JWKS_URL=https://<project>.supabase.co/auth/v1/.well-known/jwks.json` (RS256/ES256). 4. Frontend build args: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 5. Raw email files: v0.1 writes to local disk (`storage/`); move to Supabase Storage (private bucket) before real use.
 
+### Sign-in providers
+
+The login screen offers three ways in, and each needs one setting in the Supabase dashboard:
+
+| Provider | Setting | Needed for |
+|---|---|---|
+| Email + password | always on | the default sign-in form |
+| Google | Authentication -> Sign In / Providers -> Google: enable, then paste the OAuth client ID and secret | the "Continue with Google" button |
+| Anonymous | Authentication -> Sign In / Providers -> Anonymous: enable | the "Try it as a guest" button |
+
+The Google client ID and secret come from Google Cloud Console (APIs & Services -> OAuth client ID -> Web
+application). Its authorised redirect URI must be `https://<project-ref>.supabase.co/auth/v1/callback`, and
+`https://phishlens-gules.vercel.app` plus `http://localhost:5173` must be in Supabase's Redirect URLs list.
+
+A guest session is a real Supabase user with no email address. It can upload and triage emails exactly like any
+other account, and it correctly gets **no forwarding address**, because a forwarding alias belongs to a confirmed
+email account. The backend needs no change for either provider: a Google session is a normal Supabase JWT and is
+verified by the same path as a password sign-in.
+
 ### Email verification
 
 A forwarding alias is a capability: whoever holds it puts mail into that account's history. It is therefore issued
 only to an account whose email address is confirmed.
 
-- Turn **Confirm email** on in Supabase (Authentication -> Sign In / Providers -> Email). With it on, GoTrue refuses
-  to issue a session to an unconfirmed address, so the account cannot sign in at all.
+- Turn **Confirm email** on in Supabase (Authentication -> Sign In / Providers -> Email). It is on for this
+  project since 2026-11-12: GoTrue refuses to issue a session to an unconfirmed address, so the account cannot
+  sign in at all until it is confirmed.
 - The backend re-checks the state itself. It reads the caller's own Supabase user record with
   `GET <supabase-url>/auth/v1/user`, using the caller's access token and the **anon** key, and looks at
   `email_confirmed_at`. This needs `PHISHLENS_SUPABASE_ANON_KEY` (a public value, not the service-role key). The API
@@ -144,9 +164,25 @@ confirmation mail that Supabase's built-in SMTP rate-limits). The app has no sig
 created in **Authentication -> Users -> Add user** with **Auto Confirm User** ticked. The backend needs the database
 password or pooler connection string for `PHISHLENS_DATABASE_URL`; the MCP connection cannot read it.
 
-## Inbound email
-Choose a provider that can deliver inbound mail to a webhook (Postmark inbound, Mailgun routes, SendGrid inbound parse, Cloudflare Email Routing + Worker). Point the bot domain's MX at it, set the webhook URL to
-`https://<backend>/api/webhooks/inbound` and the shared secret. Write an adapter if the payload is not raw MIME. Gmail API push (OAuth + Pub/Sub) is the later alternative (ADR-002).
+## Inbound email - giving the bot a real address
+
+This is the last piece of the forwarding path, and it needs a domain you own plus an account on an inbound-email
+provider. The provider's job is simple: accept the raw RFC-5322 message and POST it to the webhook.
+
+1. **A domain.** It only needs to receive mail.
+2. **An inbound provider.** Mailgun routes, Postmark inbound, SendGrid inbound parse, or Cloudflare Email Routing
+   plus a Worker. Any of them works; none needs to be chosen by the code.
+3. **The webhook.** `https://<backend>/api/webhooks/inbound`, with the shared secret in the `X-Webhook-Secret`
+   header. The secret is `PHISHLENS_WEBHOOK_SECRET` on the backend. The provider must send the raw message either
+   as the request body with `Content-Type: message/rfc822`, or as JSON `{"recipient": "...", "raw_email_b64": "..."}`.
+4. **The alias domain.** Set `PHISHLENS_ALIAS_DOMAIN=<your domain>` on the backend, so the address becomes
+   `u-<token>@<your domain>`.
+
+The alias is per account: the token identifies which analyst the mail belongs to, which is why the address cannot
+be one shared inbox. `GET /api/forwarding` publishes the domain and the pattern for the login screen, and reports
+whether inbound mail is actually connected, so the interface never claims a forwarding address that does not work.
+
+Gmail API push (OAuth + Pub/Sub) is the later alternative (ADR-002).
 
 ## Hosting options (provider not fixed)
 Free tiers are the constraint, not the tooling. Hugging Face is out: custom Docker Spaces need a paid plan, and ZeroGPU

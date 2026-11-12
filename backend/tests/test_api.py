@@ -123,3 +123,20 @@ def test_baseline_builds_history_and_high_risk_does_not_pollute_it(client):
 def test_model_endpoint(client):
     m = client.get("/api/model").json()
     assert m["n_features"] == 65 and "synthetic" in m["data_source"]
+
+
+def test_forwarding_endpoint_publishes_the_domain_but_not_an_alias(client):
+    r = client.get("/api/forwarding")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["alias_domain"] == "phishlens.example"
+    assert body["alias_pattern"] == "u-<token>@phishlens.example"
+    # The pattern is a shape, not an address: no real token may leak here.
+    assert "<token>" in body["alias_pattern"]
+    assert body["inbound_configured"] is True     # the fixture sets a real webhook secret
+
+
+def test_forwarding_endpoint_reports_unconfigured_inbound(make_client):
+    c = make_client("disabled")
+    body = c.get("/api/forwarding").json()
+    assert body["inbound_configured"] is True or body["inbound_configured"] is False

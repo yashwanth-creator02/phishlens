@@ -1,5 +1,5 @@
 import { supabase } from "../supabase";
-import type { AnalysisDetail, AnalysisSummary, FeatureRow, Health, ModelInfo } from "../types";
+import type { AnalysisDetail, AnalysisSummary, FeatureRow, ForwardingConfig, Health, ModelInfo } from "../types";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
 
@@ -57,4 +57,5 @@ export const api = {
   baseline: (file: File) =>
     apiFetch<{ sender: string; message_count: number; note: string }>("/api/baseline", { method: "POST", body: form(file) }),
   alias: () => apiFetch<{ address: string; token: string }>("/api/me/alias"),
+  forwardingConfig: () => apiFetch<ForwardingConfig>("/api/forwarding"),
 };
