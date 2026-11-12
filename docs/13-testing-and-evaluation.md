@@ -24,13 +24,14 @@ auth modes, and a signed-in journey (dashboard, history, model, how-it-works, pr
 Supabase user. Set `E2E_BASE_URL` to run it against a deployment instead of `localhost:5173`. The vitest
 `include` pattern is limited to `src/**`, so Playwright files are never picked up by the unit runner.
 
-The signed-in journey passes against the live deployment with a dedicated test account:
+The signed-in journey passes against the live deployment with a dedicated test account. The credentials are not
+stored in this repository - set them in your shell from an account you created in Supabase:
 
 ```powershell
 cd frontend
 $env:E2E_BASE_URL = "https://phishlens-gules.vercel.app"
-$env:E2E_EMAIL = "e2e@phishlens.test"
-$env:E2E_PASSWORD = "phishlens-e2e-2026"
+$env:E2E_EMAIL = "<your Supabase account>"
+$env:E2E_PASSWORD = "<its password>"
 npm run test:e2e
 ```
 
