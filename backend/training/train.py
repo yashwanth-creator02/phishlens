@@ -102,8 +102,12 @@ def main(argv=None) -> dict:
     ap.add_argument("--source", choices=["synthetic", "corpus"], default="synthetic")
     ap.add_argument("--n", type=int, default=2400)
     ap.add_argument("--seed", type=int, default=7)
-    ap.add_argument("--phish-dir")
-    ap.add_argument("--legit-dir")
+    ap.add_argument("--phish-dir", nargs="+", required=False,
+                    help="phishing corpus directories. More than one is allowed when the corpora "
+                         "are disjoint, for example a research archive plus a Kaggle corpus")
+    ap.add_argument("--legit-dir", nargs="+", required=False,
+                    help="legitimate corpus directories. More than one is allowed when the corpora "
+                         "are disjoint")
     ap.add_argument("--legit-mailbox", default=None,
                     help="additional legitimate source: a Gmail Takeout mbox file or a directory of them. "
                          "Personal data: the resulting model is derived from it and must not be published")
@@ -123,8 +127,10 @@ def main(argv=None) -> dict:
     args = ap.parse_args(argv)
     t0 = time.time()
 
-    provenance = {"phish_dir": Path(args.phish_dir).name if args.phish_dir else None,
-                  "legit_dir": Path(args.legit_dir).name if args.legit_dir else None,
+    phish_dirs = [Path(d) for d in (args.phish_dir or [])]
+    legit_dirs = [Path(d) for d in (args.legit_dir or [])]
+    provenance = {"phish_dir": "+".join(corpus.source_label(d) for d in phish_dirs) if phish_dirs else None,
+                  "legit_dir": "+".join(corpus.source_label(d) for d in legit_dirs) if legit_dirs else None,
                   "phish_until": args.phish_until,
                   "phish_min_date": None, "phish_max_date": None, "legit_min_date": None, "legit_max_date": None,
                   "phish_undated_dropped": 0, "n_phish": 0, "n_legit": 0,
@@ -136,15 +142,23 @@ def main(argv=None) -> dict:
         samples = synthetic.build_samples(n=args.n, seed=args.seed)
         data_source = "synthetic (pipeline check only, NOT a result)"
     else:
-        if not args.phish_dir or not (args.legit_dir or args.legit_mailbox):
+        if not phish_dirs or not (legit_dirs or args.legit_mailbox):
             raise SystemExit("corpus mode needs --phish-dir and at least one of --legit-dir / --legit-mailbox")
         # The date cutoff is applied before --limit: Nazario is stored as per-year archives, so a limit
         # taken first would keep only the oldest years and the cutoff would have no effect.
         phish_stats: dict = {}
         legit_stats: dict = {}
         mailbox_stats: dict = {}
-        phish = corpus.load_dir(args.phish_dir, 1, stats=phish_stats)
-        legit = corpus.load_dir(args.legit_dir, 0, stats=legit_stats) if args.legit_dir else []
+        phish = []
+        for d in phish_dirs:
+            part = corpus.load_dir(d, 1, stats=phish_stats)
+            print(f"phishing corpus {d.name}: {len(part)} messages")
+            phish.extend(part)
+        legit = []
+        for d in legit_dirs:
+            part = corpus.load_dir(d, 0, stats=legit_stats)
+            print(f"legitimate corpus {d.name}: {len(part)} messages")
+            legit.extend(part)
         mailbox = []
         if args.legit_mailbox:
             mailbox = corpus.load_mailbox(args.legit_mailbox, label=0, stats=mailbox_stats)
@@ -199,14 +213,17 @@ def main(argv=None) -> dict:
         personal = np.array([False] * (len(phish) + len(legit)) + [True] * len(mailbox))
         # Only the directory names go into the artifact: a full path can carry the local account
         # name into a published model file.
-        data_source = (f"corpus: phish={Path(args.phish_dir).name} "
-                       f"legit={Path(args.legit_dir).name if args.legit_dir else 'personal mailbox'}")
+        data_source = (f"corpus: phish={provenance['phish_dir']} "
+                       f"legit={provenance['legit_dir'] if provenance['legit_dir'] else 'personal mailbox'}")
         provenance["n_phish"] = len(phish)
         provenance["n_legit"] = len(legit)
         provenance["loader_drops"] = {"phish": phish_stats, "legit": legit_stats, "mailbox": mailbox_stats}
         # The phishing split is by archive file, not by message date: the corpus dates are unreliable
         # (some archives carry dates from 1970 to 2038), so the file list is what proves a holdout.
-        provenance["phish_files"] = corpus.source_files(args.phish_dir)
+        # Every source directory is listed, prefixed by its directory name, so two corpora that
+        # happen to hold a file of the same name are not mistaken for one source.
+        provenance["phish_files"] = [f"{corpus.source_label(d)}/{f}"
+                                     for d in phish_dirs for f in corpus.source_files(d)]
         # The mailbox is personal data, so only a non-reversible digest of its location is recorded.
         # An absolute path would carry the local account name into a published artifact.
         mailbox_path = Path(args.legit_mailbox)
@@ -216,7 +233,7 @@ def main(argv=None) -> dict:
         # base name would carry an identifier into a published artifact.
         # A --legit-dir that points at a mailbox export loads the same personal data, so it is
         # flagged the same way.
-        if args.legit_dir and any(Path(args.legit_dir).rglob("*.mbox")):
+        if any(d.rglob("*.mbox") for d in legit_dirs):
             provenance["contains_personal_data"] = True
         provenance.update({
             "phish_min_date": corpus.date_range(phish)["min"],

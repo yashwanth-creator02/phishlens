@@ -90,6 +90,18 @@ def source_files(path: str | Path) -> list[str]:
     return out
 
 
+def source_label(path: str | Path) -> str:
+    """A short, unique name for a corpus directory.
+
+    The directory name alone is not unique: two corpora can each hold a ``phishing`` folder, and
+    the provenance records these labels. The parent directory is included so the label identifies
+    one source rather than a name that several sources share.
+    """
+    p = Path(path)
+    parent = p.parent.name
+    return f"{parent}/{p.name}" if parent and parent not in (".", "") else p.name
+
+
 def path_digest(path: str | Path) -> str:
     """A non-reversible identifier for a location.
 

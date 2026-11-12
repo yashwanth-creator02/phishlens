@@ -170,6 +170,37 @@ def test_phish_leakage_compares_archive_files_not_dates(tmp_path: Path):
     assert status == "overlap" and overlap == ["phishing-2024.mbox"]
 
 
+def test_phish_leakage_matches_a_prefixed_source_list(tmp_path: Path):
+    """A model trained on several corpora records '<directory>/<file>' for each of them."""
+    from training.evaluate_modern import phish_leakage
+
+    train_dir = tmp_path / "nazario-train"
+    train_dir.mkdir()
+    (train_dir / "phishing-2023.mbox").write_text("")
+    eval_dir = tmp_path / "holdout"
+    eval_dir.mkdir()
+    (eval_dir / "phishing-2024.mbox").write_text("")
+
+    meta = {"training": {"phish_files": ["nazario-train/phishing-2023.mbox"],
+                         "phish_min_date": "1970-01-01T00:00:00+00:00",
+                         "phish_max_date": "2038-01-01T00:00:00+00:00"}}
+    status, overlap = phish_leakage(meta, str(eval_dir), None, None)
+    assert status == "clear" and overlap == []
+
+    meta["training"]["phish_files"] = ["nazario-train/phishing-2023.mbox",
+                                       "kaggle/phishing-2024.mbox"]
+    status, overlap = phish_leakage(meta, str(eval_dir), None, None)
+    assert status == "overlap" and overlap == ["phishing-2024.mbox"]
+
+
+def test_two_corpora_with_the_same_folder_name_do_not_collide(tmp_path: Path):
+    """The corpus label carries the parent directory, so 'a/phishing' and 'b/phishing' differ."""
+    from training.corpus import source_label
+
+    assert source_label(tmp_path / "ceas08" / "phishing") == "ceas08/phishing"
+    assert source_label(tmp_path / "nigerian-fraud" / "phishing") == "nigerian-fraud/phishing"
+
+
 def test_ham_leakage_is_distinct_for_a_different_mailbox_file(tmp_path: Path):
     from training.evaluate_modern import ham_leakage
     from training.corpus import path_digest

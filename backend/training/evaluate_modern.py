@@ -18,7 +18,7 @@ import argparse
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import numpy as np
 from sklearn.metrics import average_precision_score, confusion_matrix, roc_auc_score
@@ -178,8 +178,14 @@ def phish_leakage(meta: dict, eval_phish_dir: str, since: datetime | None, until
     trained_files = training.get("phish_files")
     if trained_files is None:
         return "unknown", []
-    eval_files = set(corpus.source_files(eval_phish_dir))
-    overlap = sorted(set(trained_files) & eval_files)
+    # The training side records "<corpus label>/<file>" when more than one corpus was used, and a
+    # bare file name for a single corpus. Both are compared by their last path component, because
+    # the same archive name in two directories is most likely the same archive: the Kaggle phishing
+    # set republishes Nazario, so an archive called phishing-2024.mbox on both sides is a leak
+    # until proven otherwise.
+    trained = {PurePosixPath(f).name for f in trained_files}
+    eval_files = {PurePosixPath(f).name for f in corpus.source_files(eval_phish_dir)}
+    overlap = sorted(trained & eval_files)
     if overlap:
         return "overlap", overlap
     return "clear", []
