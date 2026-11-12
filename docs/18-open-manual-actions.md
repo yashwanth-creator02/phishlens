@@ -6,14 +6,32 @@ read. Each item states what to do, the exact values to paste, how to know it wor
 Rules for this file:
 
 - The agent keeps it current: an item is deleted the moment it is done, not marked complete.
-- Last reviewed: 2026-11-11.
+- Last reviewed: 2026-11-12.
 - If an item is blocked on the agent instead of you, it does not belong here; it belongs in the project log.
 
-No new owner-only action came out of the 2026-11-11 decision on the modern-mail story. The four-candidate protocol
-ran on 2026-11-11, candidate D was retrained with the current code, and it was released through the privacy audit
-(`backend/scripts/release_model.py`, 0 findings). Nothing below needs you until a replacement model is wanted.
+The 2026-11-12 work needed nothing from you. The Kaggle corpora were ingested, the candidate that the protocol
+picked was released through the privacy audit (`backend/scripts/release_model.py`, 0 findings), and Render rebuilt and
+now serves it (`xgboost-corpus-20261112-s7`).
 
-## 1. Optional: restore push-to-deploy for the backend (2 minutes)
+## 1. Restart Windows once, so Docker's engine can start (2 minutes)
+
+**Why:** Docker Desktop 4.99 is installed, and its Linux engine needs WSL2. The two Windows optional features it
+requires were enabled on 2026-11-12, but enabling them only takes effect after a restart, so the engine still reports
+`Virtual Machine Platform not enabled` and `docker build` fails with a 500 from the Linux engine.
+
+**Steps:** restart Windows. Nothing else. If Docker Desktop does not start itself, open it and wait for the engine to
+report "running".
+
+**Done when:** `docker version` prints a `Server:` line, and this works:
+
+```powershell
+docker build -f backend/Dockerfile -t phishlens-api backend
+```
+
+**Why it is optional:** the deployed backend does not depend on the local build. Render builds the same Dockerfile on
+the same base image, and that is what runs in production.
+
+## 2. Optional: restore push-to-deploy for the backend (2 minutes)
 
 **Why:** the `phishlens-api` service already has `autoDeploy = yes` and the `main` push rebuilt it once; this is now
 just housekeeping. The one thing it cannot do is the first step, which is already done.
@@ -23,7 +41,7 @@ just housekeeping. The one thing it cannot do is the first step, which is alread
 
 **Done when:** a push to `main` produces a new Render build on its own (it already does).
 
-## 2. Fallback if Render ever refuses you
+## 3. Fallback if Render ever refuses you
 
 If Render asks for a card or blocks the account, say so and the agent will instead expose the local backend through a
 cloudflared quick tunnel for the demo. Trade-off: the URL changes on every restart, exists only while your machine and
