@@ -31,6 +31,18 @@ the tunnel are running, and the Vercel build has to be redeployed each time it c
 
 ## Already handled - do not redo
 
+- **The signed-in Playwright journey runs against production.** A dedicated test account
+  `e2e@phishlens.test` exists in Supabase Auth, and both E2E tests pass against the live URL:
+  ```powershell
+  cd frontend
+  $env:E2E_BASE_URL = "https://phishlens-gules.vercel.app"
+  $env:E2E_EMAIL = "e2e@phishlens.test"
+  $env:E2E_PASSWORD = "phishlens-e2e-2026"
+  npm run test:e2e
+  ```
+  The account holds no analyses and is only used by the test. The password is a throwaway that exists
+  so the suite can run unattended; delete the account from the Supabase dashboard if the project is
+  submitted and the tests no longer need to run against the live deployment.
 - Hugging Face is ruled out as a backend host: Docker Spaces need a paid plan and free ZeroGPU Spaces need an account
   30+ days old. Both attempts returned HTTP 402 on 2026-11-06, so `Dockerfile.space`, `deploy/space/` and the
   `deploy-space` workflow were deleted; `render.yaml` replaces them.
@@ -38,8 +50,8 @@ the tunnel are running, and the Vercel build has to be redeployed each time it c
   `VITE_SUPABASE_ANON_KEY` set, and project-level Vercel Authentication is disabled so the URL is public.
 - Supabase project `vmbtdrmevlovvvfvtqmd` is active with `0001_init.sql` and `0002_auth_hardening.sql` applied
   (7 tables, RLS on all).
-- The dashboard-UI and real-corpus-evaluation branches are merged into `main` and pushed. The modern-corpus work
-  sits on `feat/modern-corpus-temporal-split`; it is not merged into `main` yet.
+- The dashboard-UI, real-corpus-evaluation and modern-corpus branches are all merged into `main` and pushed. `main`
+  is at the merge that carries the released model.
 - **The released model is in `backend/release/model/`** (`xgboost-corpus-20261111-s7`). It passed the privacy audit:
   395 sender domains, 400 distinctive subject words, 0 findings, and 0 personal rows in the SHAP background sample. The
   result is recorded in `backend/release/model/release.json`. The Docker image copies it into `/app/models/active/`, so

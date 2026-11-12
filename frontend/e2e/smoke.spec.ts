@@ -18,6 +18,10 @@ test.describe("signed-in smoke", () => {
     await page.getByLabel("Password").fill(password!);
     await page.getByRole("button", { name: "Sign in" }).click();
 
+    // The sign-in request has to finish and persist the session before the page is reloaded,
+    // otherwise the reload drops the half-written session and the guard bounces to /login.
+    await expect(page.getByRole("heading", { level: 1, name: /Triage dashboard/ })).toBeVisible();
+
     const routes = [
       ["/", /Triage dashboard/],
       ["/history", /^History$/],

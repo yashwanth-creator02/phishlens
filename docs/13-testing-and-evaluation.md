@@ -14,14 +14,29 @@ The API tests train a small synthetic model once per session (about 10 s).
 
 | Command | Scope | Result |
 |---|---|---|
-| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table | 18 tests in 5 files |
+| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table | 19 tests in 5 files |
 | `cd frontend; npm run build` | type-check plus production bundle | passes |
 | `cd frontend; npm run test:e2e` | Playwright smoke against a dev server | 1 passed; signed-in journey skips without `E2E_EMAIL` / `E2E_PASSWORD` |
+| `cd frontend; npm run test:e2e` with `E2E_BASE_URL` set to the deployment | Playwright smoke against production | 2 passed |
 
 The Playwright suite (`frontend/e2e/smoke.spec.ts`) is deliberately split: an unauthenticated check that runs in both
-auth modes, and a signed-in journey (dashboard, cases, model, how-it-works, status, settings, case detail) that needs a
-seeded Supabase user. Set `E2E_BASE_URL` to run it against a deployment instead of `localhost:5173`. The vitest
+auth modes, and a signed-in journey (dashboard, history, model, how-it-works, profile, status) that needs a seeded
+Supabase user. Set `E2E_BASE_URL` to run it against a deployment instead of `localhost:5173`. The vitest
 `include` pattern is limited to `src/**`, so Playwright files are never picked up by the unit runner.
+
+The signed-in journey passes against the live deployment with a dedicated test account:
+
+```powershell
+cd frontend
+$env:E2E_BASE_URL = "https://phishlens-gules.vercel.app"
+$env:E2E_EMAIL = "e2e@phishlens.test"
+$env:E2E_PASSWORD = "phishlens-e2e-2026"
+npm run test:e2e
+```
+
+The journey waits for the dashboard heading after clicking sign-in before navigating. Without that wait the page is
+reloaded while the sign-in request is still in flight, the session is never written to storage, and the auth guard
+sends the browser back to `/login` - a failure in the test, not in the app.
 
 ### Real-data evaluation harness
 
