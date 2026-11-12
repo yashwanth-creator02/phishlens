@@ -3,12 +3,13 @@ from __future__ import annotations
 import jwt
 from fastapi import Depends, Header, HTTPException, status
 
+from app.core.auth import Principal
 from app.core.config import Settings, get_settings
 from app.ml.registry import ModelBundle, ModelNotAvailable, load_active
 
 
-def verify_supabase_token(token: str, settings: Settings) -> str:
-    """Return the token subject or raise 401. HS256 secret takes precedence over JWKS."""
+def verify_supabase_token(token: str, settings: Settings) -> Principal:
+    """Return the caller or raise 401. HS256 secret takes precedence over JWKS."""
     if settings.supabase_jwt_secret:
         key = settings.supabase_jwt_secret
         algorithms = ["HS256"]
@@ -28,14 +29,14 @@ def verify_supabase_token(token: str, settings: Settings) -> str:
     sub = claims.get("sub")
     if not sub:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token has no subject")
-    return str(sub)
+    return Principal(id=str(sub), email=str(claims.get("email") or ""), token=token)
 
 
 def current_user(authorization: str | None = Header(default=None),
-                 settings: Settings = Depends(get_settings)) -> str:
-    """Return the user id. 'disabled' = single dev user; 'supabase' = verify the Supabase access token."""
+                 settings: Settings = Depends(get_settings)) -> Principal:
+    """Return the caller. 'disabled' = single dev user; 'supabase' = verify the Supabase access token."""
     if settings.auth_mode == "disabled":
-        return settings.dev_user_id
+        return Principal(id=settings.dev_user_id, email="", token="")
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
     return verify_supabase_token(authorization.split(" ", 1)[1], settings)

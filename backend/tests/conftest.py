@@ -25,6 +25,7 @@ def model_dir(tmp_path_factory) -> Path:
 
 
 def _reset_caches():
+    from app.core import auth as auth_module
     from app.core.config import get_settings
     from app.db.session import get_engine, get_sessionmaker
     from app.ml import registry
@@ -32,6 +33,7 @@ def _reset_caches():
     get_engine.cache_clear()
     get_sessionmaker.cache_clear()
     registry.clear_cache()
+    auth_module.clear_cache()
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 # 13 - Testing and evaluation
 
-## Automated tests (`cd backend && python -m pytest -q`) - 52 passing, 1 skipped
+## Automated tests (`cd backend && python -m pytest -q`) - 115 passing, 1 skipped
 | File | What it proves |
 |---|---|
 | `test_parser.py` | direct / forward-as-attachment / inline-forward parsing; inline forward marks authentication as **missing**; attachment metadata only |
@@ -14,7 +14,7 @@ The API tests train a small synthetic model once per session (about 10 s).
 
 | Command | Scope | Result |
 |---|---|---|
-| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table | 19 tests in 5 files |
+| `cd frontend; npm test` | Vitest + Testing Library across the API client, cases helpers, shell, login, feature table | 20 tests in 5 files |
 | `cd frontend; npm run build` | type-check plus production bundle | passes |
 | `cd frontend; npm run test:e2e` | Playwright smoke against a dev server | 1 passed; signed-in journey skips without `E2E_EMAIL` / `E2E_PASSWORD` |
 | `cd frontend; npm run test:e2e` with `E2E_BASE_URL` set to the deployment | Playwright smoke against production | 2 passed |

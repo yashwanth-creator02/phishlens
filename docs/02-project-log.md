@@ -391,3 +391,20 @@ the synthetic demo.
   application sees it. `backend/pyproject.toml` declares `requires-python = ">=3.11"`.
 - Suite: 107 passed, 1 skipped. New regression tests cover the oversized upload (413), the oversized webhook body (400), a
   non-string `recipient` in the JSON form (400), and the `/health` alias.
+
+## 2026-11-12 - Email verification gates the forwarding alias
+- **The alias is a capability, so it needed a stronger gate.** Whoever holds `u-<token>@<domain>` puts mail into that
+  account's history. Until now the only requirement was that an account existed, and the account existed on sign-up.
+- **A confirmed email address is now required.** The backend reads the caller's own Supabase user record with
+  `GET /auth/v1/user`, using the caller's access token and the anon key, and checks `email_confirmed_at`. No
+  service-role key is involved: the token proves who is asking and Supabase answers whether the address was confirmed.
+- **It fails closed.** An unconfigured or unreachable Supabase answers 503, never "verified". An unconfirmed account
+  gets 403 from `GET /api/me/alias` and no alias row is created.
+- **The caller identity carries the token now.** `current_user` returns a `Principal` (id, email, token) instead of a
+  bare id, so the verification lookup can use the caller's own token. Every read still filters on the caller's id.
+- **No schema change.** An alias row already implies "this account was verified when the alias was issued", so the
+  inbound webhook keeps trusting alias existence and the gate stays at issuance.
+- New: `backend/app/core/auth.py` (`Principal`, confirmation lookup, 5-minute cache), `backend/tests/test_email_verification.py`
+  (8 tests). Suite: 115 passed, 1 skipped.
+- Two settings need the owner: "Confirm email" turned on in Supabase, and `PHISHLENS_SUPABASE_ANON_KEY` on the Render
+  service. Both are written up in `docs/18-open-manual-actions.md` item 5.

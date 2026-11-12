@@ -94,6 +94,8 @@ Non-negotiable invariants:
 - A model fitted on a personal mailbox is derived from private data. It may reach a committed artifact or the public
   deployment only after `backend/scripts/audit_model.py` reports the artifact clean and the owner has explicitly
   decided. `backend/scripts/release_model.py` performs both steps together.
+- A forwarding alias is a capability: whoever holds it puts mail into that account's history. It is issued only to an
+  account whose email address is confirmed, and the confirmation check fails closed (503, never a silent pass).
 - Keep the reason engine evidence-verified; do not emit a specific claim that the email does not support.
 - Do not change the feature set, thresholds, or reason rules without updating tests and the relevant `docs/` page.
 

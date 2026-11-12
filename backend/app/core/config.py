@@ -51,6 +51,21 @@ class Settings(BaseSettings):
             raise ValueError("CORS_ORIGINS must list explicit origins; '*' cannot be combined with credentials")
         return origins
 
+    @property
+    def supabase_api_base(self) -> str:
+        """Base URL for Supabase API calls.
+
+        Derived from the JWKS URL when it is not set explicitly, so a deployment
+        that already publishes its keys needs no extra configuration.
+        """
+        if self.supabase_url:
+            return self.supabase_url.rstrip("/")
+        if self.supabase_jwks_url:
+            base = self.supabase_jwks_url.split("/auth/v1", 1)[0]
+            if base:
+                return base.rstrip("/")
+        return ""
+
 
 @lru_cache
 def get_settings() -> Settings:

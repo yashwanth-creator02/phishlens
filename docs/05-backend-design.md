@@ -53,3 +53,5 @@ backend/
 * Unparseable mail -> parser is defensive (undecodable parts skipped); empty/oversized upload -> 400/413;
   oversized webhook body -> 400.
 * Unknown webhook alias -> 404; bad secret -> 401.
+* Unconfirmed account asking for a forwarding alias -> 403 (no alias row is created); the confirmation state cannot
+  be read -> 503. The check fails closed.

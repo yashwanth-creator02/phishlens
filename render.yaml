@@ -14,6 +14,11 @@ services:
         value: supabase
       - key: PHISHLENS_SUPABASE_JWKS_URL
         value: https://vmbtdrmevlovvvfvtqmd.supabase.co/auth/v1/.well-known/jwks.json
+      # Supabase anon key (a public value, not the service-role key). The backend needs it to
+      # read the caller's own /auth/v1/user record and check that the address is confirmed.
+      # The API base URL is derived from the JWKS URL above, so it is not set separately.
+      - key: PHISHLENS_SUPABASE_ANON_KEY
+        sync: false
       - key: PHISHLENS_CORS_ORIGINS
         value: https://phishlens-gules.vercel.app
       - key: PHISHLENS_AUTO_TRAIN_DEMO

@@ -66,6 +66,30 @@ $env:E2E_PASSWORD = "<the new password>"
 **Note:** the password literal has been removed from the docs, but it remains in the git history of those two files.
 Rotating it is what makes the old value worthless; rewriting the history is not needed.
 
+## 5. Turn on "Confirm email" in Supabase and give the backend the anon key (5 minutes)
+
+**Why:** a forwarding alias is a capability - whoever holds it puts mail into that account's history - so it is now
+issued only to an account whose email address is confirmed. The backend enforces this itself, but two Supabase
+settings have to be in place first.
+
+**Steps:**
+
+1. Supabase dashboard -> Authentication -> Sign In / Providers -> Email -> turn **Confirm email** on. With it on,
+   GoTrue refuses to issue a session to an unconfirmed address, so an unconfirmed account cannot sign in at all.
+2. Supabase dashboard -> Project Settings -> API -> copy the **anon** key (the `anon` public key, not the
+   `service_role` key).
+3. Render dashboard -> `phishlens-api` -> Environment -> add `PHISHLENS_SUPABASE_ANON_KEY` with that value and save.
+   The API base URL is derived from the JWKS URL the service already has, so there is nothing else to set.
+4. Send yourself a confirmation email from the sign-up screen, open it, and confirm. The account then signs in and
+   `GET /api/me/alias` returns the forwarding address.
+
+**Done when:** `curl https://phishlens-api-6esn.onrender.com/api/health` reports `auth_mode: supabase`, a confirmed
+account can sign in on https://phishlens-gules.vercel.app and see its forwarding address on the Profile screen, and an
+unconfirmed account gets a "verify your email" message instead of an address.
+
+**Note:** until step 3 is done, `GET /api/me/alias` answers 503 ("Email verification is not configured"). That is the
+intended failure mode - it fails closed rather than handing an alias to an unverified account.
+
 ## Already handled - do not redo
 
 - **The signed-in Playwright journey runs against production.** Both E2E tests pass against the live URL with an
