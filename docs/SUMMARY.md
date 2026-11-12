@@ -135,6 +135,29 @@ messages from the owner's own inbox. It is not a false-positive rate for email i
 no second modern legitimate corpus to measure that with. Detail and reproduction:
 [21-modern-corpus-evaluation-plan.md](21-modern-corpus-evaluation-plan.md) section 17.
 
+## The numbers a triage tool is judged on (2026-11-12)
+
+An analyst only looks at what the system flags, so the honest questions are "if we only flag 1% of the legitimate
+mail, how much phishing do we catch" and "does the score mean what it says". Measured on the shared 2026 holdout
+(2,865 legitimate messages never seen in training, 788 phishing from the 2024-2025 archives):
+
+| False-positive budget | False positives | Phishing caught | Recall | Precision |
+|---|---|---|---|---|
+| 1% | 28 of 2,865 | 522 of 788 | **0.662** | 0.949 |
+| 5% | 95 of 2,865 | 635 of 788 | **0.806** | 0.870 |
+
+Calibration, per band - the mean predicted probability against the phishing rate actually observed:
+
+| Band | n | Mean predicted | Observed | Reading |
+|---|---|---|---|---|
+| LOW | 2,987 | 0.025 | **0.061** | LOW is not "safe"; 181 phishing messages land there |
+| MEDIUM | 115 | 0.526 | 0.730 | under-predicts by about a third |
+| HIGH | 551 | 0.930 | **0.949** | calibrated; the band can be trusted |
+
+So the HIGH band means what it says and the LOW band does not. The calibration was fitted on a training mix
+dominated by 2003-2008 legitimate mail, and it drifts at the bottom of the range on a 2026 mix. Detail:
+[21-modern-corpus-evaluation-plan.md](21-modern-corpus-evaluation-plan.md) section 18.
+
 ## Data on disk
 
 | Data | Messages | Dates | Role | Training use |

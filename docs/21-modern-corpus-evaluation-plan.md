@@ -1039,7 +1039,74 @@ is not zero either.
 `backend/scripts/source_leak_test.py` (the classifier) and `backend/scripts/released_model_importances.py` (the
 gain shares). Both need the gitignored corpora, so they are scripts and not part of the pytest suite.
 
-## 18. Related documents
+## 18. Operating points and calibration (2026-11-12)
+
+A reviewer asked for the two numbers a triage tool is judged on, and the harness had neither: recall at a fixed
+low false-positive rate, and whether the probabilities mean anything. Both are now produced by
+`training.evaluate_modern`, measured on the shared holdout - 2,865 legitimate messages from 2026 that the model
+never saw, and 788 phishing messages from the 2024-2025 archives.
+
+### 18.1 Recall at a fixed false-positive rate
+
+The analyst only looks at what the system flags, so the useful question is not "what is the recall at probability
+0.5" but "if we only flag 1% of the legitimate mail, how much phishing do we catch".
+
+| False-positive budget | Threshold | False positives | Phishing caught | Recall | Precision |
+|---|---|---|---|---|---|
+| 1% | 0.722 | 28 of 2,865 | 522 of 788 | **0.662** | 0.949 |
+| 5% | 0.203 | 95 of 2,865 | 635 of 788 | **0.806** | 0.870 |
+
+At a 1% budget the analyst sees 28 false alarms in 2,865 legitimate messages, and 94.9% of what is flagged really is
+phishing. At 5%, 635 of the 788 phishing messages are caught. Both numbers describe a triage tool better than the
+band-boundary recall of 0.770 does.
+
+### 18.2 Calibration: the HIGH band can be trusted, the LOW band cannot
+
+Per risk band, the mean predicted probability against the phishing rate actually observed:
+
+| Band | n | Mean predicted | Observed phishing rate | Phishing messages |
+|---|---|---|---|---|
+| LOW | 2,987 | 0.025 | **0.061** | 181 |
+| MEDIUM | 115 | 0.526 | 0.730 | 84 |
+| HIGH | 551 | 0.930 | **0.949** | 523 |
+
+The reliability curve shows the same shape - calibrated at the top, over-confident at the bottom:
+
+| Predicted range | n | Mean predicted | Observed rate |
+|---|---|---|---|
+| 0.0-0.1 | 2,725 | 0.010 | 0.036 |
+| 0.1-0.2 | 198 | 0.179 | 0.283 |
+| 0.2-0.3 | 64 | 0.204 | 0.438 |
+| 0.5-0.6 | 94 | 0.538 | 0.755 |
+| 0.8-0.9 | 50 | 0.847 | 0.860 |
+| 0.9-1.0 | 403 | 0.987 | 0.983 |
+
+**What this means for the product.** A HIGH band means what it says: 94.9% of the messages in it really are
+phishing. A LOW band does not mean "safe" - the model predicts 2.5% risk there and the truth is 6.1%, and 181 of
+the 788 phishing messages land in LOW. The isotonic calibration was fitted on the training distribution, where
+legitimate mail is dominated by the 2003 and 2008 corpora and modern phishing by 2015-2023; on a 2026 mix the
+bottom of the range is where it drifts.
+
+Two consequences, and both are cheap:
+- The UI must not present LOW as "safe". It should state what the number means, which is the honest reading of a
+  6% residual risk.
+- The calibration curve is what to fix before the probabilities are quoted to an end user. The band boundaries are
+  a presentation layer on top of it, and the HIGH band - the one that drives the analyst's attention - is already
+  sound.
+
+### 18.3 Reproducing it
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -u -m training.evaluate_modern --model release/model `
+  --mailbox "data/raw/mailbox" --mailbox-since 2026-01-01 `
+  --phish-dir "..\.tmp\nazario-holdout-2024-2025" --phish-since 1970-01-01 --phish-until 2039-01-01 `
+  --out "..\.tmp\eval-release-new"
+```
+
+Roughly fifteen minutes: the mailbox is about 370 MB of raw mbox, and every message is parsed and featurised.
+
+## 19. Related documents
 
 - [17 - Real-corpus evaluation](17-real-corpus-evaluation.md): the grouped-split result and its caveats.
 - [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.

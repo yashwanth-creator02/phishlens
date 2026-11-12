@@ -189,6 +189,27 @@ SpamAssassin ham. It passed `backend/scripts/audit_model.py` with zero findings:
 and no distinctive subject word from the mailbox is in the published artifact, and the SHAP background sample contains
 no personal rows.
 
+### The numbers a triage tool is judged on
+
+An analyst only looks at what the system flags, so the two questions that matter are "if we only flag 1% of the
+legitimate mail, how much phishing do we catch" and "does the score mean what it says". Measured on the same holdout:
+
+| False-positive budget | Threshold | False positives | Phishing caught | Recall | Precision |
+|---|---|---|---|---|---|
+| 1% | 0.722 | 28 of 2,865 | 522 of 788 | **0.662** | 0.949 |
+| 5% | 0.203 | 95 of 2,865 | 635 of 788 | **0.806** | 0.870 |
+
+| Band | n | Mean predicted probability | Observed phishing rate | Reading |
+|---|---|---|---|---|
+| LOW | 2,987 | 0.025 | **0.061** | LOW is not "safe" - 181 phishing messages land there |
+| MEDIUM | 115 | 0.526 | 0.730 | under-predicts by about a third |
+| HIGH | 551 | 0.930 | **0.949** | calibrated, so the band can be trusted |
+
+The HIGH band means what it says; the LOW band does not. The isotonic calibration was fitted on a training
+distribution whose legitimate mail is dominated by 2003 and 2008 corpora, and it drifts at the bottom of the range
+on a 2026 mix. The consequence is a product one: the interface must not present LOW as "safe", and the calibration
+curve is what to fix before the probabilities are quoted to an end user.
+
 ### What the feature set can and cannot see
 
 The only modern legitimate mail in the training set is one inbox, so the features might identify the mail provider and

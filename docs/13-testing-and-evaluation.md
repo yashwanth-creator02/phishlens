@@ -56,6 +56,28 @@ Measured result on 4,102 messages (1,390 Nazario phishing, 2,712 SpamAssassin ha
 of 0.962. Method, caveats, and the exact reasons those numbers are not production accuracy are in
 [17-real-corpus-evaluation.md](17-real-corpus-evaluation.md).
 
+### Modern-mail operating points and calibration
+
+`backend/training/evaluate_modern.py` scores a model against a modern inbox and a held-out phishing window, and
+now also answers the two questions a triage tool is judged on: **recall at a fixed false-positive rate** (1% and 5%)
+and **whether the score means what it says** (per-band calibration and a reliability curve). It refuses to score a
+window the model was trained on unless it is told to, and it fails closed when the model's provenance cannot prove
+the window was disjoint.
+
+```powershell
+cd backend
+python -m training.evaluate_modern --model release/model `
+  --mailbox "data/raw/mailbox" --mailbox-since 2026-01-01 `
+  --phish-dir "..\.tmp\nazario-holdout-2024-2025" --phish-since 1970-01-01 --phish-until 2039-01-01 `
+  --out "..\.tmp\eval-release-new"
+```
+
+Measured on the shared 2026 holdout (2,865 legitimate messages never seen in training, 788 phishing from the
+2024-2025 archives): at a 1% false-positive budget the model catches 522 of 788 phishing messages at 94.9%
+precision; at 5% it catches 635. The HIGH band is calibrated (predicted 0.930, observed 0.949) and the LOW band is
+not (predicted 0.025, observed 0.061). Method and the full curves:
+[21-modern-corpus-evaluation-plan.md](21-modern-corpus-evaluation-plan.md) section 18.
+
 ## Evaluation experiments (to run on REAL data)
 | ID | Experiment | Purpose |
 |---|---|---|
