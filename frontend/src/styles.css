@@ -640,6 +640,11 @@ button.danger:hover {
   border-radius: var(--radius);
   padding: 32px;
 }
+/* The heading carries a 32px top margin for section use; inside the card that
+   stacks with the card padding and opens a hole above the title. */
+.login > h2:first-child {
+  margin-top: 0;
+}
 input[type="email"], input[type="password"], input[type="text"], input.input {
   width: 100%;
   padding: 10px 14px;
