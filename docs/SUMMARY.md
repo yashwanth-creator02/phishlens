@@ -1,4 +1,4 @@
-# PhishLens: one-page project brief
+﻿# PhishLens: one-page project brief
 
 Read this first. It is the project in about three minutes. Every claim here is expanded, and hedged where the
 evidence is thin, in the numbered docs at the end. Last updated 2026-11-11.
@@ -31,7 +31,7 @@ The design bet: an explanation the user can check is worth more than a slightly 
 - **That is not field accuracy, and the caveats are measured.** It is fitted on one person's inbox and on a phishing
   corpus that is 20 years old. Its domain-macro false-positive rate (0.112) misses its 0.10 gate, its recall (0.810)
   misses its 0.90 gate, and its Brier score (0.039) misses its 0.02 gate. The gates and the trade are in
-  [21](21-modern-corpus-evaluation-plan.md) section 16.
+  [21](21-modern-corpus-evaluation-plan.md) section 14.
 - Before the owner's mailbox was allowed into training, the corpora-only model flagged **99.9%** of legitimate modern
   mail. That history is kept in [21](21-modern-corpus-evaluation-plan.md) because the diagnosis is the point: modern
   legitimate mail has to be in the training set, and no feature mask can substitute for it.
@@ -86,7 +86,7 @@ on modern mail and old phishing learns that the notification mail that dominates
 
 **No candidate passes every gate.** Recall (0.90) and Brier (0.02) fail for all four. The best combined performer is D,
 at FPR 0.022 and recall 0.810, which misses its domain-macro gate by 0.012 and its recall gate by 0.090. The full gate
-table and the trade are in [21](21-modern-corpus-evaluation-plan.md) section 16.
+table and the trade are in [21](21-modern-corpus-evaluation-plan.md) section 14.
 
 ## Data on disk
 

@@ -1,9 +1,9 @@
-# 21 - Modern corpus evaluation plan
+﻿# 21 - Modern corpus evaluation plan
 
 **Last updated:** 2026-11-11
 **Status:** P0, P1 and P2 complete. P2 failed its gates, so H1 is rejected as sufficient and the ablation route to a
 candidate is closed. On 2026-11-11 the owner decided to use the personal mailbox as a modern legitimate-mail training
-source, which is the re-plan in section 13, option A. The four-candidate protocol (section 16) has since been run.
+source, which is the re-plan in section 13, option A. The four-candidate protocol (section 14) has since been run.
 **Harness:** `backend/training/evaluate_modern.py`
 **Decision owner:** project owner for promotion and privacy; see section 10
 
@@ -558,7 +558,7 @@ reason.
 The baseline in section 4 fails the FPR gates by a wide margin. That is expected and is not a P1 failure; P1's job
 is to record it cleanly.
 
-### 16.6 The release
+### 9.1 The release
 
 Candidate D's configuration was retrained with the current training code, so the released artifact is produced by the
 committed code rather than by an earlier run. The retrain reproduced candidate D exactly (macro F1 0.948, ROC-AUC
@@ -662,12 +662,12 @@ passes the gates on that holdout has demonstrated something the current model ca
 A personal-data-trained model must not be published to the public deployment. Until a candidate passes the P4 gates
 and the owner approves promotion, the synthetic demo model stays live (D1, D2 in section 10).
 
-## 16. The four-candidate protocol (2026-11-11)
+## 14. The four-candidate protocol (2026-11-11)
 
 The re-plan needs one variable changed at a time, and the obvious axis is how much modern legitimate mail the
 candidate sees. Four candidates were trained on the same protocol and scored on one shared holdout.
 
-### 16.1 The split
+### 14.1 The split
 
 The phishing side is split by **archive file**, not by message date. The corpus dates are not fit for it: some Nazario
 archives carry dates from 1970 to 2038, and 65 messages in the 2015-2025 archives have no `Date` at all, so a
@@ -686,7 +686,7 @@ The ham side is split by **date**, which the real inbox dates support.
 Every candidate is scored on the same holdout: ham from 2026 in both inboxes, and the 2024 and 2025 phishing
 archives. No candidate trained on any of it.
 
-### 16.2 What the numbers say
+### 14.2 What the numbers say
 
 | Candidate | Ham FPR@0.5 | Ham FPR@0.29 | Domain-macro FPR@0.29 | Phish recall@0.29 | Historical macro-F1 | Combined F1@0.5 |
 |---|---:|---:|---:|---:|---:|---:|
@@ -712,7 +712,7 @@ training and the false-positive rate collapses by a factor of thirty. What it do
 because a model trained on modern mail and old phishing has learned that the notification and list mail that dominates
 a real inbox is normal, and some of the older phishing campaigns look like that.
 
-### 16.3 Which gates pass, and by how much
+### 14.3 Which gates pass, and by how much
 
 | Gate | Threshold | A | B | C | D |
 |---|---:|---:|---:|---:|---:|
@@ -734,7 +734,7 @@ mapping is poor for one of them. This is a calibration problem with a known fix 
 calibrator and use a threshold on the raw probability), not evidence that the model does not separate the classes: the
 ROC-AUC of 0.961 for D is unaffected by the calibrator.
 
-### 16.3 The demo-sample gate, and what the fixtures had to become
+### 14.4 The demo-sample gate, and what the fixtures had to become
 
 The gate asks the two hand-written legitimate fixtures to score at most 29. All four candidates scored them 53 to 100
 at first. The cause was not the era inversion the gate was written to detect; it was that the fixtures were not
@@ -759,9 +759,7 @@ phrases as plain substrings, so a legitimate warning ("never reveal your OTP") r
 fires on 3.9% of real modern mail, and those messages still score LOW, so it is a nuisance rather than a defect
 today. A negation-aware match would be the fix.
 
-### 16.4 What each side of the failure tells us
-
-### 16.3 What each side of the failure tells us
+### 14.5 What each side of the failure tells us
 
 The false positives are concentrated in modern legitimate mail that the model has no modern legitimate counterpart
 for. The per-domain table shows the pattern: notification and list mail (bank alerts, job portals, newsletters,
@@ -771,7 +769,7 @@ learned a phishing shape from the phishing corpus, and the shape of modern legit
 This is the same failure the P2 ablation could not fix, now with a different lever: the lever is not which features
 are visible but whether modern legitimate mail is in the training set at all.
 
-### 16.5 The promotion decision
+### 14.6 The promotion decision
 
 The gates were written to stop a model that cries wolf. Candidate D does not cry wolf: it flags 2.2% of legitimate
 mail at probability 0.5 and 4.1% at the triage boundary, against a baseline that flagged 99.9%. On the combined
@@ -791,7 +789,52 @@ The owner's decision on 2026-11-11 was to allow a personal-mailbox model to be p
 data. The audit is that gate: it proves the artifact is clean. The accuracy gates above are a separate matter, and the
 numbers are recorded here so the choice is visible rather than implied.
 
-## 17. How to reproduce
+## 15. The Kaggle corpora (2026-11-12)
+
+The owner's instruction was to add Kaggle datasets to the training. What the survey found is that most Kaggle
+phishing datasets cannot feed this pipeline, and the ones that can add phishing volume from the era the model already
+handles. `docs/datasets/README.md` records which datasets were used and why the others were rejected.
+
+Three corpora were ingested and are usable: CEAS 2008 (20,874 phishing, 17,293 ham), the Nigerian 419 scams (2,720
+phishing), and a Kaggle repackaging of SpamAssassin (1,701 phishing, 4,087 ham). They were rebuilt from CSV into real
+`.eml` messages, because the feature extractor reads raw messages and these datasets ship the email split across
+columns.
+
+Two candidates were trained against the released configuration, on the same shared holdout as section 14.
+
+| Candidate | Training | Ham FPR@0.5 | Ham FPR@0.29 | Domain-macro | Phish recall@0.29 | Combined F1@0.5 | ROC-AUC |
+|---|---|---:|---:|---:|---:|---:|---:|
+| D (released) | Nazario + SpamAssassin + inbox | 0.022 | 0.041 | 0.112 | 0.810 | 0.806 | 0.961 |
+| E | D + Kaggle phishing | 0.004 | 0.013 | 0.045 | 0.674 | 0.703 | 0.967 |
+| F | E + Kaggle ham | see below | | | | | |
+
+### 15.1 What E shows, and why it is not the win it looks like
+
+E's false-positive numbers are the best of any candidate: 0.4% at probability 0.5 and 1.3% at the triage boundary,
+and the domain-macro rate of 0.045 passes the gate that D misses at 0.112. Its ROC-AUC of 0.967 is also better than
+D's 0.961, so the *ranking* of modern messages improved.
+
+What got worse is recall: 0.674 at the triage boundary against D's 0.810. The cause is visible in the training set.
+E adds 23,579 phishing messages to D's 3,516, so the class balance moves from 40% phishing to 84%. The model is
+trained mostly on phishing, its calibrated probabilities shift with the prior, and the operating point moves along a
+curve that was already better than D's.
+
+That is the honest reading: **E is not a better model at the same operating point, it is a better model at a different
+one.** A candidate that is only better because its threshold moved is not a candidate worth promoting, and the fix is
+class balance rather than more data.
+
+### 15.2 The class balance is the lever, not the corpus
+
+Adding the Kaggle ham side in candidate F restores the balance and is the configuration that would decide the
+question. If F holds E's false-positive rate while recovering D's recall, the Kaggle corpora are worth keeping. If F
+recovers D's numbers exactly, then what E measured was the class balance and the Kaggle phishing adds nothing on its
+own.
+
+Either way the useful finding is already in hand: **the released model's worst gate, domain-macro FPR at 0.112, is
+reachable by changing the class balance of the training set.** That is a lever that needs no new data at all, and it
+is worth testing on the released configuration before spending more time on corpora.
+
+## 16. How to reproduce
 
 All commands run from `backend/` on Windows PowerShell.
 
@@ -843,7 +886,7 @@ The harness defaults to `models` for `--model-dir` and to
 `data/raw/mailbox/All mail Including Spam and Trash.mbox` for `--mailbox`, so those flags can be omitted when
 running from `backend/`.
 
-## 15. Related documents
+## 17. Related documents
 
 - [17 - Real-corpus evaluation](17-real-corpus-evaluation.md): the grouped-split result and its caveats.
 - [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.

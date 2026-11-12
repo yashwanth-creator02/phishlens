@@ -1,4 +1,4 @@
-# 02 - Project log: what was done, in order, and why
+﻿# 02 - Project log: what was done, in order, and why
 
 This is the complete record of the work done with Claude on PhishLens up to the creation of this repository (v0.1).
 Dates are from the working sessions (Sep-Oct 2026). Status legend: **DONE**, **PARTIAL**, **NOT DONE**.
@@ -244,7 +244,7 @@ the synthetic demo.
 ## 2026-11-10 - Full Nazario corpus fetch and a one-page project summary
 
 - **Every published Nazario year is now fetched.** `download_datasets` pulls `phishing0`, `20051114`, `phishing1`,
-  `phishing2`, `phishing3`, and `phishing-2015` … `phishing-2025` (15 files, 124 MB). Parsed and deduped: 4,306
+  `phishing2`, `phishing3`, and `phishing-2015` â€¦ `phishing-2025` (15 files, 124 MB). Parsed and deduped: 4,306
   phishing messages, up from 2,182; with 2,712 SpamAssassin legitimate messages the corpus is 7,018 messages.
   The model was **not** retrained: `xgboost-corpus-20261110-s7` still reflects the 4,261-message fetch, and docs
   17/19 plus the dataset card now say so explicitly.
@@ -308,7 +308,7 @@ the synthetic demo.
 - **The results, and the trade.** A: FPR@0.5 0.263, recall 0.958. B: 0.071, 0.900. C: 0.008, 0.720. D: 0.022, 0.810.
   Putting real modern legitimate mail into training cuts the false-positive rate by a factor of thirty, and it costs
   recall. No candidate passes every gate: recall (0.90) and Brier (0.02) fail for all four, and D misses the
-  domain-macro gate by 0.012. The numbers are in `docs/21-modern-corpus-evaluation-plan.md` section 16 rather than
+  domain-macro gate by 0.012. The numbers are in `docs/21-modern-corpus-evaluation-plan.md` section 14 rather than
   smoothed over.
 - **A privacy gate, so the model could be published at all.** `backend/scripts/audit_model.py` reads the sender
   domains, email addresses and distinctive subject words out of the mailbox and searches every file of a model

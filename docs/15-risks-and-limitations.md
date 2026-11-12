@@ -1,4 +1,4 @@
-# 15 - Risks and limitations
+﻿# 15 - Risks and limitations
 
 ## Known limitations of v0.1 (honest list)
 1. **The demo model is trained on generated data.** The app's own output is not validated against real mail; real
@@ -38,7 +38,7 @@
     at probability 0.5, against 99.9% for the corpus-only model, but catches only 72% of held-out phishing. Adding
     2003 ham back restores recall to 0.810 and the false-positive rate to 2.2%, at the cost of a domain-macro rate of
     0.112 that misses its 0.10 gate. The full table is in
-    [21](21-modern-corpus-evaluation-plan.md) section 16. **No candidate passes every gate**: recall and Brier fail for
+    [21](21-modern-corpus-evaluation-plan.md) section 14. **No candidate passes every gate**: recall and Brier fail for
     all four, so a published model is a trade, not a clean win.
 15. **No free, real, modern ham corpus exists.** The SpamAssassin public corpus ends in 2005; the public modern
     "spam/ham" sets that do exist are explicitly synthetic (generated mail with generated headers) and cannot serve as

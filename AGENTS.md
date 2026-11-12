@@ -1,4 +1,4 @@
-# PhishLens project instructions
+﻿# PhishLens project instructions
 
 ## What this project is
 
@@ -166,7 +166,7 @@ Also upload at least one sample email through the UI or API and confirm a scored
   `docs/21-modern-corpus-evaluation-plan.md`; do not quote an accuracy claim for modern mail.
 - The released model is personal-data-derived and **misses three of its own promotion gates**: domain-macro FPR 0.112
   against 0.10, recall 0.810 against 0.90, Brier 0.039 against 0.02. The measurement is in
-  `docs/21-modern-corpus-evaluation-plan.md` section 16; any claim about it must carry those numbers.
+  `docs/21-modern-corpus-evaluation-plan.md` section 14; any claim about it must carry those numbers.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
