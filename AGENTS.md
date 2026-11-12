@@ -183,6 +183,8 @@ Also upload at least one sample email through the UI or API and confirm a scored
 - Docker Compose has not been exercised in this environment. Docker Desktop 4.99 is installed and the WSL2
   features it needs are enabled, but they only take effect after a Windows restart, so the local image build is
   unverified; the Render build runs the same Dockerfile and is the deployed backend.
+- Upload multipart bodies are parsed by Starlette before the route runs, so the 10 MB application cap does not replace
+  a reverse-proxy body limit.
 - The frontend is live on Vercel (https://phishlens-gules.vercel.app) with `VITE_API_BASE_URL` pointing at the Render
   backend, and the backend is live on Render (`phishlens-api`, https://phishlens-api-6esn.onrender.com). Both
   auto-deploy on a push to `main`. The deployed backend serves the released model from `backend/release/model/`.

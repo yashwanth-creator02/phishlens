@@ -6,13 +6,15 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **verified against evidence actually found in the email** before they are shown.
 
 > Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 52 backend and 18 frontend tests, plus a Playwright smoke test. It ships with a
-> **synthetic-data demo model for pipeline checks only**; detection quality is measured offline on the Nazario and
-> SpamAssassin corpora (grouped-split F1 0.987, one split, no confidence interval - see
-> [docs/17-real-corpus-evaluation.md](docs/17-real-corpus-evaluation.md), including the corpus artefacts that
-> inflate that number). Real inbound-email provider, real domain-age
-> lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md) and
-> [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md)).
+> verified reasons -> API -> web UI) with 115 backend and 23 frontend tests, plus a Playwright smoke test. The
+> released model is `xgboost-corpus-20261112-s7`, an XGBoost over the same 65 features, fitted partly on one real
+> inbox. It measures a false-positive rate of 0.018 on held-out 2026 mail **from that same inbox**, with phishing
+> recall 0.770. **Those numbers describe that combination and are not a general detection rate**: the feature set
+> identifies the mail provider and the era with 0.981 accuracy, and the corpora are 20 years old. The caveats, the
+> ablations and the measurement are in
+> [docs/21-modern-corpus-evaluation-plan.md](docs/21-modern-corpus-evaluation-plan.md) and
+> [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md). Real inbound-email provider, real domain-age
+> lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md)).
 
 **New here?** [docs/SUMMARY.md](docs/SUMMARY.md) is the whole project in three minutes; every claim links to the
 detailed page behind it.
@@ -48,7 +50,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 python -m training.train --source synthetic --n 2400 --out models --reports reports --activate   # DEMO model, ~60 s
-python -m pytest -q                                      # 68 pass, 1 skipped (needs Supabase creds)
+python -m pytest -q                                      # 115 pass, 1 skipped (needs Supabase creds)
 python -m uvicorn app.main:app --reload --port 8000      # API docs: http://localhost:8000/docs
 
 # 2) frontend (second terminal)
