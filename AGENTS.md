@@ -15,7 +15,7 @@ combination and not real-world detection. See `docs/21-modern-corpus-evaluation-
 ## Stack
 
 - Backend: Python 3.11+ (CI and Docker use 3.12), FastAPI, SQLAlchemy 2, Pydantic Settings, scikit-learn, XGBoost, SHAP, joblib.
-- Frontend: React 18, TypeScript, Vite 5, optional Supabase authentication.
+- Frontend: React 18, TypeScript, Vite 5, Supabase authentication (email + password, Google, or a guest session).
 - Data: SQLite by default for local development; PostgreSQL/Supabase schema in `supabase/migrations/`.
 - Packaging: Docker Compose, Makefiles, GitHub Actions.
 
@@ -63,15 +63,24 @@ Open http://localhost:5173 and upload a file from `backend/data/sample_emails/`.
 
 ## Configuration
 
-Settings come from environment variables with the `PHISHLENS_` prefix, loaded from `backend/.env` when present. Defaults are development-safe only:
+Settings come from environment variables with the `PHISHLENS_` prefix, loaded from `backend/.env` when present.
 
 - `DATABASE_URL=sqlite:///./phishlens.db`
-- `AUTH_MODE=disabled`, `DEV_USER_ID=dev-user`
+- `AUTH_MODE=supabase` - **authentication is on in local development too**, against the same Supabase project as the
+  deployment, so a local checkout exercises the real sign-in, verification and isolation paths. Set
+  `PHISHLENS_AUTH_MODE=disabled` for the single-user bypass.
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWKS_URL` - the defaults point at this project's Supabase
+  instance. These are **public** values: the anon key is a client-side key by design and grants the `anon` role
+  nothing here (no table in `supabase/migrations/` grants it). The `service_role` key is a secret and must never be
+  committed, logged, or sent to the browser.
+- `DEV_USER_ID=dev-user` (only used when `AUTH_MODE=disabled`)
 - `WEBHOOK_SECRET=change-me`
+- `ALIAS_DOMAIN=phishlens.example` - the placeholder domain for the forwarding alias. It is not a real mailbox;
+  `docs/18-open-manual-actions.md` item 6 covers giving the bot a real address.
 - `MODEL_DIR=./models`, `STORAGE_DIR=./storage`
 - `BAND_LOW_MAX=29`, `BAND_HIGH_MIN=70`
 
-`.env.example` is written for Docker Compose (its database path is `/app/data_db/...`). Do not copy it for local development without changing `PHISHLENS_DATABASE_URL`. Never commit any `.env` file. Set a real webhook secret and enable authentication before exposing the service.
+`.env.example` is written for Docker Compose (its database path is `/app/data_db/...`). Do not copy it for local development without changing `PHISHLENS_DATABASE_URL`. Never commit any `.env` file. Set a real webhook secret before exposing the service.
 
 ## Pipeline and invariants
 
@@ -114,6 +123,9 @@ python -m training.train --source corpus --phish-dir C:\data\nazario --legit-dir
 
 # Score a model on modern mail (evaluation only; never writes a model)
 python -m training.evaluate_modern --model-dir models --phish-dir data/raw/nazario --out reports/modern
+
+# Does the feature set identify the corpus instead of the message?
+python -m scripts.source_leak_test --out ..\.tmp\leak
 
 # Privacy audit before publishing a model (required for any model fitted on a personal mailbox)
 python -m scripts.audit_model --model models/active --mailbox data/raw/mailbox
@@ -173,6 +185,11 @@ Also upload at least one sample email through the UI or API and confirm a scored
   is classified by source with 0.981 accuracy (0.980 on the header features alone). The released model leans on
   those features for 10.1% of its gain, so the 0.018 false-positive rate describes held-out mail from the owner's
   own inbox and is **not** a general false-positive rate. See `docs/21-modern-corpus-evaluation-plan.md` section 17.
+- The shortcut is **redundant**, so no single feature can be patched away: removing the whole 13-feature header group
+  only takes the corpus-recovery accuracy from 0.981 to 0.885, and the format-only fingerprint reaches 0.999 and
+  survives dropping the MIME block (0.988) and the transport headers. The fix is training data from one world and a
+  second inbox to test on, not feature engineering. `python -m scripts.source_leak_test` reproduces it;
+  `docs/22-training-methodology-and-measurements.md` records it.
 - The **LOW band is not "safe"**: the model predicts 2.5% risk there and the observed phishing rate is 6.1%, so 181
   of 788 phishing messages land in LOW. The HIGH band is calibrated (predicted 0.930, observed 0.949) and can be
   trusted. Do not present LOW as safety in the UI. See `docs/21-modern-corpus-evaluation-plan.md` section 18.

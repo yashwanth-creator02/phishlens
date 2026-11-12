@@ -15,7 +15,7 @@ from app.db.models import Analysis
 from app.db.session import get_db
 from app.ml.registry import ModelBundle
 from app.schemas import (AliasOut, AnalysisDetail, AnalysisList, AnalysisSummary, AttachmentOut, BaselineOut,
-                         FeatureOut, ModelInfo, PurgeOut, ReasonOut)
+                         FeatureOut, ForwardingInfo, ModelInfo, PurgeOut, ReasonOut)
 from app.scoring.risk_bands import GUIDANCE
 from app.services import analysis_service
 
@@ -117,6 +117,22 @@ def purge_old(x_admin_token: str | None = Header(default=None, alias="X-Admin-To
     before = datetime.utcnow() - timedelta(days=settings.retention_days)
     deleted = analysis_service.purge_expired(db, before)
     return PurgeOut(deleted=deleted)
+
+
+@router.get("/forwarding", response_model=ForwardingInfo)
+def forwarding_info(settings: Settings = Depends(get_settings)) -> ForwardingInfo:
+    """Where a user should forward mail, for a visitor who has no account yet.
+
+    The alias is per account, so only the domain and the shape of the address can
+    be published. `inbound_configured` is false while the server still carries the
+    placeholder webhook secret, which means no provider can deliver mail to it yet.
+    """
+    domain = settings.alias_domain
+    return ForwardingInfo(
+        alias_domain=domain,
+        alias_pattern=f"u-<token>@{domain}",
+        inbound_configured=settings.webhook_secret not in ("", "change-me"),
+    )
 
 
 @router.get("/me/alias", response_model=AliasOut)

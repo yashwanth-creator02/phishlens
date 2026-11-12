@@ -56,3 +56,9 @@ export interface Health {
   detail?: string;
   auth_mode: string;
 }
+
+export interface ForwardingConfig {
+  alias_domain: string;
+  alias_pattern: string;
+  inbound_configured: boolean;
+}

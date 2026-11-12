@@ -16,6 +16,7 @@ export default function Profile() {
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const handleResend = async () => {
     if (!user?.email || !supabase) return;
@@ -48,7 +49,11 @@ export default function Profile() {
         <dl className="facts">
           <div>
             <dt>Signed in as</dt>
-            <dd className="mono">{user?.email ?? "Authentication is disabled on this deployment"}</dd>
+            <dd className="mono">
+              {user?.is_anonymous
+                ? "Guest user (anonymous session)"
+                : user?.email ?? "Authentication is disabled on this deployment"}
+            </dd>
           </div>
           <div>
             <dt>Session</dt>
@@ -59,22 +64,34 @@ export default function Profile() {
           <button
             className="secondary"
             type="button"
+            disabled={signingOut}
             onClick={async () => {
-              await signOut();
-              nav("/login");
+              setSigningOut(true);
+              try {
+                await signOut();
+                nav("/login");
+              } finally {
+                setSigningOut(false);
+              }
             }}
           >
-            Sign out
+            {signingOut ? "Signing out..." : "Sign out"}
           </button>
         </div>
       </section>
 
       <section className="card" aria-labelledby="profile-alias-heading">
         <h2 id="profile-alias-heading">Forwarding address</h2>
-        {aliasState.status === "loading" && (
+        {user?.is_anonymous ? (
+          <div className="card medium" role="region" aria-labelledby="guest-heading" style={{ marginTop: "12px" }}>
+            <h3 id="guest-heading" style={{ marginTop: 0 }}>Guest account</h3>
+            <p className="muted" style={{ maxWidth: "68ch" }}>
+              Upload an email to try the full flow. A guest has no forwarding address; sign up with an email to get one.
+            </p>
+          </div>
+        ) : aliasState.status === "loading" ? (
           <p className="muted">Loading your forwarding address...</p>
-        )}
-        {aliasState.status === "verified" && (
+        ) : aliasState.status === "verified" ? (
           <>
             <p className="mono big" style={{ margin: "8px 0 0 0" }}>{aliasState.address}</p>
             <p className="muted" style={{ margin: "12px 0 0 0", maxWidth: "68ch" }}>
@@ -83,8 +100,7 @@ export default function Profile() {
               the system then reports them as missing rather than failed.
             </p>
           </>
-        )}
-        {aliasState.status === "unverified" && (
+        ) : aliasState.status === "unverified" ? (
           <div className="card medium" role="region" aria-labelledby="verify-heading" style={{ marginTop: "12px" }}>
             <h3 id="verify-heading" style={{ marginTop: 0 }}>Verify your email address</h3>
             <p className="muted">Account email: <span className="mono">{user?.email ?? "unknown"}</span></p>
@@ -104,16 +120,14 @@ export default function Profile() {
             {resendStatus && <p className="muted" style={{ marginTop: "8px", color: "var(--low)" }}>{resendStatus}</p>}
             {resendError && <p className="error" role="alert" style={{ marginTop: "8px" }}>{resendError}</p>}
           </div>
-        )}
-        {aliasState.status === "unconfigured" && (
+        ) : aliasState.status === "unconfigured" ? (
           <div className="card medium" role="region" aria-labelledby="unconfigured-heading" style={{ marginTop: "12px" }}>
             <h3 id="unconfigured-heading" style={{ marginTop: 0 }}>Email verification not configured</h3>
             <p className="muted" style={{ maxWidth: "68ch" }}>
               Email verification is not configured on this server yet. Forwarding alias is temporarily unavailable.
             </p>
           </div>
-        )}
-        {aliasState.status === "error" && (
+        ) : (
           <p className="error" role="alert">Could not load your forwarding address: {aliasState.message}</p>
         )}
       </section>

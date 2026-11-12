@@ -224,10 +224,21 @@ The fingerprint is real and it lives in the headers: `received_hops`, `from_retu
 the SPF/DKIM/DMARC results. But the released model leans on those ten features for only **10.1%** of its gain; the
 dominant signal is `subject_reply_without_history` at 41.5%. It is not simply recognising its own provider.
 
+**The shortcut is redundant, so it cannot be patched away.** Removing the whole 13-feature header group only takes the
+corpus-recovery accuracy from 0.981 to **0.885** - still far above chance. The format-only fingerprint (which header
+names are present, the shape of the Date and the Message-ID, the charset, the MIME structure, the line endings, the
+length of the Received chain) reaches **0.999**, and survives dropping the MIME block (0.988) and the transport
+headers entirely. Several feature classes each identify the corpus on their own, so removing one changes nothing.
+
+The consequence is that this is a **data** problem, not a feature-engineering problem: the corpora differ in era,
+provider, encoding and content style all at once, and no large enough subset of the features stops that. The fix is
+training data where the legitimate and the phishing mail come from the same world, and a second inbox to measure the
+false-positive rate on.
+
 **The consequence for how these numbers may be quoted:** the 0.018 false-positive rate describes 2,865 held-out 2026
 messages from the owner's own inbox. It is not a false-positive rate for email in general, and there is no second
 modern legitimate corpus in this repository to measure that with. Method and reproduction:
-`docs/21-modern-corpus-evaluation-plan.md` section 17.
+`docs/22-training-methodology-and-measurements.md`.
 
 ## 6. Security and privacy
 

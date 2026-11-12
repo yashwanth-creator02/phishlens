@@ -640,6 +640,11 @@ button.danger:hover {
   border-radius: var(--radius);
   padding: 32px;
 }
+/* The heading carries a 32px top margin for section use; inside the card that
+   stacks with the card padding and opens a hole above the title. */
+.login > h2:first-child {
+  margin-top: 0;
+}
 input[type="email"], input[type="password"], input[type="text"], input.input {
   width: 100%;
   padding: 10px 14px;
@@ -773,6 +778,73 @@ input:focus {
   align-items: center;
   gap: 16px;
   margin: 24px 0;
+}
+
+.login-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(380px, 420px);
+  gap: 48px;
+  align-items: center;
+  min-height: 80vh;
+  max-width: 1120px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+@media (max-width: 850px) {
+  .login-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    min-height: auto;
+    margin: 20px auto;
+  }
+}
+
+/* The password field's show/hide control sits inside the input, so it needs a
+   real hit area and must not shift the field when it appears. */
+.password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+}
+.password-toggle:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg);
+}
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* An icon-only control: the accessible name comes from aria-label, so it needs
+   a visible focus ring of its own. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-button:hover {
+  color: var(--text);
+  background: var(--bg);
 }
 
 @media (prefers-reduced-motion: reduce) {

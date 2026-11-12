@@ -13,7 +13,40 @@ The 2026-11-12 work needed nothing from you. The Kaggle corpora were ingested, t
 picked was released through the privacy audit (`backend/scripts/release_model.py`, 0 findings), and Render rebuilt and
 now serves it (`xgboost-corpus-20261112-s7`).
 
-## 1. Restart Windows once, so Docker's engine can start (2 minutes)
+## 1. Confirm acceptance of Phishing Pot licence terms (CC BY-NC 4.0) (1 minute)
+
+**Why:** Using the Phishing Pot corpus (`rf-peixoto/phishing_pot`) requires attribution and is licensed under CC BY-NC 4.0 (Non-Commercial). Before using this data for training or inclusion in a released model, the user must confirm that the project is non-commercial and that attribution will be included.
+
+**Steps:** Review the repository at https://github.com/rf-peixoto/phishing_pot and confirm acceptance of CC BY-NC 4.0 terms.
+
+**Done when:** You confirm acceptance to the agent.
+
+## 2. Get a second person's mailbox for the final false-positive test (20 minutes for them)
+
+**Why:** the model's false-positive rate is currently measured on **your** inbox, which is also part of its training
+data. The reviewer's point is that this number cannot be read as a general false-positive rate: the feature set
+identifies the mail provider and the era, not only the message (`docs/22-…` has the measurement). A second inbox from
+a different provider is the only way to find out whether the number transfers, and it is the final test set - nothing
+is tuned on it.
+
+**Steps:** ask a friend or a classmate, with their clear consent, for their legitimate mail. The cleanest route is for
+them to run the extraction script locally and send only the feature CSV, never the raw emails:
+
+1. In Google Takeout, select **Mail only** (not Spam or Trash) and download the export. Put the `.mbox` in
+   `backend/data/raw/mailbox-second/` - that directory is gitignored, and it must never be committed.
+2. Or run the extraction locally and send only the CSV:
+   ```powershell
+   cd backend
+   .\.venv\Scripts\python.exe -m training.profile_corpus --mailbox <path-to-their-export> --out <their-csv>
+   ```
+   The CSV has one row per message and 65 numbers per row. It contains no text, no addresses and no subjects.
+
+**Their data never enters training.** It is the test set, and it is used once.
+
+**Done when:** the folder `backend/data/raw/mailbox-second/` has the export (or the CSV is handed over), and the
+agent can report the false-positive rate at the shipped thresholds on mail the model has never seen.
+
+## 3. Restart Windows once, so Docker's engine can start (2 minutes)
 
 **Why:** Docker Desktop 4.99 is installed, and its Linux engine needs WSL2. The two Windows optional features it
 requires were enabled on 2026-11-12, but enabling them only takes effect after a restart, so the engine still reports
@@ -31,7 +64,7 @@ docker build -f backend/Dockerfile -t phishlens-api backend
 **Why it is optional:** the deployed backend does not depend on the local build. Render builds the same Dockerfile on
 the same base image, and that is what runs in production.
 
-## 2. Optional: restore push-to-deploy for the backend (2 minutes)
+## 4. Optional: restore push-to-deploy for the backend (2 minutes)
 
 **Why:** the `phishlens-api` service already has `autoDeploy = yes` and the `main` push rebuilt it once; this is now
 just housekeeping. The one thing it cannot do is the first step, which is already done.
@@ -41,34 +74,77 @@ just housekeeping. The one thing it cannot do is the first step, which is alread
 
 **Done when:** a push to `main` produces a new Render build on its own (it already does).
 
-## 3. Fallback if Render ever refuses you
+## 5. Fallback if Render ever refuses you
 
 If Render asks for a card or blocks the account, say so and the agent will instead expose the local backend through a
 cloudflared quick tunnel for the demo. Trade-off: the URL changes on every restart, exists only while your machine and
 the tunnel are running, and the Vercel build has to be redeployed each time it changes.
 
-## 4. Turn on "Confirm email" in Supabase (2 minutes)
+## 6. Enable anonymous sign-ins in Supabase (1 minute)
 
-**Why:** a forwarding alias is a capability - whoever holds it puts mail into that account's history - so it is now
-issued only to an account whose email address is confirmed. The backend enforces this itself and the Render service
-already has `PHISHLENS_SUPABASE_ANON_KEY` set, so the only thing left is the Supabase-side setting.
+**Why:** the login screen now has a "Try it as a guest" button. Supabase refuses to create an anonymous session
+until this provider is switched on, so the button currently fails with "Anonymous sign-ins are disabled".
+
+**Steps:** Supabase dashboard -> Authentication -> Sign In / Providers -> **Anonymous** -> tick **Enable anonymous
+sign-ins** -> Save.
+
+**Done when:** https://phishlens-gules.vercel.app shows "Try it as a guest", clicking it signs you in, and the
+Profile screen says "Guest account" instead of asking you to verify an email. A guest can upload and triage
+emails, and correctly gets no forwarding address, because there is no confirmed email to own one.
+
+**Already done by the agent:** the button and the guest-aware Profile panel are built and unit-tested
+(`frontend/src/pages/Login.test.tsx`, `frontend/src/pages/Profile.test.tsx`).
+
+## 7. Turn on Google sign-in (10 minutes)
+
+**Why:** the login screen has a "Continue with Google" button, but Google sign-in needs OAuth credentials that
+only you can create, because they belong to your Google account. Until they exist, the button returns Google's
+"provider not enabled" error.
 
 **Steps:**
 
-1. Supabase dashboard -> Authentication -> Sign In / Providers -> Email -> turn **Confirm email** on. With it on,
-   GoTrue refuses to issue a session to an unconfirmed address, so an unconfirmed account cannot sign in at all.
-2. Send yourself a confirmation email from the sign-up screen, open it, and confirm. The account then signs in and
-   `GET /api/me/alias` returns the forwarding address.
+1. Google Cloud Console -> create a project (or use an existing one) -> **APIs & Services -> OAuth consent
+   screen**. Set the app name, choose **External**, add your own address as a test user, and save.
+2. **Credentials -> Create Credentials -> OAuth client ID -> Web application.** Authorised redirect URI:
+   `https://<project-ref>.supabase.co/auth/v1/callback`. Authorised JavaScript origin: your app origin
+   (`https://phishlens-gules.vercel.app`, and `http://localhost:5173` for local development).
+3. Copy the **Client ID** and **Client secret**.
+4. Supabase dashboard -> Authentication -> Sign In / Providers -> **Google** -> tick **Enable Google** -> paste the
+   client ID and secret -> Save.
+5. Supabase dashboard -> Authentication -> URL Configuration -> **Redirect URLs** -> add
+   `https://phishlens-gules.vercel.app` and `http://localhost:5173`.
 
-**Done when:** a confirmed account can sign in on https://phishlens-gules.vercel.app and see its forwarding address on
-the Profile screen, and an unconfirmed account gets a "verify your email" message instead of an address.
+**Done when:** "Continue with Google" on https://phishlens-gules.vercel.app sends you to Google and back, signed
+in, with the six screens visible.
 
-**Already done by the agent:** `PHISHLENS_SUPABASE_ANON_KEY` is set on the Render service (the public `anon` key,
-never the `service_role` key), the API base URL is derived from the JWKS URL the service already had, and
-`render.yaml` declares the variable for future blueprint syncs.
+**Already done by the agent:** the button, its error handling and its unit test are in place; the backend needs no
+change, because a Google session is a normal Supabase JWT and is verified by the same path as a password sign-in.
 
-**Note:** if the anon key is ever missing, `GET /api/me/alias` answers 503 ("Email verification is not configured").
-That is the intended failure mode - it fails closed rather than handing an alias to an unverified account.
+## 8. Give the bot a real email address (30-60 minutes, needs a domain)
+
+**Why:** the alias domain is still the placeholder `phishlens.example`, which is not a real mailbox, so
+forwarding a suspicious email does not reach the system yet. This is the last piece of the forwarding path, and
+it is the one thing that needs a domain you own and an account on an inbound-email provider.
+
+**Steps:**
+
+1. Buy a domain (or use one you already own). It only needs to receive mail.
+2. Pick an inbound provider that can POST the raw message to a webhook: **Mailgun routes**, **Postmark inbound**,
+   **SendGrid inbound parse**, or **Cloudflare Email Routing plus a Worker**. Any of them works; the system only
+   needs `POST /api/webhooks/inbound` with the raw RFC-5322 message.
+3. Point the domain's MX records at that provider, and set the provider's webhook to
+   `https://phishlens-api-6esn.onrender.com/api/webhooks/inbound` with the shared secret in the
+   `X-Webhook-Secret` header. The secret is the value of `PHISHLENS_WEBHOOK_SECRET` on the Render service.
+4. Set the domain on Render: `PHISHLENS_ALIAS_DOMAIN=<your domain>` (for example `phishlens.app`). Save and let
+   Render redeploy.
+
+**Done when:** `GET /api/forwarding` reports your domain and `inbound_configured: true`, and forwarding a test
+email to `u-<token>@<your domain>` appears in the account's history within seconds.
+
+**Already done by the agent:** the alias flow, the per-account address, the webhook endpoint with its secret
+check, and `GET /api/forwarding`, which publishes the domain and the address pattern for the login screen. The
+login screen already tells a visitor when inbound forwarding is not connected, so nobody is misled in the
+meantime.
 
 ## Already handled - do not redo
 
@@ -104,5 +180,13 @@ That is the intended failure mode - it fails closed rather than handing an alias
   and was redeployed on 2026-11-06; the served bundle references the Render host.
 - Render MCP is installed globally (API key via `{env:RENDER_API_KEY}`) and verified working.
 - **Vercel is linked to the repo** (user installed the GitHub App; pushes now deploy on their own).
-- **Supabase Auth is configured**: Site URL set, Confirm email off, demo users seeded from the dashboard, and the
-  deployed sign-in works end to end.
+- **Supabase Auth is configured**: Site URL set, **Confirm email is on** (turned on 2026-11-12, and verified: a
+  confirmed account now gets `200` and a real forwarding address from `GET /api/me/alias`), demo users seeded from
+  the dashboard, and the deployed sign-in works end to end.
+- **Authentication is on in local development too.** `PHISHLENS_AUTH_MODE` now defaults to `supabase` and the
+  public Supabase values (project URL, anon key, JWKS URL) are the defaults in `backend/app/core/config.py` and
+  `frontend/src/supabase.ts`. A local checkout therefore exercises the real sign-in, verification and isolation
+  paths instead of a single-user bypass. `PHISHLENS_AUTH_MODE=disabled` still exists as an opt-out.
+- **The forwarding (bot) address is published for visitors.** `GET /api/forwarding` returns the alias domain, the
+  address pattern and whether inbound mail is connected, and the login screen shows it. The per-account token is
+  never published; the address appears on the Profile screen after sign-in.

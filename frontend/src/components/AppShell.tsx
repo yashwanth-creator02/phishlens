@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth";
 import { ToastProvider } from "./Toast";
 import { ConfirmProvider } from "./ConfirmDialog";
+import { Logo } from "./Logo";
 import "../styles/shell.css";
 
 const workLinks = [
@@ -172,9 +173,7 @@ function Shell() {
       <header className="mobile-topbar" aria-label="Mobile Navigation Bar">
         <NavLink to="/" className="shell-brand" end>
           <span className="brand-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+            <Logo size={20} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
             PhishLens
           </span>
           <span className="brand-subtitle">Explainable email triage</span>
@@ -218,9 +217,7 @@ function Shell() {
           <div className="sidebar-header">
             <NavLink to="/" className="shell-brand" end onClick={() => setMobileOpen(false)}>
               <span className="brand-title">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: '8px' }}>
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+                <Logo size={22} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
                 PhishLens
               </span>
               <span className="brand-subtitle">Explainable email triage</span>

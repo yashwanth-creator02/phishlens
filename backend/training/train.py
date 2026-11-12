@@ -63,6 +63,122 @@ def split_groups(groups, test_size, seed):
     return next(gss.split(np.zeros(len(groups)), groups=groups))
 
 
+def split_temporal(groups, dates, test_size=0.25, val_size=0.2):
+    """Split by time: the oldest mail fits, a later slice validates, the newest tests.
+
+    A group is placed by its EARLIEST date, so a campaign that spans years never
+    straddles a boundary - the whole campaign lands on one side of it. Groups
+    with no usable date go to the fit split: with no date they cannot be the
+    newest mail in the corpus, and leaving them out of the test set is the
+    conservative choice.
+    """
+    groups = np.asarray(groups)
+    dates = np.asarray(dates, dtype=object)
+    order = []
+    for g in sorted(set(groups.tolist())):
+        mask = groups == g
+        ds = [d for d in dates[mask].tolist() if d is not None]
+        earliest = min(ds) if ds else None
+        order.append((earliest is None, earliest or datetime.min.replace(tzinfo=UTC), g))
+    order.sort(key=lambda t: (t[0], t[1], t[2]))
+
+    n = len(order)
+    n_test = max(1, int(n * test_size))
+    n_val = max(1, int(n * val_size))
+    test_groups = {g for _, _, g in order[-n_test:]}
+    val_groups = {g for _, _, g in order[-(n_test + n_val):-n_test]}
+    fit_groups = {g for _, _, g in order[:-(n_test + n_val)]}
+
+    idx = np.arange(len(groups))
+    test = idx[np.isin(groups, list(test_groups))]
+    val = idx[np.isin(groups, list(val_groups))]
+    fit = idx[np.isin(groups, list(fit_groups))]
+    if not len(fit) or not len(val) or not len(test):
+        raise SystemExit("the temporal split produced an empty partition; "
+                         "there is not enough dated mail to split by time")
+    return fit, val, test
+
+
+def operating_points(y, p, fpr_targets=(0.01, 0.05)) -> dict:
+    """The thresholds that hold the false-positive rate inside a budget.
+
+    These are chosen on VALIDATION data and never on the test set. The bands
+    are then a presentation layer on top: HIGH above the 1% threshold, MEDIUM
+    between the two, LOW below the 5% one.
+    """
+    from sklearn.metrics import roc_curve
+
+    y = np.asarray(y)
+    p = np.asarray(p)
+    if len(set(y.tolist())) < 2:
+        return {}
+    fpr, tpr, thr = roc_curve(y, p)
+    out = {}
+    for target in fpr_targets:
+        ok = np.where(fpr <= target)[0]
+        if not len(ok):
+            continue
+        i = ok[-1]
+        threshold = float(thr[i])
+        flagged_ham = int(np.sum(p[y == 0] >= threshold))
+        flagged_phish = int(np.sum(p[y == 1] >= threshold))
+        negatives = int(np.sum(y == 0))
+        positives = int(np.sum(y == 1))
+        out[f"fpr_{target:g}"] = {
+            "threshold": threshold,
+            "score_threshold": int(round(threshold * 100)),
+            "fpr": float(flagged_ham / max(1, negatives)),
+            "recall": float(flagged_phish / max(1, positives)),
+            "precision": float(flagged_phish / max(1, flagged_phish + flagged_ham)),
+        }
+    if "fpr_0.01" in out and "fpr_0.05" in out:
+        high_min = int(np.ceil(out["fpr_0.01"]["threshold"] * 100))
+        low_max = int(np.floor(out["fpr_0.05"]["threshold"] * 100))
+        if low_max >= high_min:
+            low_max = high_min - 1
+        out["recommended_bands"] = {"low_max": low_max, "high_min": high_min}
+    return out
+
+
+def fit_and_evaluate(X, y, groups, dates, seed: int, split_mode: str) -> dict:
+    """Fit every candidate, pick one on validation, calibrate it, measure it.
+
+    Returns the fitted model, the calibrator, the partitions and the numbers, so
+    that the same pipeline can be run again with another seed and the two can be
+    compared.
+    """
+    if split_mode == "temporal":
+        fit, val, test = split_temporal(groups, dates)
+    else:
+        rest, test = split_groups(groups, 0.25, seed)
+        fit_i, val_i = split_groups(groups[rest], 0.2, seed)
+        fit, val = rest[fit_i], rest[val_i]
+
+    Xf, yf, Xv, yv, Xt, yt = X[fit], y[fit], X[val], y[val], X[test], y[test]
+    models = make_models(yf, seed)
+    results_val, results_test = {}, {}
+    for name, m in models.items():
+        m.fit(Xf, yf)
+        results_val[name] = metrics(yv, m.predict_proba(Xv)[:, 1])
+        results_test[name] = metrics(yt, m.predict_proba(Xt)[:, 1])
+
+    # selection on the validation split: best macro F1 subject to FPR ceiling, tie -> ROC-AUC
+    ok = {k: v for k, v in results_val.items() if v["fpr"] <= FPR_CEILING} or results_val
+    best = max(ok, key=lambda k: (round(ok[k]["f1_macro"], 4), ok[k]["roc_auc"]))
+    model = models[best]
+    iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(model.predict_proba(Xv)[:, 1], yv)
+    p_test_cal = iso.predict(model.predict_proba(Xt)[:, 1])
+    selected_test = metrics(yt, p_test_cal)
+    # The operating point is chosen on validation, on the RAW probabilities: the calibrator is
+    # monotone, so it does not change the ranking, and a threshold taken from calibrated
+    # validation scores would be fitted on the very data it is measured against.
+    ops = operating_points(yv, model.predict_proba(Xv)[:, 1])
+    return {"fit": fit, "val": val, "test": test, "models": models, "model": model, "iso": iso,
+            "best": best, "results_val": results_val, "results_test": results_test,
+            "selected_test": selected_test, "operating_points": ops,
+            "X": (Xf, yf, Xv, yv, Xt, yt)}
+
+
 def check_activation_allowed(provenance: dict, allow_personal_data: bool) -> None:
     """Refuse to promote a model derived from personal mail unless it is explicitly acknowledged."""
     if provenance.get("contains_personal_data") and not allow_personal_data:
@@ -122,6 +238,10 @@ def main(argv=None) -> dict:
                     help="allow promoting a model trained on personal mail. Such a model is derived from "
                          "private data: keep it local, never commit it, never bake it into an image")
     ap.add_argument("--limit", type=int, default=None, help="max emails per class (corpus mode)")
+    ap.add_argument("--split", choices=["grouped", "temporal"], default="grouped",
+                    help="grouped = random over groups; temporal = oldest fit, later validation, newest test")
+    ap.add_argument("--seeds", default=None,
+                    help="comma separated seeds to sweep, e.g. 7,8,9. The first one is the published candidate")
     ap.add_argument("--out", default="models")
     ap.add_argument("--reports", default="reports")
     args = ap.parse_args(argv)
@@ -208,6 +328,13 @@ def main(argv=None) -> dict:
         if not legit and not mailbox:
             raise SystemExit("no legitimate messages left after the date cutoff and --limit")
         samples = phish + legit + mailbox
+        # Which corpus each message came from, so the report can say how much of the model came
+        # from where. A corpus that contributes a small share cannot carry the model.
+        source_counts: dict[str, int] = {}
+        for s in samples:
+            key = s.source or "unknown"
+            source_counts[key] = source_counts.get(key, 0) + 1
+        provenance["source_counts"] = source_counts
         # Rows that came from personal mail. Used to keep personal-derived vectors out of the
         # published artifacts (the SHAP background sample) and out of the served metadata.
         personal = np.array([False] * (len(phish) + len(legit)) + [True] * len(mailbox))
@@ -252,6 +379,9 @@ def main(argv=None) -> dict:
             "legit_max_date": corpus.date_range(legit)["max"],
         })
     X, y, groups = synthetic.samples_to_matrix(samples)
+    # The date of each message, for the temporal split. A message with no usable date is None
+    # and the temporal split puts it in the fit partition rather than in the test set.
+    dates = [corpus.parse_date(s.date) for s in samples]
     print(f"dataset: {len(y)} emails, {int(y.sum())} phishing, {X.shape[1]} features, {len(set(groups))} groups")
 
     # Corpus hygiene: SpamAssassin rewrites some hostnames to spamassassin.taint.org, which lands 633+ messages in a
@@ -261,36 +391,66 @@ def main(argv=None) -> dict:
         keep = ~taint
         print(f"Excluding {int(taint.sum())} messages with sender domain spamassassin.taint.org (corpus artefact).")
         X, y, groups = X[keep], y[keep], groups[keep]
+        dates = [d for d, k in zip(dates, keep) if k]
         if personal is not None:
             personal = personal[keep]
     provenance["n_dropped_taint"] = int(taint.sum())
     provenance["n_samples_after_filter"] = int(len(y))
 
-    rest, test = split_groups(groups, 0.25, args.seed)
-    fit_i, val_i = split_groups(groups[rest], 0.2, args.seed)
-    fit, val = rest[fit_i], rest[val_i]
-    Xf, yf, Xv, yv, Xt, yt = X[fit], y[fit], X[val], y[val], X[test], y[test]
+    # A seed sweep repeats the whole pipeline with several seeds, so the spread of the
+    # result is known instead of one number from one split.
+    seeds = [int(s) for s in (args.seeds or str(args.seed)).split(",") if s.strip()]
+    runs = []
+    for seed in seeds:
+        run = fit_and_evaluate(X, y, groups, dates, seed, args.split)
+        runs.append(run)
+        print(f"  seed {seed}: {run['best']}  test macro F1 {run['selected_test']['f1_macro']:.3f}  "
+              f"ROC-AUC {run['selected_test']['roc_auc']:.3f}")
+    sweep = None
+    if len(runs) > 1:
+        f1s = [r["selected_test"]["f1_macro"] for r in runs]
+        aucs = [r["selected_test"]["roc_auc"] for r in runs]
+        fprs = [r["selected_test"]["fpr"] for r in runs]
+        sweep = {"seeds": seeds,
+                 "f1_macro": {"mean": float(np.mean(f1s)), "spread": float(np.max(f1s) - np.min(f1s)),
+                              "values": f1s},
+                 "roc_auc": {"mean": float(np.mean(aucs)), "spread": float(np.max(aucs) - np.min(aucs)),
+                             "values": aucs},
+                 "fpr": {"mean": float(np.mean(fprs)), "spread": float(np.max(fprs) - np.min(fprs)),
+                         "values": fprs}}
+        print(f"  seed spread: F1 {sweep['f1_macro']['mean']:.3f} "
+              f"(+/- {sweep['f1_macro']['spread']:.3f}), ROC-AUC {sweep['roc_auc']['mean']:.3f} "
+              f"(+/- {sweep['roc_auc']['spread']:.3f})")
 
-    models = make_models(yf, args.seed)
-    results_val, results_test = {}, {}
-    for name, m in models.items():
-        m.fit(Xf, yf)
-        results_val[name] = metrics(yv, m.predict_proba(Xv)[:, 1])
-        results_test[name] = metrics(yt, m.predict_proba(Xt)[:, 1])
+    # The candidate that is published is the first seed, so that a sweep is reproducible.
+    chosen = runs[0]
+    fit, val, test = chosen["fit"], chosen["val"], chosen["test"]
+    Xf, yf, Xv, yv, Xt, yt = chosen["X"]
+    model, iso, best = chosen["model"], chosen["iso"], chosen["best"]
+    results_val, results_test = chosen["results_val"], chosen["results_test"]
+    selected_test = chosen["selected_test"]
+    ops = chosen["operating_points"]
+    provenance["split_mode"] = args.split
+    provenance["seeds"] = seeds
+    for name, idx in (("fit", fit), ("validation", val), ("test", test)):
+        if len(idx):
+            ph = int(y[idx].sum())
+            print(f"  {name}: {len(idx)} messages, {ph} phishing, {len(idx) - ph} legitimate")
+    if ops:
+        print(f"operating points on validation: " + ", ".join(
+            f"FPR<={k.split('_')[1]}: threshold {v['score_threshold']} "
+            f"(recall {v['recall']:.3f}, precision {v['precision']:.3f})"
+            for k, v in ops.items() if k.startswith("fpr_")))
+        if "recommended_bands" in ops:
+            b = ops["recommended_bands"]
+            print(f"recommended bands from validation: LOW <= {b['low_max']}, HIGH >= {b['high_min']} "
+                  f"(the shipped bands are a product decision; see docs/21)")
 
     # "existing approach" baseline (simplified re-implementation): URL-only random forest
     url_idx = [i for i, n in enumerate(FEATURE_NAMES) if FEATURE_GROUP[n] == "url"]
     base = RandomForestClassifier(n_estimators=300, max_depth=12, min_samples_leaf=2, class_weight="balanced",
                                   n_jobs=-1, random_state=args.seed).fit(Xf[:, url_idx], yf)
     results_test["baseline_url_only_rf"] = metrics(yt, base.predict_proba(Xt[:, url_idx])[:, 1])
-
-    # selection on the validation split: best macro F1 subject to FPR ceiling, tie -> ROC-AUC
-    ok = {k: v for k, v in results_val.items() if v["fpr"] <= FPR_CEILING} or results_val
-    best = max(ok, key=lambda k: (round(ok[k]["f1_macro"], 4), ok[k]["roc_auc"]))
-    model = models[best]
-    iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(model.predict_proba(Xv)[:, 1], yv)
-    p_test_cal = iso.predict(model.predict_proba(Xt)[:, 1])
-    selected_test = metrics(yt, p_test_cal)
 
     # ablation (XGBoost): drop one feature group at a time
     ablation = {}
@@ -329,7 +489,9 @@ def main(argv=None) -> dict:
     provenance["fit_rows_personal"] = int(personal[fit].sum()) if personal is not None else 0
     meta = {"version_tag": tag, "algorithm": best, "trained_at": datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds"),
             "feature_names": FEATURE_NAMES, "data_source": data_source, "n_samples": int(len(y)),
-            "split": {"fit": len(fit), "validation": len(val), "test": len(test)},
+            "split": {"fit": len(fit), "validation": len(val), "test": len(test), "mode": args.split},
+            "operating_points": ops,
+            "seed_sweep": sweep,
             "training": provenance,
             "reason_min_contribution": REASON_MIN[best], "fpr_ceiling": FPR_CEILING,
             "metrics": {k: float(v) for k, v in selected_test.items() if not k in ("tn", "fp", "fn", "tp")}}
@@ -345,7 +507,7 @@ def main(argv=None) -> dict:
     rep_dir = Path(args.reports)
     rep_dir.mkdir(parents=True, exist_ok=True)
     full = {"meta": meta, "validation": results_val, "test": results_test, "selected_calibrated_test": selected_test,
-            "ablation_xgboost": ablation}
+            "operating_points": ops, "seed_sweep": sweep, "ablation_xgboost": ablation}
     (rep_dir / "training_report.json").write_text(json.dumps(full, indent=2))
     (rep_dir / "training_report.md").write_text(render_report(full, data_source))
     print(f"selected: {best}  (macro F1 on test, calibrated = {selected_test['f1_macro']:.3f})  tag={tag}  [{time.time()-t0:.0f}s]")

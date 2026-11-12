@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import mailbox
+import re
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -162,13 +163,32 @@ def _gmail_labels(message) -> set[str]:
     return out
 
 
-def load_dir(path: str | Path, label: int, limit: int | None = None, stats: dict | None = None) -> list[Sample]:
+def campaign_key(subject: str, host: str) -> str:
+    """A grouping key that keeps one campaign on one side of a split.
+
+    Near-duplicate phishing share a subject template but not always a host, and
+    a host can be reused by unrelated campaigns. A distinctive subject is the
+    better campaign marker, so it wins when there is one; a short or empty
+    subject falls back to the host.
+
+    The subject is normalised before it is used, so that "Invoice #12345" and
+    "Invoice #67890" land in the same group.
+    """
+    words = re.sub(r"\d+", "#", (subject or "").lower()).split()
+    if len(words) >= 4:
+        return "subj:" + " ".join(words[:8])[:80]
+    return "host:" + (host or "unknown")
+
+
+def load_dir(path: str | Path, label: int, limit: int | None = None, stats: dict | None = None,
+             source: str | None = None) -> list[Sample]:
     """Load labelled messages from a directory. `stats` collects the drop reasons when given."""
     out: list[Sample] = []
     seen_raw: set[str] = set()
     seen_msg_id: set[str] = set()
     seen_body: set[str] = set()
     counts = {"parsed": 0, "failed": 0, "duplicate": 0, "loaded": 0}
+    src = source if source is not None else source_label(path)
     for raw in _iter_raw(Path(path)):
         try:
             p = parse_email(raw)
@@ -193,10 +213,11 @@ def load_dir(path: str | Path, label: int, limit: int | None = None, stats: dict
                 host = reg or h
             if not host:
                 host = p.from_domain or "unknown"
-            group = f"phish-{host}"
+            group = f"phish-{campaign_key(p.subject, host)}"
         else:
             group = f"legit-{p.from_domain or 'unknown'}"   # split by sender domain
-        out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(), date=p.date))
+        out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(),
+                          date=p.date, source=src))
         counts["loaded"] += 1
         if limit and len(out) >= limit:
             break
@@ -254,7 +275,8 @@ def load_mailbox(path: str | Path, label: int = 0, limit: int | None = None,
             seen_body.add(body_hash)
 
             group = f"legit-mailbox-{p.from_domain or 'unknown'}"
-            out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(), date=p.date))
+            out.append(Sample(raw=raw, label=label, group=group, profile=None, domain_age=NullDomainAge(),
+                              date=p.date, source="personal mailbox"))
             counts["loaded"] += 1
             if limit and len(out) >= limit:
                 if stats is not None:

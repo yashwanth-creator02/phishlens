@@ -56,6 +56,7 @@ class Sample:
     profile: ProfileData | None
     domain_age: DomainAgeProvider
     date: str = ""
+    source: str = ""      # which corpus this message came from
 
 
 LEGIT_DEFS = [

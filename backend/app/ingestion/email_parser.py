@@ -13,13 +13,18 @@ from __future__ import annotations
 
 import hashlib
 import re
+import warnings
 from dataclasses import dataclass, field
 from email import policy
 from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import parseaddr
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+
+# A message body that is really XML reaches the HTML parser, and BeautifulSoup warns about it
+# once per message. On a corpus run that is one warning per email, which buries the real output.
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 URL_RE = re.compile(r"https?://[^\s<>\"')\]]+", re.I)
 FWD_MARKER_RE = re.compile(

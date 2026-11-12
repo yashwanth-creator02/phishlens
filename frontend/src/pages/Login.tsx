@@ -1,42 +1,133 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../api/client";
 import { supabase } from "../supabase";
+import { Logo } from "../components/Logo";
+import { usePendingAction } from "../hooks/usePendingAction";
+import type { ForwardingConfig } from "../types";
 
 type LoginProps = {
   signIn?: (email: string, password: string) => Promise<void>;
+  signInAsGuest?: () => Promise<void>;
+  signUp?: (email: string, password: string) => Promise<void>;
 };
 
-export default function Login({ signIn: signInProp }: LoginProps) {
+function getFriendlyError(err: unknown): string {
+  const msg = (err as Error)?.message || String(err);
+  if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || err instanceof TypeError) {
+    console.error("Network/Fetch error:", err);
+    return "Could not reach the server. Check that the API is running.";
+  }
+  return msg;
+}
+
+export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuestProp, signUp: signUpProp }: LoginProps) {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { pending, run } = usePendingAction<"email" | "google" | "guest">();
+  const [forwardingConfig, setForwardingConfig] = useState<ForwardingConfig | null | undefined>(undefined);
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem("phishlens-dismiss-forwarding") === "true";
+    } catch {
+      return false;
+    }
+  });
 
-  // Show the disabled banner only in production with no supabase and no injected signIn.
-  // In dev/tests, the form renders so signIn prop and supabase can be exercised.
-  const showDisabled = !supabase && !signInProp;
+  useEffect(() => {
+    api.forwardingConfig()
+      .then((cfg) => setForwardingConfig(cfg))
+      .catch(() => {
+        setForwardingConfig(null);
+      });
+  }, []);
+
+  const dismissForwarding = () => {
+    setDismissed(true);
+    try {
+      sessionStorage.setItem("phishlens-dismiss-forwarding", "true");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const showDisabled = !supabase && !signInProp && !signInAsGuestProp && !signUpProp;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setFieldError(null);
-    setBusy(true);
-    try {
-      if (signInProp) {
-        await signInProp(email, password);
-        nav("/");
-      } else if (supabase) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          throw new Error(error.message);
+    setSignUpSuccess(false);
+    await run("email", async () => {
+      try {
+        if (mode === "signup") {
+          if (signUpProp) {
+            await signUpProp(email, password);
+          } else if (supabase) {
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) throw new Error(error.message);
+            if (!data.session) {
+              setSignUpSuccess(true);
+              return;
+            }
+          }
+          nav("/");
+        } else {
+          if (signInProp) {
+            await signInProp(email, password);
+          } else if (supabase) {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw new Error(error.message);
+          }
+          nav("/");
+        }
+      } catch (err) {
+        throw new Error(getFriendlyError(err));
+      }
+    }).catch((err) => {
+      setFieldError((err as Error).message || "Action failed.");
+    });
+  }
+
+  async function handleGoogle() {
+    setFieldError(null);
+    await run("google", async () => {
+      try {
+        if (!supabase) return;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) throw new Error(error.message);
+      } catch (err) {
+        throw new Error(getFriendlyError(err));
+      }
+    }).catch((err) => {
+      setFieldError((err as Error).message || "Google sign-in failed.");
+    });
+  }
+
+  async function handleGuest() {
+    setFieldError(null);
+    await run("guest", async () => {
+      try {
+        if (signInAsGuestProp) {
+          await signInAsGuestProp();
+        } else if (supabase) {
+          const { error } = await supabase.auth.signInAnonymously();
+          if (error) throw new Error(error.message);
         }
         nav("/");
+      } catch (err) {
+        throw new Error(getFriendlyError(err));
       }
-    } catch (err) {
-      setFieldError((err as Error).message || "Sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
+    }).catch((err) => {
+      setFieldError((err as Error).message || "Guest sign-in failed.");
+    });
   }
 
   if (showDisabled) {
@@ -51,45 +142,214 @@ export default function Login({ signIn: signInProp }: LoginProps) {
   }
 
   return (
-    <form className="login" onSubmit={submit}>
-      <h1>Analyst sign in</h1>
-      <p className="muted" style={{ fontSize: "0.9rem", marginTop: "-4px" }}>
-        Enter your credentials to access triage queues.
-      </p>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <label htmlFor="email-input" style={{ fontSize: "0.85rem", fontWeight: 500 }}>Email address</label>
-        <input
-          id="email-input"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="analyst@domain.com"
-          aria-invalid={fieldError ? true : undefined}
-          aria-describedby={fieldError ? "login-error" : undefined}
-        />
+    <div className="login-layout">
+      {/* LEFT: Brand Block */}
+      <div className="login-brand-block">
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+          <Logo size={36} />
+          <h1 style={{ margin: 0, fontSize: "2rem", letterSpacing: "-0.03em" }}>PhishLens</h1>
+        </div>
+        <span className="brand-subtitle" style={{ display: "block", fontSize: "0.95rem", color: "var(--muted)", letterSpacing: "0.02em", marginBottom: "16px" }}>
+          Explainable phishing-triage console
+        </span>
+        <p className="muted" style={{ fontSize: "1.05rem", lineHeight: "1.6", maxWidth: "42ch" }}>
+          An explainable phishing-triage tool. Analysts forward suspicious emails to receive a Low, Medium, or High risk score with evidence-verified reasons.
+        </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <label htmlFor="password-input" style={{ fontSize: "0.85rem", fontWeight: 500 }}>Password</label>
-        <input
-          id="password-input"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          aria-invalid={fieldError ? true : undefined}
-          aria-describedby={fieldError ? "login-error" : undefined}
-        />
+      {/* RIGHT: Form & Floating Notification */}
+      <div>
+        <form className="login" onSubmit={submit} aria-busy={pending !== null} style={{ margin: 0, maxWidth: "100%" }}>
+          <h2>{mode === "signin" ? "Analyst sign in" : "Create an account"}</h2>
+          <p className="muted" style={{ fontSize: "0.9rem", marginTop: "-4px" }}>
+            {mode === "signin" ? "Enter your credentials to access triage queues." : "Register a new analyst account with your email."}
+          </p>
+
+          {signUpSuccess && (
+            <div className="card low" style={{ padding: "12px 16px", margin: "0 0 12px 0" }}>
+              <p style={{ margin: 0, fontWeight: 500, fontSize: "0.9rem" }}>Check your email to confirm the address, then sign in.</p>
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label htmlFor="email-input" style={{ fontSize: "0.85rem", fontWeight: 500 }}>Email address</label>
+            <input
+              id="email-input"
+              name="email"
+              type="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              disabled={pending !== null}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="analyst@domain.com"
+              aria-invalid={fieldError ? true : undefined}
+              aria-describedby={fieldError ? "login-error" : undefined}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label htmlFor="password-input" style={{ fontSize: "0.85rem", fontWeight: 500 }}>Password</label>
+            <div style={{ position: "relative", display: "flex" }}>
+              <input
+                id="password-input"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                required
+                disabled={pending !== null}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                aria-invalid={fieldError ? true : undefined}
+                aria-describedby={fieldError ? "login-error" : undefined}
+                style={{ paddingRight: "44px" }}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={pending !== null}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 10.6a2 2 0 002.8 2.8" />
+                    <path d="M9.4 5.3A9.7 9.7 0 0112 5c5 0 9 4.5 9 7a12.6 12.6 0 01-3.2 4.1" />
+                    <path d="M6.2 6.7A12.8 12.8 0 003 12c0 2.5 4 7 9 7 1.6 0 3.1-.5 4.4-1.3" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 12c0-2.5 4-7 9-7s9 4.5 9 7-4 7-9 7-9-4.5-9-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" disabled={pending !== null} style={{ marginTop: "8px" }}>
+            {pending === "email" ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign in" : "Create account")}
+          </button>
+
+          <div style={{ textAlign: "center", marginTop: "4px" }}>
+            {mode === "signin" ? (
+              <button
+                type="button"
+                className="link"
+                onClick={() => { setMode("signup"); setSignUpSuccess(false); setFieldError(null); }}
+              >
+                Create an account
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="link"
+                onClick={() => { setMode("signin"); setSignUpSuccess(false); setFieldError(null); }}
+              >
+                Sign in to an existing account
+              </button>
+            )}
+          </div>
+
+          {supabase && mode === "signin" && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "4px 0" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--line)" }} />
+                <span className="muted" style={{ fontSize: "0.80rem" }}>or</span>
+                <div style={{ flex: 1, height: "1px", background: "var(--line)" }} />
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleGoogle}
+                disabled={pending !== null}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                {/* The official four-colour Google mark. These hex values are Google's own brand
+                    specification and are the one deliberate exception to the house rule that
+                    colours come from the design tokens: a recoloured Google logo is a wrong logo. */}
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.23 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.39-1.49-.39-2.24s.14-1.52.39-2.24V6.6H1.19C.43 8.13 0 9.87 0 11.75s.43 3.62 1.19 5.15l4.08-2.66z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.64 1.19 6.6l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/>
+                </svg>
+                <span>{pending === "google" ? "Opening Google..." : "Continue with Google"}</span>
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleGuest}
+                disabled={pending !== null}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                <Logo size={18} />
+                <span>{pending === "guest" ? "Starting guest session..." : "Try it as a guest"}</span>
+              </button>
+              <p className="muted" style={{ fontSize: "0.8rem", textAlign: "center", margin: "4px 0 0" }}>
+                A guest can upload emails and use the whole triage flow, but has no forwarding address, because a forwarding address belongs to a confirmed email account.
+              </p>
+            </>
+          )}
+
+          {fieldError && <p className="error" role="alert" id="login-error" style={{ marginTop: "12px", textAlign: "center", fontSize: "0.9rem" }}>{fieldError}</p>}
+        </form>
       </div>
 
-      <button type="submit" disabled={busy} style={{ marginTop: "8px" }}>
-        {busy ? "Processing..." : "Sign in"}
-      </button>
-
-      {fieldError && <p className="error" role="alert" id="login-error" style={{ marginTop: "12px", textAlign: "center", fontSize: "0.9rem" }}>{fieldError}</p>}
-    </form>
+      {/* Floating Notification for Forwarding Inbox */}
+      {forwardingConfig && !dismissed && (
+        <div
+          className="card"
+          role="region"
+          aria-label="Forwarding inbox notice"
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            zIndex: 1000,
+            maxWidth: "340px",
+            padding: "16px",
+            margin: 0,
+            background: "var(--card)",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--radius)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+            <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 600 }}>Forwarding inbox</h2>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Dismiss"
+              onClick={dismissForwarding}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+          <p className="muted" style={{ fontSize: "0.8rem", margin: "6px 0 2px" }}>
+            Domain: <span className="mono">{forwardingConfig.alias_domain}</span>
+          </p>
+          <p className="muted" style={{ fontSize: "0.8rem", margin: "0 0 2px" }}>
+            Pattern: <span className="mono">{forwardingConfig.alias_pattern}</span>
+          </p>
+          <p className="muted" style={{ fontSize: "0.8rem", margin: "0" }}>
+            Your own address appears on your Profile once you sign in.
+          </p>
+          {!forwardingConfig.inbound_configured && (
+            <p className="error" style={{ fontSize: "0.8rem", margin: "6px 0 0" }}>
+              Inbound forwarding is not connected yet.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
