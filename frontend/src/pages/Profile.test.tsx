@@ -17,7 +17,7 @@ vi.mock("../api/client", async (importOriginal) => {
   };
 });
 
-describe("Profile verification gate", () => {
+describe("Profile verification gate and data handling", () => {
   it("shows forwarding address when verified", async () => {
     vi.mocked(api.alias).mockResolvedValueOnce({ address: "u-123@phishlens.test", token: "123" });
     render(
@@ -41,5 +41,17 @@ describe("Profile verification gate", () => {
     );
     expect(await screen.findByRole("region", { name: /verify your email address/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /resend verification email/i })).toBeInTheDocument();
+  });
+
+  it("renders data handling section", async () => {
+    vi.mocked(api.alias).mockResolvedValueOnce({ address: "u-123@phishlens.test", token: "123" });
+    render(
+      <MemoryRouter>
+        <SessionProvider>
+          <Profile />
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("region", { name: /data handling/i })).toBeInTheDocument();
   });
 });

@@ -118,6 +118,23 @@ export default function Profile() {
         )}
       </section>
 
+      <section className="card" role="region" aria-labelledby="profile-data-heading">
+        <h2 id="profile-data-heading" style={{ marginTop: 0 }}>Data handling</h2>
+        <p className="muted" style={{ maxWidth: "68ch" }}>
+          Forwarding or uploading an email means any personal data contained within it is processed by the system.
+        </p>
+        <ul className="reasons" style={{ paddingLeft: "20px", margin: "12px 0" }}>
+          <li>Raw uploaded emails, headers, extracted links and attachments, 65 feature values, and generated explanations are stored.</li>
+          <li>Data is retained for 30 days, after which the automated retention purge deletes it.</li>
+          <li>Attachments are recorded as metadata only (name, size, type) and are never opened, executed, or rendered.</li>
+          <li>Analyses are isolated per account; only the signed-in account that owns them can access them.</li>
+          <li>The active model was trained partly on the owner's mailbox, and the published model artifact was verified by a privacy audit that found no addresses, subjects, or message text.</li>
+        </ul>
+        <p className="muted" style={{ fontSize: "0.9rem", marginTop: "12px", marginBottom: 0 }}>
+          For further technical details, see the security and privacy documentation at <span className="mono">docs/11-security-privacy.md</span>.
+        </p>
+      </section>
+
       <section className="card" aria-labelledby="profile-baseline-heading">
         <h2 id="profile-baseline-heading">Trusted sender baseline</h2>
         <p className="muted" style={{ maxWidth: "68ch" }}>
