@@ -16,6 +16,7 @@ export default function Profile() {
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const handleResend = async () => {
     if (!user?.email || !supabase) return;
@@ -63,12 +64,18 @@ export default function Profile() {
           <button
             className="secondary"
             type="button"
+            disabled={signingOut}
             onClick={async () => {
-              await signOut();
-              nav("/login");
+              setSigningOut(true);
+              try {
+                await signOut();
+                nav("/login");
+              } finally {
+                setSigningOut(false);
+              }
             }}
           >
-            Sign out
+            {signingOut ? "Signing out..." : "Sign out"}
           </button>
         </div>
       </section>

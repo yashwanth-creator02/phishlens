@@ -20,8 +20,10 @@ export default function Dashboard() {
   const [items, setItems] = useState<AnalysisSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(() => {
+    setRefreshing(true);
     setItems(null);
     setError(null);
     api.list(100, 0)
@@ -33,6 +35,9 @@ export default function Dashboard() {
       .catch((e) => {
         setError((e as Error).message);
         setItems([]);
+      })
+      .finally(() => {
+        setRefreshing(false);
       });
   }, []);
 
@@ -55,7 +60,9 @@ export default function Dashboard() {
           </p>
         </div>
         <div>
-          <button className="secondary" onClick={load} type="button">Refresh</button>
+          <button className="secondary" onClick={load} disabled={refreshing} type="button">
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
       </div>
 
@@ -71,7 +78,9 @@ export default function Dashboard() {
       {error ? (
         <div className="card high" style={{ padding: "16px" }}>
           <p className="error" role="alert">Failed to load analyses: {error}</p>
-          <button onClick={load} style={{ marginTop: "8px" }} type="button">Retry</button>
+          <button onClick={load} disabled={refreshing} style={{ marginTop: "8px" }} type="button">
+            {refreshing ? "Retrying..." : "Retry"}
+          </button>
         </div>
       ) : (
         <>

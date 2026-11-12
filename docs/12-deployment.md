@@ -158,11 +158,12 @@ Postgres itself is still **not exercised in tests** (tests use SQLite). RLS isol
 | Frontend keys | anon (legacy JWT) and `sb_publishable_...` both available; the deployment uses the anon JWT |
 
 Still manual in the dashboard: **Authentication -> URL Configuration** (Site URL
-`https://phishlens-gules.vercel.app` plus a redirect allow-list for the same host) and, for a demo that works without
-mail delivery, **Authentication -> Providers -> Email -> Confirm email** off (otherwise every signup needs a
-confirmation mail that Supabase's built-in SMTP rate-limits). The app has no sign-up screen, so demo accounts are
-created in **Authentication -> Users -> Add user** with **Auto Confirm User** ticked. The backend needs the database
-password or pooler connection string for `PHISHLENS_DATABASE_URL`; the MCP connection cannot read it.
+`https://phishlens-gules.vercel.app` plus a redirect allow-list for the same host and for `http://localhost:5173`),
+the **Google** provider, and the **Anonymous** provider - both need a dashboard switch, and Google also needs OAuth
+credentials from a Google Cloud project. **Confirm email is on** since 2026-11-12, so every sign-up needs the
+confirmation mail; that is the correct setting for a system where a forwarding alias is a capability, and the demo
+account is created in **Authentication -> Users -> Add user** with **Auto Confirm User** ticked. The backend needs the
+database password or pooler connection string for `PHISHLENS_DATABASE_URL`; the MCP connection cannot read it.
 
 ## Inbound email - giving the bot a real address
 

@@ -28,5 +28,9 @@ services:
         sync: false
       - key: PHISHLENS_WEBHOOK_SECRET
         generateValue: true
+      # The domain of the forwarding alias: u-<token>@<alias-domain>. Change this in the Render
+      # dashboard to the domain whose MX records point at the inbound-email provider.
+      - key: PHISHLENS_ALIAS_DOMAIN
+        value: phishlens.example
       - key: PHISHLENS_ADMIN_TOKEN
         generateValue: true

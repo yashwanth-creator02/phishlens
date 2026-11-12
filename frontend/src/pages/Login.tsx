@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { supabase } from "../supabase";
 import { Logo } from "../components/Logo";
+import { usePendingAction } from "../hooks/usePendingAction";
 import type { ForwardingConfig } from "../types";
 
 type LoginProps = {
@@ -10,13 +11,22 @@ type LoginProps = {
   signInAsGuest?: () => Promise<void>;
 };
 
+function getFriendlyError(err: unknown): string {
+  const msg = (err as Error)?.message || String(err);
+  if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || err instanceof TypeError) {
+    console.error("Network/Fetch error:", err);
+    return "Could not reach the server. Check that the API is running.";
+  }
+  return msg;
+}
+
 export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuestProp }: LoginProps) {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [forwardingConfig, setForwardingConfig] = useState<ForwardingConfig | null>(null);
+  const { pending, run } = usePendingAction<"email" | "google" | "guest">();
+  const [forwardingConfig, setForwardingConfig] = useState<ForwardingConfig | null | undefined>(undefined);
 
   useEffect(() => {
     api.forwardingConfig()
@@ -26,66 +36,64 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
       });
   }, []);
 
-  // Show the disabled banner only in production with no supabase and no injected signIn.
-  // In dev/tests, the form renders so signIn prop and supabase can be exercised.
   const showDisabled = !supabase && !signInProp && !signInAsGuestProp;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setFieldError(null);
-    setBusy(true);
-    try {
-      if (signInProp) {
-        await signInProp(email, password);
-        nav("/");
-      } else if (supabase) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          throw new Error(error.message);
+    await run("email", async () => {
+      try {
+        if (signInProp) {
+          await signInProp(email, password);
+          nav("/");
+        } else if (supabase) {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw new Error(error.message);
+          nav("/");
         }
-        nav("/");
+      } catch (err) {
+        throw new Error(getFriendlyError(err));
       }
-    } catch (err) {
+    }).catch((err) => {
       setFieldError((err as Error).message || "Sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   async function handleGoogle() {
     setFieldError(null);
-    try {
-      if (!supabase) return;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin },
-      });
-      if (error) {
-        throw new Error(error.message);
+    await run("google", async () => {
+      try {
+        if (!supabase) return;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) throw new Error(error.message);
+      } catch (err) {
+        throw new Error(getFriendlyError(err));
       }
-    } catch (err) {
+    }).catch((err) => {
       setFieldError((err as Error).message || "Google sign-in failed.");
-    }
+    });
   }
 
   async function handleGuest() {
     setFieldError(null);
-    setBusy(true);
-    try {
-      if (signInAsGuestProp) {
-        await signInAsGuestProp();
-      } else if (supabase) {
-        const { error } = await supabase.auth.signInAnonymously();
-        if (error) {
-          throw new Error(error.message);
+    await run("guest", async () => {
+      try {
+        if (signInAsGuestProp) {
+          await signInAsGuestProp();
+        } else if (supabase) {
+          const { error } = await supabase.auth.signInAnonymously();
+          if (error) throw new Error(error.message);
         }
+        nav("/");
+      } catch (err) {
+        throw new Error(getFriendlyError(err));
       }
-      nav("/");
-    } catch (err) {
+    }).catch((err) => {
       setFieldError((err as Error).message || "Guest sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   if (showDisabled) {
@@ -114,7 +122,11 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
         </p>
       </div>
 
-      {forwardingConfig && (
+      {forwardingConfig === undefined ? (
+        <div className="card" style={{ padding: "16px", marginBottom: "20px", marginTop: 0 }}>
+          <p className="muted" style={{ fontSize: "0.85rem", margin: 0 }}>Loading forwarding configuration...</p>
+        </div>
+      ) : forwardingConfig ? (
         <div className="card" role="region" aria-labelledby="forwarding-info-heading" style={{ padding: "16px", marginBottom: "20px", marginTop: 0 }}>
           <h2 id="forwarding-info-heading" style={{ marginTop: 0, fontSize: "0.95rem" }}>Forwarding inbox</h2>
           <p className="muted" style={{ fontSize: "0.85rem", margin: "4px 0" }}>
@@ -129,9 +141,9 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
             </p>
           )}
         </div>
-      )}
+      ) : null}
 
-      <form className="login" onSubmit={submit} style={{ margin: 0, maxWidth: "100%" }}>
+      <form className="login" onSubmit={submit} aria-busy={pending !== null} style={{ margin: 0, maxWidth: "100%" }}>
         <h2>Analyst sign in</h2>
         <p className="muted" style={{ fontSize: "0.9rem", marginTop: "-4px" }}>
           Enter your credentials to access triage queues.
@@ -143,6 +155,7 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
             id="email-input"
             type="email"
             required
+            disabled={pending !== null}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="analyst@domain.com"
@@ -157,6 +170,7 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
             id="password-input"
             type="password"
             required
+            disabled={pending !== null}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
@@ -165,8 +179,8 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
           />
         </div>
 
-        <button type="submit" disabled={busy} style={{ marginTop: "8px" }}>
-          {busy ? "Processing..." : "Sign in"}
+        <button type="submit" disabled={pending !== null} style={{ marginTop: "8px" }}>
+          {pending === "email" ? "Signing in..." : "Sign in"}
         </button>
 
         {supabase && (
@@ -180,18 +194,19 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
               type="button"
               className="secondary"
               onClick={handleGoogle}
+              disabled={pending !== null}
               style={{ width: "100%" }}
             >
-              Continue with Google
+              {pending === "google" ? "Opening Google..." : "Continue with Google"}
             </button>
             <button
               type="button"
               className="secondary"
               onClick={handleGuest}
-              disabled={busy}
+              disabled={pending !== null}
               style={{ width: "100%" }}
             >
-              Try it as a guest
+              {pending === "guest" ? "Starting guest session..." : "Try it as a guest"}
             </button>
             <p className="muted" style={{ fontSize: "0.8rem", textAlign: "center", margin: "4px 0 0" }}>
               A guest can upload emails and use the whole triage flow, but has no forwarding address, because a forwarding address belongs to a confirmed email account.

@@ -39,6 +39,7 @@ export default function AnalysisDetailPage() {
   const [a, setA] = useState<AnalysisDetail | null>(null);
   const [features, setFeatures] = useState<FeatureRow[] | null>(null);
   const [featureError, setFeatureError] = useState<string | null>(null);
+  const [loadingFeatures, setLoadingFeatures] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -158,15 +159,18 @@ export default function AnalysisDetailPage() {
       {features === null ? (
         <button
           className="secondary"
+          disabled={loadingFeatures}
           onClick={() => {
             setFeatureError(null);
+            setLoadingFeatures(true);
             api.features(id)
               .then(setFeatures)
-              .catch((e) => setFeatureError((e as Error).message));
+              .catch((e) => setFeatureError((e as Error).message))
+              .finally(() => setLoadingFeatures(false));
           }}
           type="button"
         >
-          Load feature contributions (SHAP)
+          {loadingFeatures ? "Loading features..." : "Load feature contributions (SHAP)"}
         </button>
       ) : (
         <>

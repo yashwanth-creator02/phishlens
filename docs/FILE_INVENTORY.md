@@ -28,7 +28,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 |---|---|
 | `main.py` | App factory, CORS middleware, router wiring |
 | `schemas.py` | Pydantic request/response models |
-| `api/analyses.py` | List, detail, features, upload, delete endpoints; bounded chunked upload reads |
+| `api/analyses.py` | List, detail, features, upload, delete endpoints; bounded chunked upload reads; the forwarding-domain endpoint |
 | `api/webhooks.py` | Forwarded-email webhook: secret check, alias lookup, bounded body read |
 | `api/deps.py` | Auth dependency (disabled / Supabase JWT), current-user resolution |
 | `api/limits.py` | Shared request-size caps for the upload and inbound-webhook paths |
@@ -98,7 +98,7 @@ legitimate bank alert.
 | `src/App.tsx` | Routes, `RequireAuth`, session provider wiring |
 | `src/main.tsx` | Entry point; applies the stored theme before the first paint so there is no flash |
 | `src/auth.tsx` | Supabase session context |
-| `src/supabase.ts` | Client construction from `VITE_SUPABASE_*` |
+| `src/supabase.ts` | Client construction from `VITE_SUPABASE_*`, with this project's public URL and anon key as defaults |
 | `src/api/client.ts` | `apiFetch`: base URL, bearer token, typed errors |
 | `src/types.ts` | Response types shared across pages |
 | `src/lib/cases.ts` | Search, filter, sort, pagination helpers (unit tested) |
@@ -111,13 +111,16 @@ legitimate bank alert.
 | `src/pages/Status.tsx` | Health and model-loaded state |
 | `src/pages/Profile.tsx` | Account identity, forwarding alias behind the verification gate, data-handling notice, trusted-sender baseline, sign out |
 | `src/pages/Profile.test.tsx` | Verification gate states and the data-handling section |
-| `src/pages/Login.tsx` | Sign-in, or an explicit authentication-disabled notice |
+| `src/pages/Login.tsx` | What the product is, the forwarding domain, and three ways in: email and password, Google, or a guest session |
+| `src/pages/Login.test.tsx` | The forwarding panel, the Google button and the guest button |
+| `src/components/Logo.tsx` | The brand mark: an inline SVG that inherits the text colour, so it themes |
+| `public/` | The favicon as SVG and as 32/180/512 PNG rasters |
 | `src/components/` | `AppShell`, `BandBar`, `ConfirmDialog`, `EvidencePanel`, `FeatureTable`, `ReasonCard`, `RiskBadge`, `SessionExpired`, `Toast`, `UploadBox` |
 | `src/styles.css`, `src/styles/*.css` | Design tokens, shell, report, and status styles |
 | `src/test/setup.ts` | Vitest setup (Testing Library matchers, jsdom cleanup) |
 | `e2e/smoke.spec.ts` | Playwright smoke: unauthenticated check plus signed-in journey |
 | `playwright.config.ts` | Chromium project, dev-server boot, `E2E_BASE_URL` support |
-| `vite.config.ts` | Dev proxy to `:8000`, Vitest config limited to `src/**` |
+| `vite.config.ts` | Dev proxy to `:8000` (override with `VITE_DEV_API_TARGET`), Vitest config limited to `src/**` |
 | `vercel.json` | Vercel build settings and SPA rewrite |
 | `nginx.conf`, `Dockerfile` | Container build for the compose stack |
 | `.env.example` | `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
