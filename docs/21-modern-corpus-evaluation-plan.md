@@ -963,7 +963,83 @@ The holdout directories are built the same way as the training split above: copy
 `phishing-2025.mbox` into `..\.tmp\nazario-holdout-2024-2025`, and use the owner's mailbox for the legitimate side,
 which the loader filters to received messages.
 
-## 17. Related documents
+## 17. The source-leak test (2026-11-12)
+
+An external reviewer asked the right question about the released model. The only modern legitimate mail in the
+training set is the owner's own inbox, so the features may identify the **provider and the era** rather than the
+message being legitimate. If they do, the measured false-positive rate does not transfer to another person's
+mailbox.
+
+### 17.1 The test
+
+Take legitimate mail only, from three corpora with different providers and eras, and train a classifier to predict
+**which corpus it came from**. If the features carry a source fingerprint, the classifier will do well. Chance is
+1/3. 1,500 messages per corpus, a 70/30 split, and the features are the same 65 the phishing model uses.
+
+| corpus | what it is |
+|---|---|
+| mailbox (2020-2026, owner) | one modern provider, authenticated mail, Gmail Takeout export |
+| spamassassin (2003) | pre-authentication-era ham |
+| ceas (2008) | pre-authentication-era ham, a different collection pipeline |
+
+### 17.2 The result: the fingerprint is real
+
+| features used | accuracy | chance | verdict |
+|---|---|---|---|
+| all 65 | **0.981** | 0.333 | the source is recoverable |
+| the 13 header/format features only | **0.980** | 0.333 | the fingerprint lives in the headers |
+
+The header group alone is enough. These are the features that carry it:
+
+| feature | mailbox | spamassassin 2003 | ceas 2008 |
+|---|---|---|---|
+| `received_hops` | 0.134 | 0.330 | 0.000 |
+| `from_returnpath_mismatch` | 0.221 | 0.859 | 0.000 |
+| `auth_missing` | 0.004 | 1.000 | 1.000 |
+| `spf_pass` | 0.991 | 0.000 | 0.000 |
+| `dkim_pass` | 0.994 | 0.000 | 0.000 |
+| `dmarc_pass` | 0.967 | 0.000 | 0.000 |
+
+These are exactly the differences the reviewer named: a modern authenticated mailbox has a multi-hop `Received`
+chain and passing SPF/DKIM/DMARC, while a 2003 corpus or a raw honeypot capture has neither.
+
+### 17.3 Does the released model exploit it?
+
+Only a little, and that is what decides what may be claimed. Gain share in the released model
+(`xgboost-corpus-20261112-s7`, XGBoost, 52,333 training rows):
+
+| feature | gain share |
+|---|---|
+| `subject_reply_without_history` | 41.5% |
+| `subject_caps_ratio` | 4.9% |
+| `unique_domain_count` | 4.3% |
+| `max_path_depth` | 4.2% |
+| `financial_terms_ratio` | 4.2% |
+| `dmarc_pass` | 3.2% |
+| `text_length` | 3.1% |
+| `dkim_pass` | 2.7% |
+| `requests_click` | 2.7% |
+
+The ten era/provider-fingerprint features together hold **10.1%** of the gain. The dominant signal is content and
+behaviour, not the provider. The model is not "recognising my provider and calling it legitimate", but the margin
+is not zero either.
+
+### 17.4 What may and may not be claimed
+
+- **May claim:** FPR 0.018 at probability 0.50 on **2,865 held-out 2026 messages from the same inbox** - a temporal
+  holdout of mail from the provider the model was trained on.
+- **May not claim:** a false-positive rate for email in general, or for another person's mailbox. The 0.018 does
+  not measure that, and this repository has no second modern legitimate source to measure it with.
+- The fix the reviewer names is the one this project cannot complete on its own: modern legitimate mail from an
+  inbox that is not the owner's, and modern phishing on the training side. Nazario 2015-2023 already provides part
+  of the latter; the former needs a second contributor's mailbox, which is a data question, not a code question.
+
+### 17.5 Reproducing it
+
+`backend/scripts/source_leak_test.py` (the classifier) and `backend/scripts/released_model_importances.py` (the
+gain shares). Both need the gitignored corpora, so they are scripts and not part of the pytest suite.
+
+## 18. Related documents
 
 - [17 - Real-corpus evaluation](17-real-corpus-evaluation.md): the grouped-split result and its caveats.
 - [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.
