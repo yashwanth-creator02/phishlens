@@ -18,7 +18,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `render.yaml` | Render blueprint: one free Docker web service for the backend, with its env vars |
 | `backend.ps1` / `frontend.ps1` | Windows launchers; `backend.ps1` refuses a Python older than 3.11 |
 | `.env.example` | Compose-level environment template (Docker paths, not local paths) |
-| `.gitignore` | Excludes virtualenvs, models, storage, DBs, Playwright output, graphify cache |
+| `.gitignore` | Excludes virtualenvs, models, storage, DBs, Playwright output, graphify cache and machine state |
 
 ## `backend/app/` - FastAPI service
 

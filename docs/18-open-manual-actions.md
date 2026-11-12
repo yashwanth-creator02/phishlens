@@ -47,19 +47,38 @@ If Render asks for a card or blocks the account, say so and the agent will inste
 cloudflared quick tunnel for the demo. Trade-off: the URL changes on every restart, exists only while your machine and
 the tunnel are running, and the Vercel build has to be redeployed each time it changes.
 
+## 4. Rotate the published E2E test account password (2 minutes)
+
+**Why:** the shared test account `e2e@phishlens.test` and its password were written into two documentation pages
+while this repository was public, so the password has been readable by anyone. The account only ever held test
+traffic and no analyses, but a credential for a live hosted auth service should not sit in a public history.
+
+**Steps:** Supabase dashboard -> Authentication -> Users -> `e2e@phishlens.test` -> set a new password, or delete
+the account and create your own. Then set the new values in your shell before running the E2E suite:
+
+```powershell
+$env:E2E_EMAIL = "e2e@phishlens.test"
+$env:E2E_PASSWORD = "<the new password>"
+```
+
+**Done when:** `npm run test:e2e` passes with the new password and the old one no longer signs in.
+
+**Note:** the password literal has been removed from the docs, but it remains in the git history of those two files.
+Rotating it is what makes the old value worthless; rewriting the history is not needed.
+
 ## Already handled - do not redo
 
-- **The signed-in Playwright journey runs against production.** A dedicated test account
-  `e2e@phishlens.test` exists in Supabase Auth, and both E2E tests pass against the live URL:
+- **The signed-in Playwright journey runs against production.** Both E2E tests pass against the live URL with an
+  account you supply. The credentials are deliberately not in this repository:
   ```powershell
   cd frontend
   $env:E2E_BASE_URL = "https://phishlens-gules.vercel.app"
-  $env:E2E_EMAIL = "e2e@phishlens.test"
-  $env:E2E_PASSWORD = "phishlens-e2e-2026"
+  $env:E2E_EMAIL = "<your Supabase account>"
+  $env:E2E_PASSWORD = "<its password>"
   npm run test:e2e
   ```
-  The account holds no analyses and is only used by the test. The password is a throwaway that exists
-  so the suite can run unattended; delete the account from the Supabase dashboard if the project is
+  Create the account in Supabase Auth, or rotate the old shared test account as described in item 4. The account
+  holds no analyses and is only used by the test; delete it from the Supabase dashboard once the project is
   submitted and the tests no longer need to run against the live deployment.
 - Hugging Face is ruled out as a backend host: Docker Spaces need a paid plan and free ZeroGPU Spaces need an account
   30+ days old. Both attempts returned HTTP 402 on 2026-11-06, so `Dockerfile.space`, `deploy/space/` and the
