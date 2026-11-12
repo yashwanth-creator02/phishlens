@@ -220,10 +220,20 @@ def main(argv=None) -> dict:
         provenance["loader_drops"] = {"phish": phish_stats, "legit": legit_stats, "mailbox": mailbox_stats}
         # The phishing split is by archive file, not by message date: the corpus dates are unreliable
         # (some archives carry dates from 1970 to 2038), so the file list is what proves a holdout.
-        # Every source directory is listed, prefixed by its directory name, so two corpora that
-        # happen to hold a file of the same name are not mistaken for one source.
-        provenance["phish_files"] = [f"{corpus.source_label(d)}/{f}"
-                                     for d in phish_dirs for f in corpus.source_files(d)]
+        # Each source is recorded by its label, its size, and a digest of its file names. A corpus
+        # of one message per file has tens of thousands of names, and listing them all would make
+        # the artifact larger than the model. The archive names are listed in full, because a
+        # holdout is made of archives and that is what the leakage guard compares.
+        provenance["phish_sources"] = [
+            {"label": corpus.source_label(d),
+             "count": len(files),
+             "name_digest": corpus.name_digest(files),
+             "archives": [f for f in files if f.lower().endswith(".mbox")]}
+            for d in phish_dirs
+            for files in [corpus.source_files(d)]
+        ]
+        provenance["phish_files"] = [f"{s['label']}/{a}" for s in provenance["phish_sources"]
+                                     for a in s["archives"]]
         # The mailbox is personal data, so only a non-reversible digest of its location is recorded.
         # An absolute path would carry the local account name into a published artifact.
         mailbox_path = Path(args.legit_mailbox)

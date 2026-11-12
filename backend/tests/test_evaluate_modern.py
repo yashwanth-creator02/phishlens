@@ -201,6 +201,30 @@ def test_two_corpora_with_the_same_folder_name_do_not_collide(tmp_path: Path):
     assert source_label(tmp_path / "nigerian-fraud" / "phishing") == "nigerian-fraud/phishing"
 
 
+def test_phish_leakage_matches_a_corpus_recorded_by_digest(tmp_path: Path):
+    """A corpus of one message per file is recorded by a digest, not by 20,000 names."""
+    from training.corpus import name_digest, source_files
+    from training.evaluate_modern import phish_leakage
+
+    train_dir = tmp_path / "ceas08" / "phishing"
+    train_dir.mkdir(parents=True)
+    for i in range(3):
+        (train_dir / f"{i:024d}.eml").write_bytes(b"x")
+    eval_dir = tmp_path / "holdout"
+    eval_dir.mkdir()
+    for i in range(3):
+        (eval_dir / f"{i:024d}.eml").write_bytes(b"x")
+
+    meta = {"training": {"phish_files": [],
+                         "phish_sources": [{"label": "ceas08/phishing", "count": 3,
+                                            "name_digest": name_digest(source_files(train_dir)),
+                                            "archives": []}],
+                         "phish_min_date": "1970-01-01T00:00:00+00:00",
+                         "phish_max_date": "2038-01-01T00:00:00+00:00"}}
+    status, overlap = phish_leakage(meta, str(eval_dir), None, None)
+    assert status == "overlap" and overlap == ["ceas08/phishing"]
+
+
 def test_ham_leakage_is_distinct_for_a_different_mailbox_file(tmp_path: Path):
     from training.evaluate_modern import ham_leakage
     from training.corpus import path_digest

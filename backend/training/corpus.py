@@ -102,6 +102,16 @@ def source_label(path: str | Path) -> str:
     return f"{parent}/{p.name}" if parent and parent not in (".", "") else p.name
 
 
+def name_digest(files: list[str]) -> str:
+    """A digest of a corpus's file names, so a large corpus does not bloat the artifact.
+
+    A corpus of one message per file has tens of thousands of names, and writing them all into
+    the model metadata would make the artifact larger than the model. The digest identifies the
+    corpus; the archive names are recorded separately because a holdout is made of archives.
+    """
+    return hashlib.sha256("\n".join(sorted(files)).encode("utf-8")).hexdigest()[:32]
+
+
 def path_digest(path: str | Path) -> str:
     """A non-reversible identifier for a location.
 
