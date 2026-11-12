@@ -330,3 +330,50 @@ the synthetic demo.
   inside it; the comparison is now symmetric. `activate()` also restores the previous model if the final rename fails,
   so a failed promotion cannot leave the service without one.
 - Suite: 86 passed, 1 skipped. Frontend: 19 unit tests, Playwright smoke suite green, production build clean.
+
+## 2026-11-12 - Kaggle corpora ingested, the class balance found, and a better model released
+
+- **Most Kaggle phishing datasets cannot feed this pipeline, and that was checked rather than assumed.** The four
+  that look promising split into: rows with real header fields (CEAS 2008 and the Nigerian 419 scams, usable), rows
+  with tokenised bodies (zefang-liu, subhajournal - unusable, the body is shredded into words), pre-computed feature
+  tables (ethancratchley, akashsurya - no raw message behind the numbers), and LLM-generated text with a `Keywords:`
+  annotation and an invented signature (kuladeep19 - synthetic data dressed as a corpus). Two that looked promising
+  were rejected on inspection: avnbluefox is CEAS 2008 again (all 34,620 of its distinct bodies are in CEAS) plus 402
+  rows of garbage dated `2025/99/99`, and rashedsarad has 2023-era spam but no body text at all.
+- **Three corpora were ingested and rebuilt as real messages.** `backend/training/download_kaggle.py` fetches them from
+  Kaggle's public endpoint (no API token needed), verifies the CSV against a recorded SHA-256, and writes one `.eml` per
+  row from exactly the fields the row carries. A row with no `Authentication-Results` gets no such header, so
+  authentication is reported as missing, never failed. Rows without the fields a message needs are skipped rather than
+  filled in, because a message with no `From` teaches the model that a missing sender is normal. Result: CEAS 2008
+  (20,874 phishing, 17,293 ham), the 419 scams (2,720 phishing), a Kaggle SpamAssassin repackaging (1,701 phishing,
+  4,087 ham).
+- **Five real defects surfaced while doing this, each fixed with a test.** A display name that is only punctuation; a
+  display name starting with a dot, which makes the header parser raise on the whole message; a subject that is a
+  corrupt Big5 encoded-word; a date in the year 102, which the platform's timestamp conversion rejects; and a stale-file
+  bug, where each written file is named after its content hash so a change to the conversion left the previous messages
+  behind and a re-run mixed two conversions in one corpus.
+- **One of them was a denial of service on the live analysis path.** An href of `http://[a-z` is an unterminated IPv6
+  literal, and `urlparse` raises on it. Both call sites were unguarded, so one such link in an uploaded email stopped
+  the whole analysis. This was found by a training run, not by an upload.
+- **The class balance, not the corpus, was the lever.** Candidate E added the Kaggle phishing only. Its false-positive
+  rate was the best measured (0.4% at probability 0.5, domain-macro 0.045 against the 0.10 gate that the previous
+  release missed at 0.112) and its ROC-AUC was better than the released model's, but its recall fell to 0.674. The
+  training set went from 40% phishing to 84%: adding 23,579 phishing messages to 3,516 moved the operating point along
+  a curve that was already better. E is not a better model at the same operating point.
+- **Candidate F, with the Kaggle ham side added, is the best model measured.** FPR 0.018 at probability 0.5 and 0.021
+  at the triage boundary, domain-macro 0.068, recall 0.770, combined F1 0.829, ROC-AUC 0.967, PR-AUC 0.906, historical
+  grouped F1 0.966. It passes two gates the previous release failed (domain-macro FPR and the grouped F1) and is
+  closer on the Brier, and it gives up 0.040 of recall for half the false positives. The audit reported 395 sender
+  domains, 400 distinctive subject words, 0 findings, and 0 personal rows in the SHAP background sample.
+- **F was released and it is what Render now serves.** `backend/release/model/` holds `xgboost-corpus-20261112-s7`, the
+  release note records the audit result, and the Docker image copies it into `/app/models/active/`.
+- **The artifact stayed small.** The first run recorded all 23,607 message file names in the model metadata, which made
+  meta.json 1.29 MB against a 460 KB model. Each source is now recorded by its label, its size and a digest of its file
+  names, with the archive names kept in full because a holdout is made of archives. The leakage guard gained the matching
+  case: an evaluated corpus is compared against the recorded digests, so a corpus that was trained on and then evaluated
+  on is still caught.
+- **Docker is installed but its engine cannot start yet.** Docker Desktop 4.99 needs WSL2, and the two Windows optional
+  features it requires were enabled but only take effect after a restart, so the engine reports `Virtual Machine
+  Platform not enabled`. The Render build runs the same Dockerfile and is the deployed backend, so nothing about the
+  deployment depends on the local build.
+- Suite: 104 passed, 1 skipped. Frontend: 19 unit tests, production build clean.

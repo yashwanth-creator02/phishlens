@@ -17,15 +17,16 @@ Disable auto-training and mount a real model directory for anything beyond demos
 container starts instead of waiting on a cold-start training run. When `backend/release/model/` is empty, the image
 falls back to training the synthetic demo model at build time, so a fresh checkout still starts.
 
-**The released model is `xgboost-corpus-20261111-s7`.** It was fitted on the owner's mailbox plus Nazario pre-2024
-phishing and SpamAssassin 2003 ham, and it reached the repository through the privacy gate:
+**The released model is `xgboost-corpus-20261112-s7`.** It was fitted on the owner's mailbox plus Nazario pre-2024
+phishing plus the Kaggle CEAS 2008 and 419-scam corpora, with SpamAssassin and the Kaggle ham on the legitimate side,
+and it reached the repository through the privacy gate:
 `backend/scripts/audit_model.py` searched every file of the model directory for the sender domains, email addresses
 and distinctive subject words read out of the mailbox, in plain text, UTF-16, gzip and base64, and reported zero
 findings. The result is recorded in `backend/release/model/release.json`.
 
 Its measured behaviour on a held-out split (2,865 legitimate messages from 2026 that it never trained on, and 788
-phishing messages from the 2024-2025 archives): false-positive rate 0.022 at probability 0.5 and 0.041 at the
-LOW/MEDIUM boundary, phishing recall 0.810 at that boundary, combined F1 0.806. It is fitted on one inbox and on a
+phishing messages from the 2024-2025 archives): false-positive rate 0.018 at probability 0.5 and 0.021 at the
+LOW/MEDIUM boundary, phishing recall 0.770 at that boundary, combined F1 0.829. It is fitted on one inbox and on a
 20-year-old phishing corpus, so those numbers describe that combination and not phishing detection in general. The
 evidence, the gates it misses and the alternatives are in `docs/21-modern-corpus-evaluation-plan.md`.
 

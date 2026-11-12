@@ -52,7 +52,7 @@ already in the repository, so those numbers are reproducible rather than asserte
 
 | Question | Answer |
 |---|---|
-| How accurate is it? | Measured on a held-out split: false-positive rate 0.022 at probability 0.5 and 0.041 at the LOW/MEDIUM boundary on 2,865 legitimate messages the model never saw, with phishing recall 0.810 on 788 held-out phishing messages. One inbox, one provider, one point in time, and a phishing corpus that ends in 2025: that is a floor, not a population estimate. The method is in `docs/21-modern-corpus-evaluation-plan.md`. |
+| How accurate is it? | Measured on a held-out split: false-positive rate 0.018 at probability 0.5 and 0.021 at the LOW/MEDIUM boundary on 2,865 legitimate messages the model never saw, with phishing recall 0.770 on 788 held-out phishing messages. One inbox, one provider, one point in time, and a phishing corpus that ends in 2025: that is a floor, not a population estimate. The method is in `docs/21-modern-corpus-evaluation-plan.md`. |
 | Why SHAP and not an LLM? | SHAP gives additive, auditable contributions per feature; the reason engine then checks the claim against the email. An LLM is used for none of the decisions. |
 | What stops a wrong reason being shown? | Each reason has an evidence rule over the parsed email. A reason whose evidence fails is dropped, and Medium/High falls back to a generic statement. |
 | What happens to forwarded mail? | Inline forwarding loses SPF/DKIM/DMARC; those are marked missing, not failed. Forward as attachment to keep the original headers. |

@@ -25,13 +25,16 @@ The design bet: an explanation the user can check is worth more than a slightly 
 
 ## The number that matters, and the catch
 
-- The released model `xgboost-corpus-20261111-s7` scores a held-out set of real mail: **FPR 0.022** at probability 0.5
-  and **0.041** at the LOW/MEDIUM boundary on 2,865 legitimate messages from a modern inbox that it never trained on,
-  and **recall 0.810** on 788 phishing messages from the 2024-2025 archives. Combined F1 0.806, ROC-AUC 0.961.
+- The released model `xgboost-corpus-20261112-s7` scores a held-out set of real mail: **FPR 0.018** at probability 0.5
+  and **0.021** at the LOW/MEDIUM boundary on 2,865 legitimate messages from a modern inbox that it never trained on,
+  and **recall 0.770** on 788 phishing messages from the 2024-2025 archives. Combined F1 0.829, ROC-AUC 0.967.
 - **That is not field accuracy, and the caveats are measured.** It is fitted on one person's inbox and on a phishing
-  corpus that is 20 years old. Its domain-macro false-positive rate (0.112) misses its 0.10 gate, its recall (0.810)
-  misses its 0.90 gate, and its Brier score (0.039) misses its 0.02 gate. The gates and the trade are in
-  [21](21-modern-corpus-evaluation-plan.md) section 14.
+  corpus that is 20 years old. Its recall (0.770) misses its 0.90 gate and its Brier score (0.026) misses its 0.02
+  gate; it passes the domain-macro false-positive gate at 0.068. The gates and the trade are in
+  [21](21-modern-corpus-evaluation-plan.md) sections 14 and 15.
+- Before the owner's mailbox was allowed into training, the corpora-only model flagged **99.9%** of legitimate modern
+  mail. That history is kept in [21](21-modern-corpus-evaluation-plan.md) because the diagnosis is the point: modern
+  legitimate mail has to be in the training set, and no feature mask can substitute for it.
 - Before the owner's mailbox was allowed into training, the corpora-only model flagged **99.9%** of legitimate modern
   mail. That history is kept in [21](21-modern-corpus-evaluation-plan.md) because the diagnosis is the point: modern
   legitimate mail has to be in the training set, and no feature mask can substitute for it.
@@ -87,6 +90,29 @@ on modern mail and old phishing learns that the notification mail that dominates
 **No candidate passes every gate.** Recall (0.90) and Brier (0.02) fail for all four. The best combined performer is D,
 at FPR 0.022 and recall 0.810, which misses its domain-macro gate by 0.012 and its recall gate by 0.090. The full gate
 table and the trade are in [21](21-modern-corpus-evaluation-plan.md) section 14.
+
+## The Kaggle corpora (2026-11-12)
+
+Three Kaggle corpora were ingested and rebuilt as real messages: CEAS 2008 (20,874 phishing, 17,293 ham), the
+Nigerian 419 scams (2,720 phishing) and a Kaggle SpamAssassin repackaging (1,701 phishing, 4,087 ham). Most Kaggle
+phishing datasets cannot be used at all, because their rows are tokenised bodies or pre-computed feature tables; the
+rejected ones and the reasons are in [21](21-modern-corpus-evaluation-plan.md) section 15.
+
+Two candidates were trained on the same shared holdout as the four above:
+
+| Candidate | Training | FPR@0.5 | FPR@0.29 | Domain-macro | Recall@0.29 | Combined F1 | ROC-AUC |
+|---|---|---:|---:|---:|---:|---:|---:|
+| D (released) | Nazario + SpamAssassin + inbox | 0.022 | 0.041 | 0.112 | 0.810 | 0.806 | 0.961 |
+| E | D + Kaggle phishing | 0.004 | 0.013 | 0.045 | 0.674 | 0.703 | 0.967 |
+| F | E + Kaggle ham | 0.018 | 0.021 | 0.068 | 0.770 | 0.829 | 0.967 |
+
+**F is the best model measured so far.** It passes the domain-macro gate that D misses, its historical grouped F1
+rises from 0.948 to 0.966, and it gives up 0.040 of recall at the triage boundary for half the false positives. The
+lesson from E is the class balance: adding 23,579 phishing messages to 3,516 moved the training set to 84% phishing
+and shifted the operating point rather than improving the model.
+
+The corpora are 2002-2008 material. They added volume from the era the model already handled, not modern campaigns,
+so the recall gap is a data-vintage problem that more 2008 phishing will not close.
 
 ## Data on disk
 

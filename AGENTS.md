@@ -5,12 +5,12 @@
 PhishLens is an explainable phishing-triage prototype. A user forwards a suspicious email; the backend parses it, extracts 65 features in six groups, scores it with a calibrated tree/linear model, turns SHAP contributions into plain-language reasons, verifies each reason against evidence found in the email, and returns a Low / Medium / High risk band. The React UI shows the result and the supporting evidence.
 
 Status: v0.2 working skeleton. The extractor is 65 features. The released model
-(`xgboost-corpus-20261111-s7`, in `backend/release/model/`) is an XGBoost fitted on the owner's
-mailbox plus Nazario pre-2024 phishing and SpamAssassin 2003 ham; it passed the privacy audit
-(0 findings) and measures FPR 0.022 at probability 0.5 on 2,865 held-out legitimate messages from
-2026, with phishing recall 0.810 on 788 held-out phishing messages. It is fitted on one inbox and on
-a 20-year-old phishing corpus, so those numbers describe that combination and not real-world
-detection. See `docs/21-modern-corpus-evaluation-plan.md`.
+(`xgboost-corpus-20261112-s7`, in `backend/release/model/`) is an XGBoost fitted on the owner's
+mailbox, Nazario pre-2024 phishing, and the Kaggle CEAS 2008 and 419-scam corpora with SpamAssassin
+ham; it passed the privacy audit (0 findings) and measures FPR 0.018 at probability 0.5 on 2,865
+held-out legitimate messages from 2026, with phishing recall 0.770 on 788 held-out phishing messages.
+It is fitted on one inbox and on a 20-year-old phishing corpus, so those numbers describe that
+combination and not real-world detection. See `docs/21-modern-corpus-evaluation-plan.md`.
 
 ## Stack
 
@@ -164,9 +164,9 @@ Also upload at least one sample email through the UI or API and confirm a scored
 - The corpora-trained model **does not work on modern legitimate mail**: FPR 0.999 on 2,216 received messages from a
   real 2020-2026 inbox, and removing the era features does not fix it. Cause, ablation and options are in
   `docs/21-modern-corpus-evaluation-plan.md`; do not quote an accuracy claim for modern mail.
-- The released model is personal-data-derived and **misses three of its own promotion gates**: domain-macro FPR 0.112
-  against 0.10, recall 0.810 against 0.90, Brier 0.039 against 0.02. The measurement is in
-  `docs/21-modern-corpus-evaluation-plan.md` section 14; any claim about it must carry those numbers.
+- The released model is personal-data-derived and **misses two of its own promotion gates**: recall 0.770
+  against 0.90 and Brier 0.026 against 0.02. It passes the domain-macro gate at 0.068. The measurement is in
+  `docs/21-modern-corpus-evaluation-plan.md` sections 14 and 15; any claim about it must carry those numbers.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix

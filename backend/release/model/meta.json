@@ -1,7 +1,7 @@
 {
-  "version_tag": "xgboost-corpus-20261111-s7",
+  "version_tag": "xgboost-corpus-20261112-s7",
   "algorithm": "xgboost",
-  "trained_at": "2026-11-11T19:11:57",
+  "trained_at": "2026-11-12T11:45:09",
   "feature_names": [
     "spf_pass",
     "spf_fail",
@@ -69,24 +69,24 @@
     "subject_reply_without_history",
     "insufficient_history"
   ],
-  "data_source": "corpus: phish=nazario-train-pre2024 legit=spamassassin",
-  "n_samples": 8174,
+  "data_source": "corpus: phish=.tmp/nazario-train-pre2024+ceas08/phishing+nigerian-fraud/phishing legit=raw/spamassassin+ceas08/legitimate+spamassassin-kaggle/legitimate",
+  "n_samples": 52333,
   "split": {
-    "fit": 4973,
-    "validation": 870,
-    "test": 2331
+    "fit": 32934,
+    "validation": 7258,
+    "test": 12141
   },
   "training": {
-    "phish_dir": "nazario-train-pre2024",
-    "legit_dir": "spamassassin",
+    "phish_dir": ".tmp/nazario-train-pre2024+ceas08/phishing+nigerian-fraud/phishing",
+    "legit_dir": "raw/spamassassin+ceas08/legitimate+spamassassin-kaggle/legitimate",
     "phish_until": null,
     "phish_min_date": "1970-01-03T14:43:14+00:00",
-    "phish_max_date": "2038-01-19T03:14:07+00:00",
+    "phish_max_date": "2100-05-27T19:54:05+00:00",
     "legit_min_date": "2002-01-02T18:55:00+00:00",
     "legit_max_date": "2028-10-04T16:05:01+00:00",
     "phish_undated_dropped": 0,
-    "n_phish": 3516,
-    "n_legit": 2712,
+    "n_phish": 27095,
+    "n_legit": 23933,
     "legit_until": "2026-01-01",
     "legit_mailbox_min_date": "2020-10-21T11:55:56+00:00",
     "legit_mailbox_max_date": "2025-12-31T14:49:13+00:00",
@@ -94,16 +94,16 @@
     "contains_personal_data": true,
     "loader_drops": {
       "phish": {
-        "parsed": 5293,
-        "failed": 20,
-        "duplicate": 1777,
-        "loaded": 3516
+        "parsed": 2720,
+        "failed": 0,
+        "duplicate": 0,
+        "loaded": 2720
       },
       "legit": {
-        "parsed": 2752,
+        "parsed": 4087,
         "failed": 0,
-        "duplicate": 40,
-        "loaded": 2712
+        "duplicate": 77,
+        "loaded": 4010
       },
       "mailbox": {
         "parsed": 6007,
@@ -113,40 +113,74 @@
         "loaded": 5445
       }
     },
+    "phish_sources": [
+      {
+        "label": ".tmp/nazario-train-pre2024",
+        "count": 13,
+        "name_digest": "e2a2ab56b02848bc314e6b07d0570c30",
+        "archives": [
+          "20051114.mbox",
+          "phishing-2015.mbox",
+          "phishing-2016.mbox",
+          "phishing-2017.mbox",
+          "phishing-2018.mbox",
+          "phishing-2019.mbox",
+          "phishing-2020.mbox",
+          "phishing-2021.mbox",
+          "phishing-2022.mbox",
+          "phishing-2023.mbox",
+          "phishing0.mbox",
+          "phishing1.mbox",
+          "phishing2.mbox"
+        ]
+      },
+      {
+        "label": "ceas08/phishing",
+        "count": 20874,
+        "name_digest": "a89ecb1576d56a96077553962153d395",
+        "archives": []
+      },
+      {
+        "label": "nigerian-fraud/phishing",
+        "count": 2720,
+        "name_digest": "e1198a25216be26de8b56fbbefe5732a",
+        "archives": []
+      }
+    ],
     "phish_files": [
-      "20051114.mbox",
-      "phishing-2015.mbox",
-      "phishing-2016.mbox",
-      "phishing-2017.mbox",
-      "phishing-2018.mbox",
-      "phishing-2019.mbox",
-      "phishing-2020.mbox",
-      "phishing-2021.mbox",
-      "phishing-2022.mbox",
-      "phishing-2023.mbox",
-      "phishing0.mbox",
-      "phishing1.mbox",
-      "phishing2.mbox"
+      ".tmp/nazario-train-pre2024/20051114.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2015.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2016.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2017.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2018.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2019.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2020.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2021.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2022.mbox",
+      ".tmp/nazario-train-pre2024/phishing-2023.mbox",
+      ".tmp/nazario-train-pre2024/phishing0.mbox",
+      ".tmp/nazario-train-pre2024/phishing1.mbox",
+      ".tmp/nazario-train-pre2024/phishing2.mbox"
     ],
     "legit_mailbox_id": "9f0a967eda5e95a2",
     "legit_mailbox_scope": "directory",
-    "n_dropped_taint": 633,
-    "n_samples_after_filter": 8174,
+    "n_dropped_taint": 1274,
+    "n_samples_after_filter": 52333,
     "background_rows": 100,
     "background_rows_personal": 0,
-    "fit_rows_personal": 1683
+    "fit_rows_personal": 1156
   },
   "reason_min_contribution": 0.1,
   "fpr_ceiling": 0.03,
   "metrics": {
-    "accuracy": 0.9485199485199485,
-    "precision": 0.9411239964317574,
-    "recall": 0.951307484220018,
-    "f1_phish": 0.9461883408071748,
-    "f1_macro": 0.9484231177720085,
-    "fpr": 0.054009819967266774,
-    "roc_auc": 0.9903047377578774,
-    "pr_auc": 0.9848061261913283,
-    "brier": 0.03912300989031792
+    "accuracy": 0.9663948603904127,
+    "precision": 0.9642857142857143,
+    "recall": 0.9715909090909091,
+    "f1_phish": 0.9679245283018868,
+    "f1_macro": 0.9663182579236471,
+    "fpr": 0.03927648578811369,
+    "roc_auc": 0.9945520286847807,
+    "pr_auc": 0.9938330240976061,
+    "brier": 0.025516536086797714
   }
 }

@@ -52,7 +52,7 @@ the tunnel are running, and the Vercel build has to be redeployed each time it c
   (7 tables, RLS on all).
 - The dashboard-UI, real-corpus-evaluation and modern-corpus branches are all merged into `main` and pushed. `main`
   is at the merge that carries the released model.
-- **The released model is in `backend/release/model/`** (`xgboost-corpus-20261111-s7`). It passed the privacy audit:
+- **The released model is in `backend/release/model/`** (`xgboost-corpus-20261112-s7`). It passed the privacy audit:
   395 sender domains, 400 distinctive subject words, 0 findings, and 0 personal rows in the SHAP background sample. The
   result is recorded in `backend/release/model/release.json`. The Docker image copies it into `/app/models/active/`, so
   the next Render build serves it.

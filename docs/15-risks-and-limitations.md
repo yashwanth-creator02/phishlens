@@ -40,6 +40,13 @@
     0.112 that misses its 0.10 gate. The full table is in
     [21](21-modern-corpus-evaluation-plan.md) section 14. **No candidate passes every gate**: recall and Brier fail for
     all four, so a published model is a trade, not a clean win.
+14. **The Kaggle corpora trade 0.040 of recall for half the false positives.** The released model adds CEAS 2008 and the
+    419 scams to the phishing side and the Kaggle ham to the legitimate side. It passes the domain-macro gate that the
+    previous release missed, 0.068 against 0.10, and its historical grouped F1 rises from 0.948 to 0.966, but its
+    phishing recall at the triage boundary falls from 0.810 to 0.770. The corpora are 2002-2008 material, so they add
+    volume from the era the model already handles rather than modern campaigns, and the recall gap is a data-vintage
+    problem that more of the same will not close. The table is in
+    [21](21-modern-corpus-evaluation-plan.md) section 15.
 15. **No free, real, modern ham corpus exists.** The SpamAssassin public corpus ends in 2005; the public modern
     "spam/ham" sets that do exist are explicitly synthetic (generated mail with generated headers) and cannot serve as
     ground truth for real-world accuracy. This is why item 12 cannot be fixed by downloading something, and why the

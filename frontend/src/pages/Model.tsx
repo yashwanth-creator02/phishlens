@@ -112,10 +112,9 @@ export default function ModelPage() {
                 </li>
                 <li>
                   {model.data_source.startsWith("synthetic")
-                    ? "The corpus-trained model measures a 2.2% false-positive rate on 2,865 held-out legitimate messages from a modern inbox, and catches 81% of held-out phishing. One inbox, one provider, one point in time: a floor, not a population estimate."
+                    ? "The corpus-trained model measures a 1.8% false-positive rate on 2,865 held-out legitimate messages from a modern inbox, and catches 77% of held-out phishing. One inbox, one provider, one point in time: a floor, not a population estimate."
                     : "This model was fitted on one modern inbox and on a phishing corpus that ends in 2025. It misses some phishing, and its false-positive rate is higher for financial and transactional mail than for ordinary mail."}
-                </li>
-                <li>
+                </li>                <li>
                   Sender history updates only from known-good uploads and LOW-risk results. MEDIUM
                   and HIGH messages never train the behavioural profile.
                 </li>

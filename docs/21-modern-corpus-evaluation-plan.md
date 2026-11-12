@@ -565,10 +565,11 @@ committed code rather than by an earlier run. The retrain reproduced candidate D
 0.990, PR-AUC 0.985) and the holdout numbers are unchanged (FPR@0.5 0.022, FPR@0.29 0.041, domain-macro 0.112,
 recall@0.29 0.810).
 
-The released model is `backend/release/model/`, and it reached the repository through the gate:
+The release then moved on to candidate F in section 15, which is what the repository now serves. The release command
+is the same either way:
 
 ```powershell
-.\.venv\Scripts\python.exe -m scripts.release_model --model ..\.tmp\models-release\xgboost-corpus-20261111-s7 `
+.\.venv\Scripts\python.exe -m scripts.release_model --model ..\.tmp\models-F2\xgboost-corpus-20261112-s7 `
     --mailbox "data/raw/mailbox" --allow-personal-data --notes "..."
 ```
 
@@ -806,7 +807,7 @@ Two candidates were trained against the released configuration, on the same shar
 |---|---|---:|---:|---:|---:|---:|---:|
 | D (released) | Nazario + SpamAssassin + inbox | 0.022 | 0.041 | 0.112 | 0.810 | 0.806 | 0.961 |
 | E | D + Kaggle phishing | 0.004 | 0.013 | 0.045 | 0.674 | 0.703 | 0.967 |
-| F | E + Kaggle ham | see below | | | | | |
+| F | E + Kaggle ham | 0.018 | 0.021 | 0.068 | 0.770 | 0.829 | 0.967 |
 
 ### 15.1 What E shows, and why it is not the win it looks like
 
@@ -823,16 +824,61 @@ That is the honest reading: **E is not a better model at the same operating poin
 one.** A candidate that is only better because its threshold moved is not a candidate worth promoting, and the fix is
 class balance rather than more data.
 
-### 15.2 The class balance is the lever, not the corpus
+### 15.2 F: the balance restored, and the best model measured
 
-Adding the Kaggle ham side in candidate F restores the balance and is the configuration that would decide the
-question. If F holds E's false-positive rate while recovering D's recall, the Kaggle corpora are worth keeping. If F
-recovers D's numbers exactly, then what E measured was the class balance and the Kaggle phishing adds nothing on its
-own.
+Adding the Kaggle ham side restores the balance (27,095 phishing against 23,933 ham) and F is the best model
+measured so far. Against the released model D:
 
-Either way the useful finding is already in hand: **the released model's worst gate, domain-macro FPR at 0.112, is
-reachable by changing the class balance of the training set.** That is a lever that needs no new data at all, and it
-is worth testing on the released configuration before spending more time on corpora.
+| Measurement | D | F | Gate |
+|---|---:|---:|---|
+| Ham FPR@0.5 | 0.022 | **0.018** | <= 0.05, both pass |
+| Ham FPR@0.29 | 0.041 | **0.021** | <= 0.12, both pass |
+| Domain-macro FPR@0.29 | 0.112 | **0.068** | <= 0.10: **D fails, F passes** |
+| Phish recall@0.29 | **0.810** | 0.770 | >= 0.90: **both fail** |
+| Phish recall@0.5 | 0.728 | **0.754** | - |
+| Combined F1@0.5 | 0.806 | **0.829** | - |
+| Combined F1@0.29 | 0.827 | **0.835** | - |
+| ROC-AUC | 0.961 | **0.967** | - |
+| PR-AUC | 0.877 | **0.906** | - |
+| Historical grouped macro-F1 | 0.948 | **0.966** | >= 0.95: **D fails, F passes** |
+| Brier | 0.039 | **0.026** | <= 0.02: **both fail** |
+| Demo fixtures | 3 and 18 | 6 and 6 | <= 29, both pass |
+
+F wins on every measurement except phishing recall at the triage boundary, where it gives up 0.040 of recall for
+half the false positives. It passes two gates that D fails (domain-macro FPR and the historical grouped F1) and it
+was audited clean: 395 sender domains, 400 distinctive subject words, **0 findings**, and 0 personal rows in the SHAP
+background sample.
+
+The two gates F still fails are the two D also fails, and F is closer on the Brier. The recall gate is the honest
+limit: F misses 23% of held-out phishing at the triage boundary against a 10% allowance.
+
+### 15.3 What the corpora did and did not buy
+
+The Kaggle corpora are 2002-2008 material, so they added phishing volume from the era the model already handled
+rather than modern campaigns. What they did buy is real: F's ROC-AUC is 0.006 better and its PR-AUC 0.029 better
+than D's on the same holdout, and the historical grouped F1 rose from 0.948 to 0.966.
+
+What they did not buy is a single message from the 2015-2025 campaigns. The recall gap is a data-vintage problem,
+not a corpus-size problem, and it will not close with more 2008 phishing. Closing it needs either modern phishing
+with full headers, which no free public source currently provides, or a second modern inbox to widen the legitimate
+side and let the model trade precision for recall on the right distribution.
+
+### 15.4 The promotion decision for F
+
+F was released on 2026-11-12, replacing candidate D. The reasoning is recorded here because the choice is a trade
+and a trade should be visible:
+
+- **For**: F is better on eleven of the twelve measurements, it passes two gates D fails, its false-positive rate on
+  real modern mail is 1.8% instead of 2.2%, and the privacy audit reports 0 findings with 0 personal rows in the
+  artifact. The alternative was the synthetic demo model, which is not a detector at all.
+- **Against**: phishing recall at the triage boundary falls from 0.810 to 0.770, and the Brier score is 0.026 against
+  a 0.02 gate. Both gates still fail; F is closer on the Brier and further on the recall.
+- **What the evidence does not support**: any accuracy claim. One inbox, one provider, one person, a 20-year-old
+  phishing corpus, and public corpora from 2002-2008.
+
+The owner's decision of 2026-11-11 was to allow a personal-mailbox model to be published if it carries no personal
+data; F passed that gate, and the user's instruction of 2026-11-12 was to train on the Kaggle corpora, test the
+model and push. F is the measured outcome of exactly that.
 
 ## 16. How to reproduce
 
@@ -885,6 +931,37 @@ Auth-blind diagnostic, once it is ready:
 The harness defaults to `models` for `--model-dir` and to
 `data/raw/mailbox/All mail Including Spam and Trash.mbox` for `--mailbox`, so those flags can be omitted when
 running from `backend/`.
+
+The Kaggle corpora, the candidate that was released, and the shared holdout:
+
+```powershell
+.\.venv\Scripts\python.exe -m training.download_kaggle
+
+# F: Nazario pre-2024 + Kaggle phishing on the phishing side, SpamAssassin + Kaggle ham + the
+# owner's mailbox on the legitimate side.
+$py = ".\.venv\Scripts\python.exe"
+$a = @("-u", "-m", "training.train", "--source", "corpus")
+$a += @("--phish-dir", "..\.tmp\nazario-train-pre2024", "data\raw\kaggle\ceas08\phishing", "data\raw\kaggle\nigerian-fraud\phishing")
+$a += @("--legit-dir", "data\raw\spamassassin", "data\raw\kaggle\ceas08\legitimate", "data\raw\kaggle\spamassassin-kaggle\legitimate")
+$a += @("--legit-mailbox", "data/raw/mailbox", "--legit-until", "2026-01-01")
+$a += @("--out", "..\.tmp\models-F2", "--reports", "..\.tmp\reports-F2")
+& $py @a
+
+# The shared holdout: 2026 messages from the inbox, and the 2024-2025 archives.
+& $py -u -m training.evaluate_modern --model "..\.tmp\models-F2\xgboost-corpus-20261112-s7" `
+  --mailbox "data/raw/mailbox" --mailbox-since 2026-01-01 `
+  --phish-dir "..\.tmp\nazario-holdout-2024-2025" --phish-since 1970-01-01 --phish-until 2039-01-01 `
+  --out "..\.tmp\eval-F2"
+
+# The privacy gate, then the release.
+& $py -u -m scripts.audit_model --model "..\.tmp\models-F2\xgboost-corpus-20261112-s7" --mailbox "data/raw/mailbox"
+& $py -u -m scripts.release_model --model "..\.tmp\models-F2\xgboost-corpus-20261112-s7" `
+  --mailbox "data/raw/mailbox" --allow-personal-data --notes "..."
+```
+
+The holdout directories are built the same way as the training split above: copy `phishing-2024.mbox` and
+`phishing-2025.mbox` into `..\.tmp\nazario-holdout-2024-2025`, and use the owner's mailbox for the legitimate side,
+which the loader filters to received messages.
 
 ## 17. Related documents
 

@@ -51,7 +51,9 @@ python -m training.download_kaggle --names ceas08        # one dataset
 | `nigerian-fraud` | same archive (`Nigerian_Fraud.csv`) | 3,332 | 2,720 | 0 | 2002-2003 |
 | `spamassassin-kaggle` | same archive (`SpamAssasin.csv`) | 5,809 | 1,701 | 4,087 | 2002-2003 |
 
-The counts are what the converter produced on 2026-11-11; each run writes `summary.json` next to the messages.
+The counts are what the converter produced on 2026-11-12; each run writes `summary.json` next to the messages.
+The rows that are skipped are counted too: 987 for CEAS (mostly a sender the header parser cannot read) and 612 for
+the 419 scams (mostly a date the platform's timestamp conversion rejects).
 
 **Kaggle's public download endpoint serves these datasets without an API token.** The CSV inside the archive is
 verified against a recorded SHA-256 before anything is written. The zip itself is not gated on a hash, because
@@ -89,7 +91,8 @@ counts of words and punctuation.
 
 The Kaggle corpora are 2002-2008 material. They add phishing diversity, not modern phishing: the corpus dates
 are the same era as SpamAssassin, which is the era the released model already handles. What they do not add is a
-single message from the 2015-2025 campaigns.
+single message from the 2015-2025 campaigns. The measured effect is in
+[21](21-modern-corpus-evaluation-plan.md) section 15.
 
 ## Train/test split rule
 
