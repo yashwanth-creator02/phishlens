@@ -377,3 +377,17 @@ the synthetic demo.
   Platform not enabled`. The Render build runs the same Dockerfile and is the deployed backend, so nothing about the
   deployment depends on the local build.
 - Suite: 104 passed, 1 skipped. Frontend: 19 unit tests, production build clean.
+
+## 2026-11-12 - Request-body hardening integrated, and the bare /health path
+- **The 2026-10-29 hardening branch was never merged.** `chore/low-impact-hardening` existed on the remote but `main` had
+  never received it: `main` still did `await upload.read()` and only then checked the length, so an oversized upload was
+  fully buffered in memory before it was rejected. The code is now integrated on `feat/body-limits-and-health-alias`.
+- **Uploads read in 1 MB chunks** and stop at the 10 MB cap, so the process never holds more than the cap plus one chunk.
+- **The webhook streams its body** and rejects an oversized declared `Content-Length` before reading anything. The JSON
+  envelope gets a larger allowance (base64 expands by 4/3) so a near-limit payload is not rejected at the proxy.
+- **`GET /health` now works.** External health checkers try the bare path first and it answered 404; the route is an alias
+  of `/api/health` and is excluded from the OpenAPI schema so the public contract stays one path.
+- Bundled nginx `client_max_body_size` raised from 12 MB to 15 MB so a near-limit JSON webhook is not cut off before the
+  application sees it. `backend/pyproject.toml` declares `requires-python = ">=3.11"`.
+- Suite: 107 passed, 1 skipped. New regression tests cover the oversized upload (413), the oversized webhook body (400), a
+  non-string `recipient` in the JSON form (400), and the `/health` alias.

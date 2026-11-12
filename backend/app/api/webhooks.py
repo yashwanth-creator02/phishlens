@@ -12,12 +12,14 @@ from __future__ import annotations
 import base64
 import binascii
 import hmac
+import json
 import re
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import active_model
+from app.api.limits import MAX_BASE64_BYTES, MAX_MESSAGE_BYTES
 from app.core.config import Settings, get_settings
 from app.db import repository as repo
 from app.db.session import get_db
@@ -28,22 +30,46 @@ router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 ALIAS_RE = re.compile(r"u-([0-9a-f]{8})@", re.I)
 
 
+async def _read_body(request: Request, limit: int) -> bytes:
+    """Read the request body without ever buffering more than `limit` bytes."""
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            declared = int(content_length)
+        except ValueError as exc:
+            raise HTTPException(400, "Invalid Content-Length") from exc
+        if declared > limit:
+            raise HTTPException(400, "Empty or oversized message")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > limit:
+            raise HTTPException(400, "Empty or oversized message")
+        body.extend(chunk)
+    return bytes(body)
+
+
 @router.post("/inbound", status_code=202)
 async def inbound(request: Request, x_webhook_secret: str | None = Header(default=None),
                   x_recipient: str | None = Header(default=None), db: Session = Depends(get_db),
                   settings: Settings = Depends(get_settings), bundle: ModelBundle = Depends(active_model)) -> dict:
     if not x_webhook_secret or not hmac.compare_digest(x_webhook_secret, settings.webhook_secret):
         raise HTTPException(401, "Bad webhook secret")
-    body = await request.body()
+    content_type = (request.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
+    is_json = content_type == "application/json" or content_type.endswith("+json")
+    body = await _read_body(request, MAX_BASE64_BYTES if is_json else MAX_MESSAGE_BYTES)
     recipient = x_recipient or ""
-    if "json" in (request.headers.get("content-type") or ""):
+    if is_json:
         try:
-            payload = await request.json()
+            payload = json.loads(body)
             body = base64.b64decode(payload["raw_email_b64"], validate=True)
-            recipient = payload.get("recipient", recipient)
-        except (KeyError, ValueError, binascii.Error) as exc:
+            candidate = payload.get("recipient")
+            if candidate is not None:
+                if not isinstance(candidate, str):
+                    raise TypeError("recipient must be a string")
+                recipient = candidate
+        except (KeyError, TypeError, ValueError, binascii.Error) as exc:
             raise HTTPException(400, "Invalid JSON payload") from exc
-    if not body or len(body) > 10 * 1024 * 1024:
+    if not body or len(body) > MAX_MESSAGE_BYTES:
         raise HTTPException(400, "Empty or oversized message")
     m = ALIAS_RE.search(recipient)
     user_id = repo.user_for_alias_token(db, m.group(1).lower()) if m else None

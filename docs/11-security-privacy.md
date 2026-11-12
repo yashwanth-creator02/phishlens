@@ -7,7 +7,7 @@ Forwarded emails are someone else's correspondence. Treat everything the system 
 | Fake inbound deliveries (anyone can POST to the webhook) | shared secret (`X-Webhook-Secret`, constant-time compare); unknown alias -> 404 | provider-specific signature verification; IP allow-list; rate limit |
 | Malicious attachments | **never opened, rendered or executed**; only name, type, size, SHA-256 | none (keep it that way) |
 | Malicious HTML/links in the email | parsed with BeautifulSoup only to extract text/links; UI shows links as text (`<code>`), never as clickable anchors | CSP headers on the web app |
-| Oversized / malformed mail | 10 MB limit; defensive parser | request timeouts, queue limits |
+| Oversized / malformed mail | 10 MB application read cap; upload reads in 1 MB chunks; webhook rejects oversized `Content-Length` before reading; bundled nginx allows 15 MB; defensive parser | request timeouts, reverse-proxy body limits in other deployments, queue limits |
 | Account takeover / data leaks between users | Supabase JWT verification (aud, HS256); ownership check on every read (`_own`) -> 404; RLS policies in SQL | integration test against real Supabase; asymmetric JWT verification (JWKS) |
 | Raw email at rest | stored under `storage/<user>/<id>.eml` | **encrypt at rest** (Supabase Storage with bucket policies or app-level encryption); restrict file permissions |
 | Retention | `scripts/purge_old.py` deletes analyses and files older than `RETENTION_DAYS` (30) ; user delete button | schedule the job; document the policy in the UI |

@@ -1,5 +1,7 @@
 import base64
 
+from app.api.limits import MAX_MESSAGE_BYTES
+
 from .conftest import sample, token_for
 
 
@@ -54,6 +56,25 @@ def test_rejects_empty_upload(client):
     assert r.status_code == 400
 
 
+def test_rejects_oversized_upload(client):
+    r = client.post("/api/analyses/upload",
+                    files={"file": ("big.eml", b"x" * (MAX_MESSAGE_BYTES + 1), "message/rfc822")})
+    assert r.status_code == 413
+
+
+def test_webhook_rejects_oversized_body(client):
+    r = client.post("/api/webhooks/inbound", content=b"x" * (MAX_MESSAGE_BYTES + 1),
+                    headers={"X-Webhook-Secret": "test-secret", "X-Recipient": "u-00000000@phishlens.example",
+                             "Content-Type": "message/rfc822"})
+    assert r.status_code == 400
+
+
+def test_health_is_reachable_without_the_api_prefix(client):
+    """Most external health checkers try /health first."""
+    r = client.get("/health")
+    assert r.status_code == 200 and r.json()["status"] == "ok"
+
+
 def test_auth_required_and_users_are_isolated(make_client):
     c = make_client("supabase")
     assert upload(c, "phish_paypal_direct.eml").status_code == 401
@@ -79,6 +100,9 @@ def test_webhook_requires_secret_and_known_alias(client):
     body = {"recipient": alias["address"], "raw_email_b64": base64.b64encode(sample("legit_newsletter.eml")).decode()}
     r2 = client.post("/api/webhooks/inbound", json=body, headers={"X-Webhook-Secret": "test-secret"})
     assert r2.status_code == 202 and r2.json()["risk_band"] == "LOW"
+    bad = {"recipient": 123, "raw_email_b64": body["raw_email_b64"]}
+    r3 = client.post("/api/webhooks/inbound", json=bad, headers={"X-Webhook-Secret": "test-secret"})
+    assert r3.status_code == 400
     assert client.get("/api/analyses").json()["total"] == 2
 
 

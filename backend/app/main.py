@@ -46,3 +46,9 @@ def health() -> dict:
     except ModelNotAvailable as exc:
         return {"status": "degraded", "version": VERSION, "model_loaded": False, "detail": str(exc),
                 "auth_mode": get_settings().auth_mode}
+
+
+@app.get("/health", tags=["meta"], include_in_schema=False)
+def health_alias() -> dict:
+    """Alias for /api/health: external health checkers try the bare path first."""
+    return health()
