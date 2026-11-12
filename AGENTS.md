@@ -171,7 +171,12 @@ Also upload at least one sample email through the UI or API and confirm a scored
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
   filter silently drops every legitimate sample.
-- Docker Compose has not been exercised in this environment.
+- `python -m training.download_kaggle` (from `backend/`) fetches the Kaggle corpora and rebuilds them as `.eml`. Only
+  datasets whose rows carry real header fields are supported; a corpus of tokenised bodies cannot be used, because a
+  message rebuilt from it would report every header as absent. See `docs/datasets/README.md`.
+- Docker Compose has not been exercised in this environment. Docker Desktop 4.99 is installed and the WSL2
+  features it needs are enabled, but they only take effect after a Windows restart, so the local image build is
+  unverified; the Render build runs the same Dockerfile and is the deployed backend.
 - The frontend is live on Vercel (https://phishlens-gules.vercel.app) with `VITE_API_BASE_URL` pointing at the Render
   backend, and the backend is live on Render (`phishlens-api`, https://phishlens-api-6esn.onrender.com). Both
   auto-deploy on a push to `main`. The deployed backend serves the released model from `backend/release/model/`.

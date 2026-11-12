@@ -60,6 +60,23 @@ docker run --rm -p 8000:8000 phishlens-api
 ```
 The container is public; never send real personal email to it.
 
+### Docker on Windows
+
+Docker Desktop 4.99 is installed. Its Linux engine runs on WSL2, and WSL2 needs two Windows optional
+features: **Microsoft-Windows-Subsystem-Linux** and **VirtualMachinePlatform**. Both are enabled on this
+machine, but enabling them leaves the system in a state that only takes effect after a restart, so the
+engine reports `Virtual Machine Platform not enabled` until then.
+
+```powershell
+# Run as administrator, then restart the machine.
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /quiet /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /quiet /norestart
+```
+
+After the restart, `docker version` reports a server version and the build command above works. Until
+then, the image build is verified only by the Render build, which runs the same Dockerfile on the same
+base image and is where the deployed backend comes from.
+
 ## Vercel frontend (free)
 `frontend/vercel.json` builds the Vite app and rewrites unknown paths to `index.html` so client routes such as `/history`
 work on refresh. Import the GitHub repository in Vercel, set **Root Directory** to `frontend`, and add

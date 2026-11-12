@@ -34,6 +34,63 @@ commercially, and do not commit them. Any real message in either corpus is a his
   The committed numbers in `reports/` predate this expansion and have not been recomputed.
 - Exact counts and SHA-256 checksums are written to `backend/data/raw/<name>/manifest.json` by the fetcher.
 
+## Kaggle corpora
+
+`backend/training/download_kaggle.py` fetches Kaggle datasets that ship as CSV with the email split across
+columns, and rebuilds one `.eml` per row so the same feature extractor can read them:
+
+```powershell
+cd backend
+python -m training.download_kaggle                       # all supported datasets
+python -m training.download_kaggle --names ceas08        # one dataset
+```
+
+| Dataset | Kaggle ref | Rows | Phishing | Legitimate | Era |
+|---|---|---:|---:|---:|---|
+| `ceas08` | `naserabdullahalam/phishing-email-dataset` (`CEAS_08.csv`) | 39,154 | 20,874 | 17,293 | 2008 |
+| `nigerian-fraud` | same archive (`Nigerian_Fraud.csv`) | 3,332 | 2,720 | 0 | 2002-2003 |
+| `spamassassin-kaggle` | same archive (`SpamAssasin.csv`) | 5,809 | 1,701 | 4,087 | 2002-2003 |
+
+The counts are what the converter produced on 2026-11-11; each run writes `summary.json` next to the messages.
+
+**Kaggle's public download endpoint serves these datasets without an API token.** The CSV inside the archive is
+verified against a recorded SHA-256 before anything is written. The zip itself is not gated on a hash, because
+Kaggle may repack it at any time.
+
+### Which Kaggle datasets are usable, and why the others are not
+
+The obvious Kaggle phishing datasets fall into four groups, and only the first can feed this pipeline:
+
+- **Rows with real header fields** (sender, receiver, date, subject, body): usable. CEAS 2008 and the Nigerian
+  419 scams are in this group and are supported.
+- **Rows with tokenised bodies** (`zefang-liu/phishing-email-dataset`, `subhajournal/phishingemails`): not usable.
+  The body has been shredded into words, so `http://example.com` becomes `http example com`, and there is no
+  From, no Date and no Subject. A message rebuilt from one of these would report every header as absent, which
+  is a false fact about the mail.
+- **Pre-computed feature tables** (`ethancratchley/email-phishing-dataset`, `akashsurya156/phishing-paper1`): not
+  usable. These hold 500,000+ rows of already-extracted numbers, with no raw message behind them.
+- **LLM-generated text** (`kuladeep19/phishing-and-legitimate-emails-dataset`): not usable. The rows carry a
+  `Keywords:` annotation and an invented signature, so they are synthetic data dressed as a corpus.
+
+Two datasets that looked promising were rejected after inspection: `avnbluefox/avn-phishing-email-classification-dataset`
+is CEAS 2008 again (all 34,620 of its distinct bodies are in CEAS) plus 402 rows of synthetic garbage with dates
+like `2025/99/99`; `rashedsarad/ham-and-spam-emails-with-attachments` has 2023-era spam but no body text, only
+counts of words and punctuation.
+
+### What the conversion does and does not do
+
+- Only headers the row actually carries are written. A row with no `Authentication-Results` gets no such header,
+  so the extractor reports authentication as *missing*, never as *failed*.
+- The `urls` column is a count, not a list. The links live in the body, so the body is carried over unchanged.
+- A row without a sender, a date or a subject is skipped. Writing a message with no `From` would teach the model
+  that a missing sender is normal, which is a different fact from "the header said nothing".
+- Each output file is named after the hash of its content, and the output directory is cleared first. Without
+  that, a change to the conversion leaves the previous messages behind and a re-run mixes two conversions.
+
+The Kaggle corpora are 2002-2008 material. They add phishing diversity, not modern phishing: the corpus dates
+are the same era as SpamAssassin, which is the era the released model already handles. What they do not add is a
+single message from the 2015-2025 campaigns.
+
 ## Train/test split rule
 
 Dedupe by raw hash, Message-ID, and body-content hash before splitting. The primary evaluation uses a **grouped
