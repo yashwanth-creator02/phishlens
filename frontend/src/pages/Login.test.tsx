@@ -66,4 +66,43 @@ describe("Login", () => {
     await user.click(guestBtn);
     expect(supabase?.auth.signInAnonymously).toHaveBeenCalled();
   });
+
+  it("shows a pending label and locks the other buttons while sign-in runs", async () => {
+    // A promise that never settles, so the request is still in flight when we assert.
+    vi.mocked(supabase!.auth.signInWithPassword).mockReturnValue(new Promise(() => {}) as never);
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+    const signInBtn = await screen.findByRole("button", { name: /sign in/i });
+    const googleBtn = await screen.findByRole("button", { name: /continue with google/i });
+    const guestBtn = await screen.findByRole("button", { name: /try it as a guest/i });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/email address/i), "analyst@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "correct-horse-battery");
+    await user.click(signInBtn);
+
+    expect(await screen.findByRole("button", { name: /signing in/i })).toBeDisabled();
+    expect(googleBtn).toBeDisabled();
+    expect(guestBtn).toBeDisabled();
+  });
+
+  it("turns a network failure into a message a person can act on", async () => {
+    vi.mocked(supabase!.auth.signInWithPassword).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+    const signInBtn = await screen.findByRole("button", { name: /sign in/i });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/email address/i), "analyst@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "correct-horse-battery");
+    await user.click(signInBtn);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not reach the server/i);
+    expect(screen.queryByText(/failed to fetch/i)).not.toBeInTheDocument();
+  });
 });
