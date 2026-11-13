@@ -40,36 +40,9 @@ agent can report the false-positive rate at the shipped thresholds on mail the m
 
 ---
 
-## 2. Give the bot a real email address (30-60 minutes, needs a domain)
-
-**Why:** the alias domain is still the placeholder `phishlens.example`, which is not a real mailbox, so
-forwarding a suspicious email does not reach the system yet. This is the last piece of the forwarding path, and
-it is the one thing that needs a domain you own and an account on an inbound-email provider.
-
-**Steps:**
-
-1. Buy a domain (or use one you already own). It only needs to receive mail.
-2. Pick an inbound provider that can POST the raw message to a webhook: **Mailgun routes**, **Postmark inbound**,
-   **SendGrid inbound parse**, or **Cloudflare Email Routing plus a Worker**. Any of them works; the system only
-   needs `POST /api/webhooks/inbound` with the raw RFC-5322 message.
-3. Point the domain's MX records at that provider, and set the provider's webhook to
-   `https://phishlens-api-6esn.onrender.com/api/webhooks/inbound` with the shared secret in the
-   `X-Webhook-Secret` header. The secret is the value of `PHISHLENS_WEBHOOK_SECRET` on the Render service.
-4. Set the domain on Render: `PHISHLENS_ALIAS_DOMAIN=<your domain>` (for example `phishlens.app`). Save and let
-   Render redeploy.
-
-**Done when:** `GET /api/forwarding` reports your domain and `inbound_configured: true`, and forwarding a test
-email to `u-<token>@<your domain>` appears in the account's history within seconds.
-
-**Already done by the agent:** the alias flow, the per-account address, the webhook endpoint with its secret
-check, and `GET /api/forwarding`, which publishes the domain and the address pattern for the login screen. The
-login screen already tells a visitor when inbound forwarding is not connected, so nobody is misled in the
-meantime.
-
----
-
 ## Already handled - do not redo
 
+- **Inbound Email Forwarding via Cloudflare & Worker**: Domain `phislens.dpdns.org` delegated to Cloudflare DNS, Email Routing catch-all configured to Worker `phishlens-inbound`, forwarding raw emails with `X-Recipient` and `X-Webhook-Secret` to Render API `/api/webhooks/inbound`. `GET /api/forwarding` returns `alias_domain: "phislens.dpdns.org"` and `inbound_configured: true`. Documented in `docs/23-cloudflare-email-forwarding.md`.
 - **Docker Desktop & WSL2 Engine**: Windows host restarted and verified. Docker engine is running; local `docker build -f backend/Dockerfile -t phishlens-api backend` builds cleanly, and the containerized model loads and serves the 65-feature release model. Line endings in `entrypoint.sh` enforced as LF via `.gitattributes`.
 - **Phishing Pot Licence Terms (CC BY-NC 4.0)**: Acceptance confirmed by owner on 2026-11-13 for academic non-commercial research use; recorded in `docs/datasets/README.md`.
 - **Google OAuth Sign-In**: Client ID and secret created in Google Cloud Console with authorized origins (`https://phishlens-gules.vercel.app`, `http://localhost:5173`) and redirect URI (`https://vmbtdrmevlovvvfvtqmd.supabase.co/auth/v1/callback`), and configured in Supabase Auth.
