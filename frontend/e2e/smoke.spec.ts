@@ -15,7 +15,8 @@ test.describe("signed-in smoke", () => {
   test("core pages render for a signed-in analyst", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email address").fill(email!);
-    await page.getByLabel("Password").fill(password!);
+    // exact, because the reveal toggle next to it is labelled "Show password".
+    await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign in" }).click();
 
     // The sign-in request has to finish and persist the session before the page is reloaded,
