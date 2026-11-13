@@ -143,18 +143,80 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
 
   return (
     <div className="login-layout">
-      {/* LEFT: Brand Block */}
-      <div className="login-brand-block">
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-          <Logo size={36} />
-          <h1 style={{ margin: 0, fontSize: "2rem", letterSpacing: "-0.03em" }}>PhishLens</h1>
+      {/* LEFT: Brand & Capabilities Hero */}
+      <div className="login-hero">
+        <div className="login-hero-badge">
+          <span>Triage Engine · 65 Vectors</span>
         </div>
-        <span className="brand-subtitle" style={{ display: "block", fontSize: "0.95rem", color: "var(--muted)", letterSpacing: "0.02em", marginBottom: "16px" }}>
-          Explainable phishing-triage console
-        </span>
-        <p className="muted" style={{ fontSize: "1.05rem", lineHeight: "1.6", maxWidth: "42ch" }}>
-          An explainable phishing-triage tool. Analysts forward suspicious emails to receive a Low, Medium, or High risk score with evidence-verified reasons.
-        </p>
+
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+            <Logo size={40} />
+            <h1 style={{ margin: 0, fontSize: "2.25rem", letterSpacing: "-0.03em" }}>PhishLens</h1>
+          </div>
+          <span className="brand-subtitle" style={{ display: "block", fontSize: "0.95rem", color: "var(--accent)", letterSpacing: "0.02em", marginBottom: "16px", fontWeight: 500 }}>
+            Explainable phishing-triage console
+          </span>
+          <p className="muted" style={{ fontSize: "1rem", lineHeight: "1.6", maxWidth: "46ch", margin: 0 }}>
+            Upload or forward suspicious emails to receive calibrated risk scoring, multi-vector feature extraction across 65 signals, and evidence-verified SHAP reasons.
+          </p>
+        </div>
+
+        <div className="login-features-list">
+          <div className="login-feature-item">
+            <div className="login-feature-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <div className="login-feature-text">
+              <h3>65-Feature Multi-Vector Analysis</h3>
+              <p>Header authentication, URL lexical depth, NLP semantics, and sender behavioral profiles.</p>
+            </div>
+          </div>
+
+          <div className="login-feature-item">
+            <div className="login-feature-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 11 12 14 22 4" />
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+              </svg>
+            </div>
+            <div className="login-feature-text">
+              <h3>Evidence-Verified Reasons</h3>
+              <p>SHAP attributions cross-checked against raw message artifacts to eliminate false claims.</p>
+            </div>
+          </div>
+
+          <div className="login-feature-item">
+            <div className="login-feature-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 14 14" />
+              </svg>
+            </div>
+            <div className="login-feature-text">
+              <h3>Calibrated Three-Tier Triage</h3>
+              <p>Low, Medium, and High probability-calibrated bands designed for rapid analyst workflow.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="login-trust-badges">
+          <span className="login-trust-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+            Zero-execution sandbox
+          </span>
+          <span className="login-trust-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 01-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 011-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 011.52 0C14.51 3.81 17 5 19 5a1 1 0 011 1z" />
+            </svg>
+            Strict RLS tenant isolation
+          </span>
+        </div>
       </div>
 
       {/* RIGHT: Form & Floating Notification */}

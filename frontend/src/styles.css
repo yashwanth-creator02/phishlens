@@ -782,22 +782,115 @@ input:focus {
 
 .login-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(380px, 420px);
-  gap: 48px;
+  grid-template-columns: minmax(300px, 1.1fr) minmax(340px, 400px);
+  gap: 40px;
   align-items: center;
-  min-height: 80vh;
-  max-width: 1120px;
-  margin: 40px auto;
-  padding: 0 24px;
+  min-height: calc(100vh - 80px);
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 32px 24px;
 }
-@media (max-width: 850px) {
+@media (max-width: 768px) {
   .login-layout {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 24px;
     min-height: auto;
-    margin: 20px auto;
-    padding-bottom: 140px;
+    margin: 16px auto;
+    padding: 20px 16px 140px;
   }
+
+  .login-hero {
+    gap: 14px;
+  }
+
+  .login-features-list,
+  .login-trust-badges {
+    display: none;
+  }
+}
+
+/* Login Hero Highlights */
+.login-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  width: fit-content;
+}
+
+.login-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.login-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.login-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.login-feature-text h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.login-feature-text p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.login-trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.login-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Forwarding inbox notice on login page */
