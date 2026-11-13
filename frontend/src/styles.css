@@ -538,6 +538,120 @@ table.small td, table.small th {
   opacity: 0.6;
 }
 
+/* Dashboard Forwarding Banner */
+.dashboard-forwarding-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin: 16px 0 20px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s ease;
+}
+.dashboard-forwarding-card:hover {
+  border-color: color-mix(in srgb, var(--line) 70%, var(--accent));
+}
+
+.forwarding-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.forwarding-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.forwarding-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.forwarding-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.forwarding-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.forwarding-address-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.forwarding-address-pill {
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.mail-app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+.mail-app-link:hover {
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .forwarding-card-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .forwarding-address-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .forwarding-address-pill {
+    text-align: center;
+  }
+  .copy-btn, .mail-app-link {
+    justify-content: center;
+  }
+}
+
 /* Upload Box */
 .upload-container {
   border: 2px dashed var(--line);

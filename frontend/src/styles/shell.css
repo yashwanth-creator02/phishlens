@@ -211,6 +211,130 @@
   border-radius: 0 2px 2px 0;
 }
 
+/* Sidebar Forwarding Widget */
+.shell-forwarding-widget {
+  padding: 12px 14px;
+  margin: 0 10px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease;
+}
+.shell-forwarding-widget:hover {
+  border-color: color-mix(in srgb, var(--line) 70%, var(--accent));
+}
+
+.shell-forwarding-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.shell-forwarding-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.shell-forwarding-badge {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--low);
+  background: var(--low-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.shell-forwarding-address {
+  display: block;
+  font-size: 11px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.shell-forwarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shell-forwarding-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.shell-forwarding-btn:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+.shell-forwarding-btn.mail-link {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.shell-forwarding-btn.mail-link:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.shell-forwarding-subtle-link {
+  display: block;
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 2px 0;
+}
+.shell-forwarding-subtle-link:hover {
+  text-decoration: underline;
+}
+
+.shell-forwarding-collapsed {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.shell-forwarding-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.shell-forwarding-icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--card);
+}
+
 .shell-account {
   padding: 16px;
   border-top: 1px solid var(--line);

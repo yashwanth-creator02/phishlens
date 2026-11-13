@@ -17,10 +17,19 @@ const RECENT_COUNT = 5;
 export default function Dashboard() {
   const nav = useNavigate();
   const aliasState = useForwardingAlias();
+  const [copiedAddress, setCopiedAddress] = useState(false);
   const [items, setItems] = useState<AnalysisSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const copyAddress = () => {
+    if (aliasState.status === "verified") {
+      navigator.clipboard.writeText(aliasState.address);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    }
+  };
 
   const load = useCallback(() => {
     setRefreshing(true);
@@ -65,6 +74,91 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Forwarding & Mail App Bar */}
+      <section className="dashboard-forwarding-card" aria-label="Forwarding and mail app triage">
+        <div className="forwarding-card-content">
+          <div className="forwarding-card-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <div className="forwarding-card-text">
+            <div className="forwarding-card-header">
+              <strong className="forwarding-card-title">Inbound Email Forwarding</strong>
+              <span className="upload-format-chip">RFC-822 PRESERVED</span>
+            </div>
+            {aliasState.status === "verified" ? (
+              <>
+                <p className="muted" style={{ margin: "4px 0 8px", fontSize: "0.9rem" }}>
+                  Forward suspicious emails as an attachment to your dedicated triage address:
+                </p>
+                <div className="forwarding-address-row">
+                  <span className="mono forwarding-address-pill">{aliasState.address}</span>
+                  <button
+                    type="button"
+                    className="copy-btn secondary"
+                    onClick={copyAddress}
+                    aria-label="Copy forwarding email address"
+                  >
+                    {copiedAddress ? (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        <span>Copy address</span>
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href={`mailto:${aliasState.address}?subject=Suspicious%20Email%20for%20Triage&body=Attach%20the%20suspicious%20email%20here%20as%20an%20attachment%20(.eml)%20and%20send%20to%20trigger%20automated%20PhishLens%20triage.`}
+                    className="mail-app-link btn"
+                    title="Launch your default email app"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="22" y1="2" x2="11" y2="13"/>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    <span>Open in Mail App</span>
+                  </a>
+                </div>
+              </>
+            ) : aliasState.status === "unverified" ? (
+              <div style={{ marginTop: "4px" }}>
+                <p className="muted" style={{ margin: "4px 0 8px", fontSize: "0.9rem" }}>
+                  Forwarding alias is gated on email confirmation to protect inbox history.
+                </p>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                  <Link to="/profile" className="secondary" style={{ padding: "4px 10px", fontSize: "0.85rem", textDecoration: "none" }}>
+                    Verify email in Profile →
+                  </Link>
+                  <a href="mailto:?subject=PhishLens%20Triage" className="secondary" style={{ padding: "4px 10px", fontSize: "0.85rem", textDecoration: "none" }}>
+                    Open Mail App
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: "4px" }}>
+                <p className="muted" style={{ margin: "4px 0", fontSize: "0.9rem" }}>
+                  Sign in with an email account to receive a personal forwarding address.
+                </p>
+                <a href="mailto:?subject=PhishLens%20Triage" className="secondary" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", fontSize: "0.85rem", textDecoration: "none", marginTop: "6px" }}>
+                  Open Mail App
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <UploadBox
         label="Analyse new email"

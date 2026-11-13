@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth";
+import { useForwardingAlias } from "../hooks/useForwardingAlias";
 import { ToastProvider } from "./Toast";
 import { ConfirmProvider } from "./ConfirmDialog";
 import { Logo } from "./Logo";
@@ -78,6 +79,8 @@ const profileLink = {
 
 function Shell() {
   const { user } = useSession();
+  const aliasState = useForwardingAlias();
+  const [copiedSidebar, setCopiedSidebar] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("phishlens-sidebar-collapsed") === "true";
@@ -283,6 +286,119 @@ function Shell() {
 
           <div className="shell-nav">
             {renderNavLinks()}
+          </div>
+
+          <div className="shell-forwarding-widget">
+            {!collapsed ? (
+              <>
+                <div className="shell-forwarding-header">
+                  <span className="shell-forwarding-label">Forward Email</span>
+                  {aliasState.status === "verified" && (
+                    <span className="shell-forwarding-badge">Active</span>
+                  )}
+                </div>
+                {aliasState.status === "verified" ? (
+                  <div className="shell-forwarding-body">
+                    <span className="shell-forwarding-address mono" title={aliasState.address}>
+                      {aliasState.address}
+                    </span>
+                    <div className="shell-forwarding-actions">
+                      <button
+                        type="button"
+                        className="shell-forwarding-btn"
+                        onClick={() => {
+                          navigator.clipboard.writeText(aliasState.address);
+                          setCopiedSidebar(true);
+                          setTimeout(() => setCopiedSidebar(false), 2000);
+                        }}
+                        title="Copy forwarding email address"
+                        aria-label="Copy forwarding address"
+                      >
+                        {copiedSidebar ? (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                      <a
+                        href={`mailto:${aliasState.address}?subject=Suspicious%20Email%20for%20Triage&body=Attach%20the%20suspicious%20email%20here%20as%20an%20attachment%20(.eml)%20and%20send%20to%20trigger%20automated%20PhishLens%20triage.`}
+                        className="shell-forwarding-btn mail-link"
+                        title="Open in your default mail app"
+                        aria-label="Open in mail app"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="22" y1="2" x2="11" y2="13"/>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                        <span>Mail App</span>
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="shell-forwarding-body">
+                    <NavLink
+                      to="/profile"
+                      className="shell-forwarding-subtle-link"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {aliasState.status === "unverified"
+                        ? "Verify email for alias →"
+                        : "Sign in for forwarding alias →"}
+                    </NavLink>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="shell-forwarding-collapsed">
+                {aliasState.status === "verified" ? (
+                  <button
+                    type="button"
+                    className="shell-forwarding-icon-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(aliasState.address);
+                      setCopiedSidebar(true);
+                      setTimeout(() => setCopiedSidebar(false), 2000);
+                    }}
+                    title={copiedSidebar ? "Copied!" : `Copy ${aliasState.address}`}
+                    aria-label={`Copy forwarding address ${aliasState.address}`}
+                  >
+                    {copiedSidebar ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--low)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                    )}
+                  </button>
+                ) : (
+                  <NavLink
+                    to="/profile"
+                    className="shell-forwarding-icon-btn"
+                    title="Forwarding alias setup"
+                    aria-label="Forwarding alias setup"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                  </NavLink>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="shell-account">
