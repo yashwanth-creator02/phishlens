@@ -332,10 +332,15 @@ function Shell() {
                         )}
                       </button>
                       <a
-                        href={`mailto:${aliasState.address}?subject=Suspicious%20Email%20for%20Triage&body=Attach%20the%20suspicious%20email%20here%20as%20an%20attachment%20(.eml)%20and%20send%20to%20trigger%20automated%20PhishLens%20triage.`}
+                        href={`mailto:${aliasState.address}`}
+                        onClick={() => {
+                          navigator.clipboard.writeText(aliasState.address);
+                          setCopiedSidebar(true);
+                          setTimeout(() => setCopiedSidebar(false), 2000);
+                        }}
                         className="shell-forwarding-btn mail-link"
-                        title="Open in your default mail app"
-                        aria-label="Open in mail app"
+                        title="Copy address and open mail app"
+                        aria-label="Copy address and open mail app"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <line x1="22" y1="2" x2="11" y2="13"/>
