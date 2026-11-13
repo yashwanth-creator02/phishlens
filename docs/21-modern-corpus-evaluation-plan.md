@@ -1,4 +1,4 @@
-﻿# 21 - Modern corpus evaluation plan
+# 21 - Modern corpus evaluation plan
 
 **Last updated:** 2026-11-11
 **Status:** P0, P1 and P2 complete. P2 failed its gates, so H1 is rejected as sufficient and the ablation route to a

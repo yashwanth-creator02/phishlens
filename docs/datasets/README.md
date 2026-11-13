@@ -24,7 +24,7 @@ commercially, and do not commit them. Any real message in either corpus is a his
 ## Sizes and statistics
 
 - Nazario: **4,306 phishing messages after dedupe** (measured 2026-11-10), from 12 published files: `phishing0`,
-  `20051114`, `phishing1`, `phishing2`, `phishing3`, and `phishing-2015` â€¦ `phishing-2025`. The five files fetched
+  `20051114`, `phishing1`, `phishing2`, `phishing3`, and `phishing-2015` to `phishing-2025`. The five files fetched
   before the 2026-11-10 expansion (`phishing0`, `phishing1`, `phishing2`, `phishing-2024`, `phishing-2025`) parsed to
   2,182 messages; that smaller set is what the committed evaluation and the promoted model were trained on.
 - SpamAssassin: 2,712 legitimate messages across `easy_ham` (2,500) and `hard_ham` (250), of which 633 carry the

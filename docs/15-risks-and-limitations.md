@@ -1,4 +1,4 @@
-﻿# 15 - Risks and limitations
+# 15 - Risks and limitations
 
 ## Known limitations of v0.1 (honest list)
 1. **The demo model is trained on generated data.** The app's own output is not validated against real mail; real

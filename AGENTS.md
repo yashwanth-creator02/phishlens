@@ -1,4 +1,4 @@
-﻿# PhishLens project instructions
+# PhishLens project instructions
 
 ## What this project is
 
