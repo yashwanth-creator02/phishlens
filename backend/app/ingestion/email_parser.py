@@ -141,6 +141,13 @@ def _auth_results(msg: EmailMessage) -> dict[str, str]:
         for k in res:
             m = re.search(rf"\b{k}\s*=\s*(pass|fail|softfail|neutral|none|temperror|permerror)", joined)
             res[k] = ("fail" if m.group(1) in ("fail", "softfail", "permerror") else m.group(1)) if m else "none"
+    # Fallback to Received-SPF (RFC 7208) when Authentication-Results does not report SPF
+    if res["spf"] in ("missing", "none"):
+        rcvd_spf = " ".join(str(v) for v in (msg.get_all("Received-SPF") or [])).lower()
+        if rcvd_spf:
+            sm = re.search(r"\b(pass|fail|softfail|neutral|none|temperror|permerror)\b", rcvd_spf)
+            if sm:
+                res["spf"] = "fail" if sm.group(1) in ("fail", "softfail", "permerror") else sm.group(1)
     return res
 
 

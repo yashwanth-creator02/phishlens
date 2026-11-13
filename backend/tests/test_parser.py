@@ -53,3 +53,14 @@ def test_attachment_metadata_only():
     assert p.attachments[0].filename == "invoice.pdf.exe"
     assert p.attachments[0].size == 7
     assert len(p.attachments[0].sha256) == 64
+
+
+def test_received_spf_fallback_when_auth_results_missing():
+    m = EmailMessage()
+    m["From"] = "sender@legit.example"
+    m["Received-SPF"] = "pass (mail.example: domain of sender@legit.example designates 1.2.3.4 as permitted sender)"
+    m.set_content("Hello from legitimate sender")
+    p = parse_email(m.as_bytes())
+    assert p.auth["spf"] == "pass"
+    assert p.auth["dkim"] == "missing"
+    assert p.auth["dmarc"] == "missing"

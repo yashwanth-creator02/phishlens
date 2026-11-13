@@ -20,7 +20,7 @@ services:
       - key: PHISHLENS_SUPABASE_ANON_KEY
         sync: false
       - key: PHISHLENS_CORS_ORIGINS
-        value: https://phishlens-gules.vercel.app
+        value: https://phishlens-gules.vercel.app,http://localhost:5173
       - key: PHISHLENS_AUTO_TRAIN_DEMO
         value: "true"
       # Supabase -> Connect -> Session pooler URI; a bare postgresql:// is normalized to psycopg3.

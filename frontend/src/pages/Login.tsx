@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { AuthContext } from "../auth";
 import { supabase } from "../supabase";
 import { Logo } from "../components/Logo";
 import { usePendingAction } from "../hooks/usePendingAction";
@@ -23,6 +24,7 @@ function getFriendlyError(err: unknown): string {
 
 export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuestProp, signUp: signUpProp }: LoginProps) {
   const nav = useNavigate();
+  const auth = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -116,6 +118,12 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
     await run("guest", async () => {
       if (signInAsGuestProp) {
         await signInAsGuestProp();
+        nav("/", { replace: true });
+        return;
+      }
+      if (auth) {
+        const err = await auth.signInAsGuest();
+        if (err) throw new Error(err);
         nav("/", { replace: true });
         return;
       }

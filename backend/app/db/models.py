@@ -3,7 +3,7 @@ Works on SQLite (local dev, default) and PostgreSQL (Supabase)."""
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -11,6 +11,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 def new_id() -> str:
     return uuid.uuid4().hex
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):
@@ -21,7 +25,7 @@ class Analysis(Base):
     __tablename__ = "analyses"
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(String(64), index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
     sender_address: Mapped[str] = mapped_column(String(320), default="")
     sender_name: Mapped[str] = mapped_column(String(320), default="")
     subject: Mapped[str] = mapped_column(Text, default="")
@@ -81,7 +85,7 @@ class ModelVersion(Base):
     f1_macro: Mapped[float] = mapped_column(Float, default=0.0)
     roc_auc: Mapped[float] = mapped_column(Float, default=0.0)
     meta: Mapped[dict] = mapped_column(JSON, default=dict)
-    trained_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    trained_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
@@ -95,11 +99,11 @@ class SenderProfile(Base):
     first_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     stats: Mapped[dict] = mapped_column(JSON, default=dict)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class UserAlias(Base):
     __tablename__ = "user_aliases"
     user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     token: Mapped[str] = mapped_column(String(16), unique=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)

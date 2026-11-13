@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.features.common import ProfileData
 
-from .models import Analysis, ModelVersion, SenderProfile, UserAlias
+from .models import Analysis, ModelVersion, SenderProfile, UserAlias, utc_now
 
 
 def load_profile(db: Session, user_id: str, sender: str) -> ProfileData | None:
@@ -35,7 +35,7 @@ def save_profile(db: Session, user_id: str, sender: str, p: ProfileData) -> None
     row.stats = {"urgency_mean": p.urgency_mean, "urgency_m2": p.urgency_m2,
                  "reply_domains": sorted(p.reply_domains), "return_path_domains": sorted(p.return_path_domains),
                  "link_domains": sorted(p.link_domains), "centroid": p.centroid}
-    row.updated_at = datetime.utcnow()
+    row.updated_at = utc_now()
 
 
 def get_or_create_alias(db: Session, user_id: str) -> UserAlias:
