@@ -145,10 +145,6 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
     <div className="login-layout">
       {/* LEFT: Brand & Capabilities Hero */}
       <div className="login-hero">
-        <div className="login-hero-badge">
-          <span>Triage Engine · 65 Vectors</span>
-        </div>
-
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "8px" }}>
             <Logo size={40} />
@@ -230,6 +226,8 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                alignSelf: "flex-start",
+                justifyContent: "flex-start",
                 gap: "6px",
                 marginBottom: "8px",
                 padding: 0,
@@ -238,6 +236,8 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
                 cursor: "pointer",
                 background: "transparent",
                 border: "none",
+                textAlign: "left",
+                width: "fit-content",
               }}
               aria-label="Back to sign in"
             >
