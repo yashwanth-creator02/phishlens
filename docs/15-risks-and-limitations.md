@@ -73,6 +73,16 @@
     held-out 2026 mail from the owner's own inbox, and must not be quoted as a general false-positive rate.** The
     measurement, the gain shares and the reproduction steps are in
     [21](21-modern-corpus-evaluation-plan.md) section 17.
+21. **The shortcut cannot be patched out feature by feature.** Removing one feature at a time changes the
+    corpus-recovery accuracy by at most 0.010, because several features each identify the corpus on their own.
+    Removing the whole 13-feature header group still leaves it at 0.885, and the format-only fingerprint (which
+    header names are present, the shape of the Date and the Message-ID, the charset, the MIME structure, the line
+    endings, the length of the Received chain) reaches 0.999 and survives dropping the MIME block and the transport
+    headers. **The consequence: no feature engineering fixes this. The fix is training data from one world and a
+    second inbox to measure on.** With five corpora the recovery accuracy is 0.976, and the candidate's own
+    feature-group ablation agrees: dropping the header group costs it more than any other block. Reproduce with
+    `python -m scripts.source_leak_test`; the method is in
+    [22](22-training-methodology-and-measurements.md).
 
 ## Project risks
 | Risk | Likelihood | Impact | Mitigation |

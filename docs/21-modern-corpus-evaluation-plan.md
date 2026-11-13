@@ -1106,10 +1106,61 @@ cd backend
 
 Roughly fifteen minutes: the mailbox is about 370 MB of raw mbox, and every message is parsed and featurised.
 
-## 19. Related documents
+## 19. The candidate with the modern phishing corpus (2026-11-12)
+
+The method in `docs/22-training-methodology-and-measurements.md` was applied end to end: a modern phishing corpus,
+a temporal split, operating points chosen on validation, and a seed sweep. The candidate is written to
+`backend/models-eval/xgboost-corpus-20261112-s7` and is **not activated**; the serving model is untouched.
+
+**The data.** 36,048 messages, 13,546 phishing and 22,502 legitimate, in 11,631 groups. Phishing is Nazario (4,306)
+plus Phishing Pot (9,240); legitimate is SpamAssassin easy_ham (2,472) and hard_ham (240), CEAS 2008 legitimate
+(17,211) and the owner's mailbox before 2026-01-01 (2,579). The 633 messages from `spamassassin.taint.org` are
+excluded, as before.
+
+**The split.** Temporal, by group: fit 26,004, validation 4,019, test 5,392. The test partition is 5,156 phishing and
+236 legitimate, because the newest mail in every corpus is phishing: SpamAssassin is from 2003, CEAS from 2008, and
+the modern phishing is from 2022 onwards. That is why the false-positive rate cannot be read off the test partition
+alone; it comes from the 2026 mailbox holdout, which no partition touches.
+
+**The result on the temporal holdout** (5,156 modern phishing, 236 legitimate):
+
+| metric | value |
+|---|---|
+| macro F1 | 0.824 |
+| phishing F1 | 0.978 |
+| precision | 0.998 |
+| recall | 0.959 |
+| false-positive rate | 0.042 |
+| ROC-AUC | 0.985 |
+| PR-AUC | 0.999 |
+| Brier score | 0.032 |
+| confusion (TN, FP, FN, TP) | 226, 10, 213, 4943 |
+
+**The spread.** Three seeds, each a full run: macro F1 **0.819 +/- 0.009**, ROC-AUC **0.984 +/- 0.002**.
+
+**The ablation agrees with the leak test.** Dropping the header group costs the most of any group: macro F1 falls from
+0.773 to 0.695 and ROC-AUC from 0.984 to 0.873. The header features carry more of the signal than any other block,
+which is the same finding as the corpus-recovery test in section 17, seen from the other side.
+
+**The operating points** came out of the validation set: a 1% false-positive budget needs a score of 100 (recall 0.295,
+precision 0.986) and a 5% budget needs 99 (recall 0.826, precision 0.974). Those thresholds sit at the very top of the
+0-100 scale because the isotonic calibrator maps almost everything to the extremes, so the usable operating range is
+narrow. The bands that ship stay a product decision.
+
+**How this compares with the released model.** Not directly, and the difference matters: the released model was
+measured against 788 held-out modern phishing messages with a recall of 0.770, while this candidate is measured on
+5,156 modern phishing messages it has never seen and reaches 0.959. Phishing Pot is in the same era and style as the
+newest campaigns, so the candidate has the easier holdout. The two numbers are not a before-and-after. The comparable
+figure is the false-positive rate on the 2026 mailbox holdout, which both models can be scored on, and that is what
+`python -m training.evaluate_modern` measures.
+
+## 20. Related documents
+
 
 - [17 - Real-corpus evaluation](17-real-corpus-evaluation.md): the grouped-split result and its caveats.
 - [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.
+- [22 - Training methodology and measurements](22-training-methodology-and-measurements.md): the method, the
+  measurements, and what is not tested.
 - [19 - Teammate training guide](19-teammate-training-guide.md): the training commands and the era-artifact
   explanation.
 - [20 - Model parameters and features](20-model-parameters-and-features.md): the 65 features, candidates,

@@ -12,6 +12,12 @@ held-out legitimate messages from 2026, with phishing recall 0.770 on 788 held-o
 It is fitted on one inbox and on a 20-year-old phishing corpus, so those numbers describe that
 combination and not real-world detection. See `docs/21-modern-corpus-evaluation-plan.md`.
 
+A **candidate** built with the modern phishing corpus, a temporal split and a seed sweep sits in the
+gitignored `backend/models-eval/xgboost-corpus-20261112-s7`. It is not activated and not released: on its own
+temporal holdout it reaches recall 0.959 and macro F1 0.824 (seed spread 0.819 +/- 0.009), but that holdout
+is easier than the one the released model was measured on, so the two are not comparable. The method and
+every measurement are in `docs/22-training-methodology-and-measurements.md`.
+
 ## Stack
 
 - Backend: Python 3.11+ (CI and Docker use 3.12), FastAPI, SQLAlchemy 2, Pydantic Settings, scikit-learn, XGBoost, SHAP, joblib.

@@ -175,9 +175,11 @@ python -m training.train --source corpus \
   --out models-eval --reports reports/modern
 
 # Score the candidate on the 2026 holdout. This never writes a model.
-python -m training.evaluate_modern --model-dir models-eval/<tag> \
-  --mailbox data/raw/mailbox --since 2026-01-01 \
-  --phish-dir data/raw/phishing_pot --out reports/modern
+python -m training.evaluate_modern --model models-eval/<tag> \
+  --mailbox data/raw/mailbox --mailbox-since 2026-01-01 \
+  --phish-dir data/raw/kaggle/ceas08/phishing \
+  --phish-since 2000-01-01 --phish-until 2024-01-01 \
+  --out reports/modern-candidate
 
 # The shortcut test
 python -m scripts.source_leak_test --out ../.tmp/leak
