@@ -49,12 +49,16 @@ export default function EvidencePanel({ analysis }: { analysis: AnalysisDetail }
           <p className="muted">No authentication headers recorded.</p>
         ) : (
           <ul className="plain">
-            {Object.entries(analysis.auth).map(([k, v]) => (
-              <li key={k} style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
-                <span className="muted mono">{k.toUpperCase()}</span>
-                <strong className="mono">{v}</strong>
-              </li>
-            ))}
+            {Object.entries(analysis.auth).map(([k, v]) => {
+              const val = String(v).toLowerCase();
+              const badgeClass = val === "pass" ? "badge low" : val === "fail" ? "badge high" : "badge";
+              return (
+                <li key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "4px 0" }}>
+                  <span className="muted mono" style={{ fontWeight: 600 }}>{k.toUpperCase()}</span>
+                  <span className={badgeClass}>{String(v).toUpperCase()}</span>
+                </li>
+              );
+            })}
           </ul>
         )}
 

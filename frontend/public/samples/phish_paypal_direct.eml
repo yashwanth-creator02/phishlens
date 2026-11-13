@@ -1,0 +1,18 @@
+From: "PayPal Security" <security@paypa1-secure-login.xyz>
+To: student@example.com
+Subject: URGENT: Your account will be suspended within 24 hours
+Date: Mon, 12 Oct 2026 09:14:00 +0000
+Reply-To: paypal.claims@gmail.com
+Return-Path: <bounce@mail-relay-77.top>
+Authentication-Results: mx.example.com; spf=fail; dkim=none; dmarc=fail
+Received: from unknown (HELO mail-relay-77.top) by mx.example.com; Mon, 12 Oct 2026 09:14:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Dear customer,</p>
+<p>We detected suspicious activity. Your account is locked. You must verify your account immediately
+or it will be closed permanently. Confirm your details now to restore access.</p>
+<p><a href="http://185.44.12.9/paypal/verify">www.paypal.com/secure/login</a></p>
+<p>PayPal Security Team</p>
+</body></html>

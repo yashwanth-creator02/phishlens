@@ -3,9 +3,16 @@ from __future__ import annotations
 import jwt
 from fastapi import Depends, Header, HTTPException, status
 
+from functools import lru_cache
+
 from app.core.auth import Principal
 from app.core.config import Settings, get_settings
 from app.ml.registry import ModelBundle, ModelNotAvailable, load_active
+
+
+@lru_cache(maxsize=4)
+def _get_jwks_client(url: str) -> jwt.PyJWKClient:
+    return jwt.PyJWKClient(url, cache_jwk_set=True)
 
 
 def verify_supabase_token(token: str, settings: Settings) -> Principal:
@@ -15,7 +22,7 @@ def verify_supabase_token(token: str, settings: Settings) -> Principal:
         algorithms = ["HS256"]
     elif settings.supabase_jwks_url:
         try:
-            jwks = jwt.PyJWKClient(settings.supabase_jwks_url)
+            jwks = _get_jwks_client(settings.supabase_jwks_url)
             key = jwks.get_signing_key_from_jwt(token).key
         except Exception as exc:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token") from exc

@@ -52,3 +52,4 @@ def health() -> dict:
 def health_alias() -> dict:
     """Alias for /api/health: external health checkers try the bare path first."""
     return health()
+

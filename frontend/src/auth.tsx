@@ -8,6 +8,7 @@ type AuthValue = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
+  signInAsGuest: () => Promise<string | null>;
   signOut: () => Promise<void>;
 };
 
@@ -33,7 +34,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     loading,
     signIn: async (email, password) => {
       if (!supabase) return "Authentication is disabled.";
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error && data.session) setSession(data.session);
+      return error?.message ?? null;
+    },
+    signInAsGuest: async () => {
+      if (!supabase) return "Authentication is disabled.";
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (!error && data.session) setSession(data.session);
       return error?.message ?? null;
     },
     signOut: async () => {

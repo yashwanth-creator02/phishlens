@@ -45,28 +45,34 @@ export default function Status() {
   return (
     <section className="page">
       <h1>Status</h1>
-      <p className="muted">Last checked {checkedAt}</p>
+      <div className="status-overview-banner">
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="badge low">OPERATIONAL</span>
+          <span style={{ fontWeight: 600 }}>All Core Systems Healthy</span>
+        </div>
+        <span className="muted mono" style={{ fontSize: "0.85rem" }}>Checked: {checkedAt}</span>
+      </div>
 
       <div className="grid2">
         <article className="card">
-          <h2>API</h2>
+          <h2>API Service</h2>
           <dl className="facts">
-            <div><dt>State</dt><dd>{health.status}</dd></div>
-            <div><dt>Model loaded</dt><dd>{health.model_loaded ? "Yes" : "No"}</dd></div>
-            <div><dt>Auth mode</dt><dd>{health.auth_mode}</dd></div>
-            {health.model && <div><dt>Model</dt><dd>{health.model}</dd></div>}
+            <div><dt>State</dt><dd><span className="badge low">{health.status.toUpperCase()}</span></dd></div>
+            <div><dt>Model loaded</dt><dd>{health.model_loaded ? <span className="badge low">YES</span> : <span className="badge high">NO</span>}</dd></div>
+            <div><dt>Auth mode</dt><dd className="mono">{health.auth_mode}</dd></div>
+            {health.model && <div><dt>Active model</dt><dd className="mono">{health.model}</dd></div>}
             {health.detail && <div><dt>Detail</dt><dd>{health.detail}</dd></div>}
           </dl>
         </article>
 
         <article className="card">
-          <h2>Model</h2>
+          <h2>Classifier Model</h2>
           <dl className="facts">
-            <div><dt>Version</dt><dd>{model.version_tag}</dd></div>
-            <div><dt>Algorithm</dt><dd>{model.algorithm}</dd></div>
-            <div><dt>Features</dt><dd>{model.n_features}</dd></div>
+            <div><dt>Version tag</dt><dd className="mono">{model.version_tag}</dd></div>
+            <div><dt>Algorithm</dt><dd className="mono">{model.algorithm.toUpperCase()}</dd></div>
+            <div><dt>Feature vector</dt><dd className="mono">{model.n_features} features</dd></div>
             <div><dt>Data source</dt><dd>{model.data_source}</dd></div>
-            {model.trained_at && <div><dt>Trained at</dt><dd>{model.trained_at}</dd></div>}
+            {model.trained_at && <div><dt>Trained at</dt><dd className="mono">{model.trained_at}</dd></div>}
           </dl>
         </article>
       </div>

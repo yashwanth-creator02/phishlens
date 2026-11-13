@@ -25,16 +25,42 @@
 /* Verified reasons */
 
 .reason-card {
-  margin: 10px 0;
+  margin: 12px 0;
   line-height: 1.5;
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.reason-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
 }
 
 .reason-row {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   min-width: 0;
+}
+
+.reason-sentence {
+  font-weight: 500;
+}
+
+.reason-verified-chip {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--low);
+  background: var(--low-bg);
+  border: 1px solid color-mix(in srgb, var(--low) 30%, transparent);
+  border-radius: 3px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .reason-rank {
@@ -132,7 +158,18 @@
   padding: 16px;
   min-width: 0;
   background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
+
+.threshold-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+
+.threshold-card:nth-child(1) { border-top: 3px solid var(--low); }
+.threshold-card:nth-child(2) { border-top: 3px solid var(--medium); }
+.threshold-card:nth-child(3) { border-top: 3px solid var(--high); }
 
 .threshold-value {
   font-family: var(--font-mono);
@@ -143,20 +180,61 @@
 
 /* How it works */
 
-.how-steps {
-  padding-left: 20px;
-  margin: 12px 0 8px;
+.how-steps-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0 32px;
+  padding: 0;
+  list-style: none;
 }
 
-.how-steps li {
-  margin: 14px 0;
+.how-step-card {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  gap: 18px;
+  align-items: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.how-step-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.how-step-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.how-step-content h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.how-step-content p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
   line-height: 1.55;
-  min-width: 0;
-}
-
-.how-steps h3,
-.how-steps p {
-  margin: 0 0 4px;
 }
 
 .feature-groups {
@@ -176,15 +254,25 @@
   .feature-groups {
     grid-template-columns: minmax(0, 1fr);
   }
+  .how-step-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 .group-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--accent);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius);
-  padding: 16px;
-  min-width: 0;
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.group-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
 }
 
 .group-card h3 {

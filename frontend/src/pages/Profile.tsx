@@ -17,6 +17,15 @@ export default function Profile() {
   const [resendError, setResendError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [copiedAlias, setCopiedAlias] = useState(false);
+
+  const copyAlias = () => {
+    if (aliasState.status === "verified") {
+      navigator.clipboard.writeText(aliasState.address);
+      setCopiedAlias(true);
+      setTimeout(() => setCopiedAlias(false), 2000);
+    }
+  };
 
   const handleResend = async () => {
     if (!user?.email || !supabase) return;
@@ -93,7 +102,17 @@ export default function Profile() {
           <p className="muted">Loading your forwarding address...</p>
         ) : aliasState.status === "verified" ? (
           <>
-            <p className="mono big" style={{ margin: "8px 0 0 0" }}>{aliasState.address}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "10px 0 0" }}>
+              <span className="mono big" style={{ margin: 0 }}>{aliasState.address}</span>
+              <button
+                type="button"
+                className="secondary"
+                onClick={copyAlias}
+                style={{ padding: "4px 10px", fontSize: "0.85rem" }}
+              >
+                {copiedAlias ? "Copied!" : "Copy address"}
+              </button>
+            </div>
             <p className="muted" style={{ margin: "12px 0 0 0", maxWidth: "68ch" }}>
               Forward suspicious emails to this address. Forward them as an attachment so the original
               authentication headers (SPF, DKIM, DMARC) stay intact. Inline forwarding drops them, and

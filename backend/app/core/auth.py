@@ -65,6 +65,8 @@ def is_email_verified(principal: Principal, settings: Settings) -> bool:
     """
     if settings.auth_mode == "disabled":
         return True
+    if not principal.email:
+        return False
     now = time.monotonic()
     cached = _cache.get(principal.id)
     if cached is not None and cached[0] > now:

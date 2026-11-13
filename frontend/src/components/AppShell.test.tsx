@@ -32,10 +32,12 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /^profile$/i })).toBeInTheDocument();
   });
 
-  it("renders sidebar close button for mobile/tablet navigation", () => {
+  it("renders sidebar toggle button that collapses and expands sidebar", () => {
     renderShell("/");
-    const closeBtn = screen.getByRole("button", { name: /close navigation sidebar/i });
-    expect(closeBtn).toBeInTheDocument();
+    const toggleBtn = screen.getByRole("button", { name: /collapse sidebar/i });
+    expect(toggleBtn).toBeInTheDocument();
+    fireEvent.click(toggleBtn);
+    expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
   });
 
   it("renders theme toggle button and toggles theme", () => {

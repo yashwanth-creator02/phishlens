@@ -1,0 +1,34 @@
+From: "HDFC Bank Alerts" <no-reply@hdfcbank.com>
+To: student@example.com
+Subject: Transaction alert
+Date: Mon, 12 Oct 2026 10:30:00 +0000
+Message-ID: <20261012103000.alert.91cd@hdfcbank.com>
+Reply-To: <no-reply@hdfcbank.com>
+Return-Path: <bounce@alerts.hdfcbank.com>
+List-Unsubscribe: <https://www.hdfcbank.com/personal/unsubscribe?source=txn_alert&ref=alert_91cd>
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Received: from mail.hdfcbank.com by mx.example.com; Mon, 12 Oct 2026 10:30:00 +0000
+Received: from mail.hdfcbank.com (mail.hdfcbank.com [10.1.0.7]) by mx.example.com with ESMTPS id def456; Mon, 12 Oct 2026 10:30:00 +0000
+Received: from alerts.hdfcbank.com by mail.hdfcbank.com; Mon, 12 Oct 2026 10:30:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+
+<html><body><table><tr><td>
+<h2>Transaction alert</h2>
+<p>There was a transaction on your card ending 4421 on 12 Oct 2026 at 10:24 AM, for INR 1250.</p>
+<p>If this was not you, call the number on the back of your card straight away, or reach us from the
+<a href="https://www.hdfcbank.com/personal/secure-banking/account-services?source=txn_alert&amp;ref=alert_91cd&amp;campaign=alert_email">Account services page</a>.</p>
+<p>You can change how often we send you notices like this, or update the mobile number we use, from
+your <a href="https://www.hdfcbank.com/personal/secure-banking/preferences?source=txn_alert&amp;ref=alert_91cd&amp;campaign=alert_email">dashboard</a>.</p>
+<p>Review your recent activity on
+<a href="https://www.hdfcbank.com/personal/secure-banking/transactions?source=txn_alert&amp;ref=alert_91cd&amp;campaign=alert_email">Recent transactions</a>,
+or set a travel notice before you go away.</p>
+<p>Read about the protections we have in place for you, and what we do if something does not look right,
+in our <a href="https://www.hdfcbank.com/personal/security/fraud-awareness?source=txn_alert&amp;ref=alert_91cd&amp;campaign=alert_email">fraud awareness guide</a>.</p>
+<p>You can also add a nominee for your card, or update the address we send statements to, from our
+<a href="https://www.hdfcbank.com/personal/secure-banking/services?source=txn_alert&amp;ref=alert_91cd&amp;campaign=alert_email">services page</a>.</p>
+<p>This is an auto-generated alert sent by HDFC Bank to the mobile number ending 4421. Please do not
+reply to this email. This email is confidential and intended only for the addressee. Copyright HDFC
+Bank Limited. All rights reserved. Our registered office is at HDFC Bank House, Senapati Bapat Marg,
+Lower Parel, Mumbai 400013.</p>
+</td></tr></table></body></html>

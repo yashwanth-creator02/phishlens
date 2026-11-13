@@ -1,3 +1,17 @@
+.status-overview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--low);
+  border-radius: var(--radius);
+  margin: 16px 0 20px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .facts { display: grid; gap: 10px; margin: 14px 0 0; }
 .facts > div { display: grid; grid-template-columns: minmax(120px, 0.6fr) 1.4fr; gap: 12px; }
 .facts dt { color: var(--muted); }

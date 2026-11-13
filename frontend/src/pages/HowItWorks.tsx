@@ -12,54 +12,71 @@ export default function HowItWorksPage() {
         </div>
       </div>
 
-      <ol className="how-steps">
-        <li>
-          <h3>1. Parsing</h3>
-          <p>
-            The backend parses the email whether it is uploaded directly, forwarded inline, or
-            forwarded as a <code className="mono">message/rfc822</code> attachment. Inline
-            forwarding loses the original SPF, DKIM, and DMARC headers, so they are stored as
-            missing, not failed. Attachments keep metadata only and are never opened or executed.
-          </p>
+      <ol className="how-steps-grid">
+        <li className="how-step-card">
+          <div className="how-step-num" aria-hidden="true">01</div>
+          <div className="how-step-content">
+            <h3>Parsing & Ingestion</h3>
+            <p>
+              The backend parses the email whether it is uploaded directly, forwarded inline, or
+              forwarded as a <code className="mono">message/rfc822</code> attachment. Inline
+              forwarding loses the original SPF, DKIM, and DMARC headers, so they are stored as
+              missing, not failed. Attachments keep metadata only and are never opened or executed.
+            </p>
+          </div>
         </li>
-        <li>
-          <h3>2. Feature extraction</h3>
-          <p>
-            A single 65-feature vector is computed from six groups. Training and serving share the
-            same feature names and order; the model registry rejects mismatched artifacts.
-          </p>
+        <li className="how-step-card">
+          <div className="how-step-num" aria-hidden="true">02</div>
+          <div className="how-step-content">
+            <h3>65-Feature Vector Extraction</h3>
+            <p>
+              A single 65-feature vector is computed across six core groups. Training and serving share the
+              identical feature names and order; the model registry strictly rejects mismatched artifacts.
+            </p>
+          </div>
         </li>
-        <li>
-          <h3>3. Prediction</h3>
-          <p>
-            The active tree or linear model scores the vector, an optional isotonic calibration
-            turns the raw output into a probability, and the probability becomes a 0-100 score.
-          </p>
+        <li className="how-step-card">
+          <div className="how-step-num" aria-hidden="true">03</div>
+          <div className="how-step-content">
+            <h3>Tree-Ensemble Prediction & Calibration</h3>
+            <p>
+              The active XGBoost tree ensemble scores the feature vector. Isotonic regression calibration
+              maps raw outputs into a calibrated probability, scaled to a continuous 0–100 risk score.
+            </p>
+          </div>
         </li>
-        <li>
-          <h3>4. SHAP contributions</h3>
-          <p>
-            SHAP assigns each feature a contribution: positive pushes toward phishing, negative
-            pushes away. The case report shows the 20 largest absolute contributions.
-          </p>
+        <li className="how-step-card">
+          <div className="how-step-num" aria-hidden="true">04</div>
+          <div className="how-step-content">
+            <h3>SHAP Attribution Engine</h3>
+            <p>
+              TreeExplainer computes Shapley Additive Explanations: positive contributions push toward phishing,
+              negative push toward legitimate. The incident report ranks top contributions by absolute magnitude.
+            </p>
+          </div>
         </li>
-        <li>
-          <h3>5. Verifying reasons against evidence</h3>
-          <p>
-            Plain-language reasons are generated from the largest positive contributions, but a
-            reason is shown only if its evidence rule verifies against the parsed email. If a
-            MEDIUM or HIGH result has no verified reason, the UI shows a generic fallback instead
-            of an invented claim.
-          </p>
+        <li className="how-step-card">
+          <div className="how-step-num" aria-hidden="true">05</div>
+          <div className="how-step-content">
+            <h3>Ground-Truth Evidence Verification</h3>
+            <p>
+              Plain-language reasons are generated from the largest positive contributions, but a
+              reason is shown only if its evidence rule verifies against the parsed email. If a
+              MEDIUM or HIGH result has no verified reason, the UI shows a generic fallback instead
+              of an invented claim.
+            </p>
+          </div>
         </li>
-        <li>
-          <h3>6. Risk bands</h3>
-          <p>
-            Score 0-100 maps to LOW, MEDIUM, or HIGH using configurable thresholds (provisional:
-            LOW up to 29, HIGH from 70). The band and the guidance text are stored with the
-            analysis so past results stay explainable after retuning. Sender history is updated
-            only when the result is LOW.
-          </p>
+        <li className="how-step-card">
+          <div className="how-step-num" aria-hidden="true">06</div>
+          <div className="how-step-content">
+            <h3>Calibrated Three-Tier Triage Bands</h3>
+            <p>
+              Score 0–100 maps to LOW, MEDIUM, or HIGH using calibrated operating thresholds (LOW up to 29,
+              HIGH from 70). The band and guidance text are stored with the analysis for auditability.
+              Sender history baseline updates only when the result is LOW.
+            </p>
+          </div>
         </li>
       </ol>
 

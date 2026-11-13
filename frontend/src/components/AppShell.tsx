@@ -225,39 +225,60 @@ function Shell() {
           className={`shell-sidebar ${mobileOpen ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`}
         >
           <div className="sidebar-header">
-            <NavLink to="/" className="shell-brand" end onClick={() => setMobileOpen(false)}>
-              <span className="brand-title">
-                <Logo size={22} style={{ verticalAlign: 'middle', marginRight: collapsed ? 0 : '8px' }} />
-                {!collapsed && "PhishLens"}
-              </span>
-              {!collapsed && <span className="brand-subtitle">Explainable email triage</span>}
-            </NavLink>
-            <button
-              type="button"
-              className="sidebar-close-btn"
-              onClick={() => setMobileOpen(false)}
-              aria-label="Close navigation sidebar"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="sidebar-collapse-btn"
-              onClick={toggleCollapse}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                {collapsed ? (
-                  <polyline points="9 18 15 12 9 6" />
-                ) : (
-                  <polyline points="15 18 9 12 15 6" />
-                )}
-              </svg>
-            </button>
+            <div className="sidebar-header-brand">
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                onClick={() => {
+                  if (mobileOpen) {
+                    setMobileOpen(false);
+                  } else {
+                    toggleCollapse();
+                  }
+                }}
+                aria-label={
+                  mobileOpen
+                    ? "Close navigation sidebar"
+                    : collapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+                }
+                title={
+                  mobileOpen
+                    ? "Close navigation sidebar"
+                    : collapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+                }
+              >
+                <span className="sidebar-toggle-icon-default">
+                  <Logo size={22} />
+                </span>
+                <span className="sidebar-toggle-icon-hover" aria-hidden="true">
+                  {mobileOpen ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  ) : collapsed ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  )}
+                </span>
+              </button>
+
+              {!collapsed && (
+                <NavLink to="/" className="shell-brand" end onClick={() => setMobileOpen(false)}>
+                  <span className="brand-title">PhishLens</span>
+                  <span className="brand-subtitle">Explainable email triage</span>
+                </NavLink>
+              )}
+            </div>
           </div>
 
           <div className="shell-nav">

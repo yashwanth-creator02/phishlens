@@ -86,23 +86,59 @@ export default function Dashboard() {
         <>
           {/* Stat Strip */}
           <div className="stat-strip">
-            <div className="stat-card">
+            <div className="stat-card stat-total">
               <div className="stat-label">Total analyses</div>
               <div className="stat-value mono">{total}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card stat-high">
               <div className="stat-label">High risk</div>
               <div className="stat-value mono" style={{ color: "var(--high)" }}>{highCount}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card stat-medium">
               <div className="stat-label">Medium risk</div>
               <div className="stat-value mono" style={{ color: "var(--medium)" }}>{medCount}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card stat-low">
               <div className="stat-label">Low risk</div>
               <div className="stat-value mono" style={{ color: "var(--low)" }}>{lowCount}</div>
             </div>
           </div>
+
+          {/* Risk Distribution Bar */}
+          {items && items.length > 0 && (
+            <div className="risk-distribution-wrap">
+              <div className="risk-distribution-header">
+                <span className="risk-distribution-title">Triage Risk Distribution</span>
+                <span className="risk-distribution-meta mono">
+                  {highCount} High ({total > 0 ? Math.round((highCount / total) * 100) : 0}%) · {medCount} Medium ({total > 0 ? Math.round((medCount / total) * 100) : 0}%) · {lowCount} Low ({total > 0 ? Math.round((lowCount / total) * 100) : 0}%)
+                </span>
+              </div>
+              <div className="risk-distribution-bar" role="meter" aria-label="Risk distribution">
+                {highCount > 0 && (
+                  <div
+                    className="risk-bar-seg high"
+                    style={{ width: `${(highCount / total) * 100}%` }}
+                    title={`High Risk: ${highCount}`}
+                  />
+                )}
+                {medCount > 0 && (
+                  <div
+                    className="risk-bar-seg medium"
+                    style={{ width: `${(medCount / total) * 100}%` }}
+                    title={`Medium Risk: ${medCount}`}
+                  />
+                )}
+                {lowCount > 0 && (
+                  <div
+                    className="risk-bar-seg low"
+                    style={{ width: `${(lowCount / total) * 100}%` }}
+                    title={`Low Risk: ${lowCount}`}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           <p className="muted" style={{ fontSize: "0.85rem", marginTop: "-12px", marginBottom: "16px" }}>
             {isCapped ? `Band counts reflect the latest 100 analyses. Total records: ${total}.` : `Band counts cover all ${total} analyses.`}
           </p>

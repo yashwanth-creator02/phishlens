@@ -1,0 +1,23 @@
+From: "Medium Daily Digest" <no-reply@medium.com>
+To: student@example.com
+Subject: Your weekly digest: machine learning
+Date: Mon, 12 Oct 2026 06:00:00 +0000
+Message-ID: <20261012060000.digest.7f3a@medium.com>
+Reply-To: <no-reply@medium.com>
+Return-Path: <bounce@mail.medium.com>
+List-Unsubscribe: <https://medium.com/unsubscribe/digest?utm_source=digest&utm_medium=email>
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Received: from out.mail.medium.com by mx.example.com; Mon, 12 Oct 2026 06:00:00 +0000
+Received: from out.mail.medium.com (out.mail.medium.com [10.0.0.4]) by mx.example.com with ESMTPS id abc123; Mon, 12 Oct 2026 06:00:00 +0000
+Received: from mail.medium.com by out.mail.medium.com; Mon, 12 Oct 2026 06:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Top stories for you this week: machine learning, web security, and how teams ship faster.</p>
+<p>Also in this issue: What Great Research Looks Like, and The Case for Boring Software.</p>
+<p>You are receiving this digest because you follow topics on Medium. Update your preferences any time.</p>
+<p><a href="https://medium.com/article/123?utm_source=medium_digest&amp;utm_campaign=weekly_digest&amp;utm_medium=email">Read more on machine learning</a></p>
+<p><a href="https://medium.com/article/456?utm_source=medium_digest&amp;utm_campaign=weekly_digest&amp;utm_medium=email">Read more on web security</a></p>
+<p><a href="https://medium.com/unsubscribe/digest?utm_source=medium_digest&amp;utm_campaign=weekly_digest&amp;utm_medium=email">Unsubscribe</a></p>
+</body></html>

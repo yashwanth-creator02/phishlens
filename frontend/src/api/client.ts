@@ -33,7 +33,6 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> 
     } catch {
       /* body was not JSON */
     }
-    if (res.status === 401 && supabase) await supabase.auth.signOut();
     throw new ApiError(res.status, detail);
   }
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);

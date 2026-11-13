@@ -114,16 +114,15 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
   async function handleGuest() {
     setFieldError(null);
     await run("guest", async () => {
-      try {
-        if (signInAsGuestProp) {
-          await signInAsGuestProp();
-        } else if (supabase) {
-          const { error } = await supabase.auth.signInAnonymously();
-          if (error) throw new Error(error.message);
-        }
-        nav("/");
-      } catch (err) {
-        throw new Error(getFriendlyError(err));
+      if (signInAsGuestProp) {
+        await signInAsGuestProp();
+        nav("/", { replace: true });
+        return;
+      }
+      if (supabase) {
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) throw new Error(error.message);
+        nav("/", { replace: true });
       }
     }).catch((err) => {
       setFieldError((err as Error).message || "Guest sign-in failed.");

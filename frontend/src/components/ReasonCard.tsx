@@ -30,7 +30,8 @@ export default function ReasonCard({
           {rank}.
         </span>
         <span className="tag">{groupLabel(reason.group)}</span>
-        <span>{reason.sentence}</span>
+        <span className="reason-verified-chip">Verified</span>
+        <span className="reason-sentence">{reason.sentence}</span>
       </div>
       <div className="reason-meta">
         Evidence rule {reason.rule_key} checked against the parsed email
