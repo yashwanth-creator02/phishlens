@@ -83,6 +83,14 @@
     feature-group ablation agrees: dropping the header group costs it more than any other block. Reproduce with
     `python -m scripts.source_leak_test`; the method is in
     [22](22-training-methodology-and-measurements.md).
+22. **More phishing data made the model worse, not better.** A candidate trained with the modern Phishing Pot corpus
+    alongside the same legitimate corpora scores **0.129** false positives on the 2,865 held-out legitimate messages
+    from 2026, against the released model's **0.018**, and its domain-macro rate is **0.472**. Two causes: its
+    training set held the 2008 corpus only as legitimate mail, so the model scores that corpus's phishing as safe
+    (recall 0.000 on 20,830 messages); and a temporal split over corpora from different eras separates the eras
+    rather than sampling across them, leaving the fit partition 22% phishing. **The consequence: the honest way to
+    add phishing data is with matched legitimate data from the same era, and the way to check it is the false-positive
+    rate on the same holdout, not the training-set accuracy.**
 
 ## Project risks
 | Risk | Likelihood | Impact | Mitigation |

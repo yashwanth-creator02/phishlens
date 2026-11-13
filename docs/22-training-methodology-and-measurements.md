@@ -161,7 +161,48 @@ from 0.10 to 0.98. The perturbation has to be one that leaves the message meanin
 
 Every figure says which data it was measured on. The data it was measured on matters more than the number.
 
-<!-- MEASUREMENT TABLE -->
+| metric | data it was measured on | threshold | value | 95% interval |
+|---|---|---|---|---|
+| false-positive rate | 2,865 legitimate messages from one inbox, dated 2026 | p >= 0.50 | 0.018 | - |
+| false-positive rate, same set | same | band boundary 0.29 | 0.021 | 0.009 - 0.044 |
+| domain-macro false-positive rate | same, per sender domain | band boundary | 0.068 | 0.034 - 0.108 |
+| phishing recall | 788 phishing messages, Nazario 2024-2025 | p >= 0.50 | 0.754 | - |
+| phishing recall, same set | same | band boundary 0.29 | 0.770 | - |
+| combined F1 | both sets together | p >= 0.50 | 0.829 | - |
+| ROC-AUC | both sets together | - | 0.967 | - |
+| PR-AUC | both sets together | - | 0.906 | - |
+| Brier score | the training holdout | - | 0.026 | - |
+| recall at a 1% false-positive rate | both sets together | p >= 0.722 | 0.662 | - |
+| recall at a 5% false-positive rate | both sets together | p >= 0.203 | 0.806 | - |
+| LOW band, observed phishing rate | 788 phishing messages | score <= 29 | 0.061 | - |
+| MEDIUM band, observed phishing rate | same | 30 - 69 | 0.730 | - |
+| HIGH band, observed phishing rate | same | score >= 70 | 0.949 | - |
+| macro F1, candidate with the temporal split | 5,392 messages: 5,156 modern phishing and 236 legitimate, held out by date and campaign | p >= 0.50 | 0.824 | seed spread 0.819 +/- 0.009 |
+| recall, same candidate | the 5,156 modern phishing | p >= 0.50 | 0.959 | - |
+| ROC-AUC, same candidate | the 5,392 | - | 0.985 | seed spread 0.984 +/- 0.002 |
+| **false-positive rate, the candidate** | **the same 2,865 legitimate messages** | p >= 0.50 | **0.129** | 0.125 - 0.422 |
+| **false-positive rate, the candidate** | same | band boundary 0.29 | **0.234** | - |
+| **domain-macro false-positive rate, the candidate** | same, per sender domain | band boundary | **0.472** | - |
+| **phishing recall, the candidate** | 20,830 messages of 2008-era phishing | p >= 0.50 | **0.000** | - |
+| corpus recovery, legitimate mail only | 4,500 messages from three corpora | - | 0.981 | chance is 0.333 |
+| corpus recovery, header features only | the same | - | 0.980 | - |
+| corpus recovery, format features only | the same | - | 0.999 | - |
+| corpus recovery after removing the header group | the same | - | 0.885 | the leak survives |
+| deletion test, cited features | the invoice sample, raw score | - | 0.107 | random worst case 0.049 |
+
+The first block is the released model. The second is the candidate, and the last four rows are why the candidate was
+**not** promoted. On the very same 2,865 legitimate messages its false-positive rate is 0.129 against the released
+model's 0.018, and its domain-macro rate is 0.472: nearly half of the legitimate mail is flagged. It also does not
+recognise 2008-era phishing at all (recall 0.000 on 20,830 messages).
+
+Part of that second failure is the candidate's own corpus composition, and the reason is worth stating because it is
+a trap: its training set contained the 2008 corpus **only as legitimate mail**, so the model learned that mail from
+that corpus is safe. Part of the first failure is the method: a temporal split over corpora from different eras does
+not sample randomly across time, it separates the eras, so the fit partition ends up 22% phishing and the model
+learns the era rather than the message. Adding a modern phishing corpus without a matched modern legitimate corpus
+made the era shortcut worse, not better.
+
+Reproduce each row with the commands in section 11; the reports are written to `backend/reports/`.
 
 ## 10. What is NOT tested
 

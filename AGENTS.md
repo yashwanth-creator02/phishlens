@@ -13,10 +13,11 @@ It is fitted on one inbox and on a 20-year-old phishing corpus, so those numbers
 combination and not real-world detection. See `docs/21-modern-corpus-evaluation-plan.md`.
 
 A **candidate** built with the modern phishing corpus, a temporal split and a seed sweep sits in the
-gitignored `backend/models-eval/xgboost-corpus-20261112-s7`. It is not activated and not released: on its own
-temporal holdout it reaches recall 0.959 and macro F1 0.824 (seed spread 0.819 +/- 0.009), but that holdout
-is easier than the one the released model was measured on, so the two are not comparable. The method and
-every measurement are in `docs/22-training-methodology-and-measurements.md`.
+gitignored `backend/models-eval/xgboost-corpus-20261112-s7`. It was measured and **rejected**: on the same 2,865
+held-out legitimate messages from 2026 its false-positive rate is 0.129 against the released model's 0.018, and its
+domain-macro rate is 0.472. It also scores 2008-era phishing as safe, because that corpus was in its training set
+only as legitimate mail. The method and every measurement are in
+`docs/22-training-methodology-and-measurements.md`.
 
 ## Stack
 

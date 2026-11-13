@@ -1154,6 +1154,37 @@ newest campaigns, so the candidate has the easier holdout. The two numbers are n
 figure is the false-positive rate on the 2026 mailbox holdout, which both models can be scored on, and that is what
 `python -m training.evaluate_modern` measures.
 
+### 19.1 The candidate was measured, and rejected
+
+Scored on the same 2,865 legitimate messages from the 2026 inbox holdout, with the leakage check **clear** on both
+sides:
+
+| | released model | candidate | 
+|---|---|---|
+| false-positive rate at p >= 0.50 | 0.018 | **0.129** |
+| false-positive rate at the band boundary | 0.021 | **0.234** |
+| domain-macro false-positive rate | 0.068 | **0.472** |
+| recall on 2008-era phishing | detects them | **0.000** on 20,830 messages |
+
+The candidate is worse on both counts, so it stays where it is, in the gitignored `backend/models-eval/`, and the
+released model keeps serving.
+
+Two causes, and they are worth separating because only one of them is the method's fault:
+
+1. **The corpus composition was wrong.** The candidate's training set contained the 2008 corpus only as *legitimate*
+   mail, so the model learned that mail from that corpus is safe, and it scores 20,827 of 20,830 of those phishing
+   messages as LOW. The released model had that corpus as phishing as well, and detects it. A corpus that appears in
+   training must appear in both classes or it teaches the model that its own era is safe.
+2. **A temporal split over corpora from different eras separates the eras.** The fit partition came out 22% phishing,
+   because the oldest mail is nearly all legitimate and the newest is nearly all phishing. The model then learns
+   "modern-looking is phishing" and the era shortcut gets worse instead of better.
+
+The first is a mistake in the training command and would be fixed by including the 2008 phishing in the candidate's
+training set. The second is a property of the method, and it is the same era shortcut the shortcut test measures.
+**Adding a modern phishing corpus without a matched modern legitimate corpus makes the model worse, not better.**
+The fix is still what the shortcut test says it is: legitimate mail and phishing mail from the same world, and a
+second inbox to measure on.
+
 ## 20. Related documents
 
 
