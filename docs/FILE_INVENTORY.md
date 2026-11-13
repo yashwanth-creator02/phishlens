@@ -119,7 +119,7 @@ legitimate bank alert.
 | `src/pages/Login.tsx` | What the product is, the forwarding domain, and three ways in: email and password, Google, or a guest session |
 | `src/pages/Login.test.tsx` | The forwarding panel, the Google button and the guest button |
 | `src/components/Logo.tsx` | The brand mark: an inline SVG that inherits the text colour, so it themes |
-| `public/` | The favicon as SVG and as 32/180/512 PNG rasters |
+| `public/` | The favicon as SVG and as 32/180/512 PNG rasters, plus `samples/` with demo `.eml` fixtures |
 | `src/components/` | `AppShell`, `BandBar`, `ConfirmDialog`, `EvidencePanel`, `FeatureTable`, `ReasonCard`, `RiskBadge`, `SessionExpired`, `Toast`, `UploadBox` |
 | `src/styles.css`, `src/styles/*.css` | Design tokens, shell, report, and status styles |
 | `src/test/setup.ts` | Vitest setup (Testing Library matchers, jsdom cleanup) |
