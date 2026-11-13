@@ -160,6 +160,33 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
       {/* RIGHT: Form & Floating Notification */}
       <div>
         <form className="login" onSubmit={submit} aria-busy={pending !== null} style={{ margin: 0, maxWidth: "100%" }}>
+          {mode === "signup" && (
+            <button
+              type="button"
+              className="link back-button"
+              onClick={() => { setMode("signin"); setSignUpSuccess(false); setFieldError(null); }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                marginBottom: "8px",
+                padding: 0,
+                fontSize: "0.85rem",
+                color: "var(--muted)",
+                cursor: "pointer",
+                background: "transparent",
+                border: "none",
+              }}
+              aria-label="Back to sign in"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Back to sign in
+            </button>
+          )}
+
           <h2>{mode === "signin" ? "Analyst sign in" : "Create an account"}</h2>
           <p className="muted" style={{ fontSize: "0.9rem", marginTop: "-4px" }}>
             {mode === "signin" ? "Enter your credentials to access triage queues." : "Register a new analyst account with your email."}
@@ -263,34 +290,38 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
                 <span className="muted" style={{ fontSize: "0.80rem" }}>or</span>
                 <div style={{ flex: 1, height: "1px", background: "var(--line)" }} />
               </div>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleGoogle}
-                disabled={pending !== null}
-                style={{ width: "100%", justifyContent: "center" }}
-              >
-                {/* The official four-colour Google mark. These hex values are Google's own brand
-                    specification and are the one deliberate exception to the house rule that
-                    colours come from the design tokens: a recoloured Google logo is a wrong logo. */}
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.23 24 12 24z"/>
-                  <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.39-1.49-.39-2.24s.14-1.52.39-2.24V6.6H1.19C.43 8.13 0 9.87 0 11.75s.43 3.62 1.19 5.15l4.08-2.66z"/>
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.64 1.19 6.6l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/>
-                </svg>
-                <span>{pending === "google" ? "Opening Google..." : "Continue with Google"}</span>
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleGuest}
-                disabled={pending !== null}
-                style={{ width: "100%", justifyContent: "center" }}
-              >
-                <Logo size={18} />
-                <span>{pending === "guest" ? "Starting guest session..." : "Try it as a guest"}</span>
-              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={handleGoogle}
+                  disabled={pending !== null}
+                  aria-label={pending === "google" ? "Opening Google..." : "Continue with Google"}
+                  style={{ width: "100%", justifyContent: "center", padding: "10px 8px", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                >
+                  {/* The official four-colour Google mark. These hex values are Google's own brand
+                      specification and are the one deliberate exception to the house rule that
+                      colours come from the design tokens: a recoloured Google logo is a wrong logo. */}
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.23 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.39-1.49-.39-2.24s.14-1.52.39-2.24V6.6H1.19C.43 8.13 0 9.87 0 11.75s.43 3.62 1.19 5.15l4.08-2.66z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.64 1.19 6.6l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/>
+                  </svg>
+                  <span>{pending === "google" ? "Opening..." : "Google"}</span>
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={handleGuest}
+                  disabled={pending !== null}
+                  aria-label={pending === "guest" ? "Starting guest session..." : "Try it as a guest"}
+                  style={{ width: "100%", justifyContent: "center", padding: "10px 8px", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                >
+                  <Logo size={18} />
+                  <span>{pending === "guest" ? "Starting..." : "Guest"}</span>
+                </button>
+              </div>
               <p className="muted" style={{ fontSize: "0.8rem", textAlign: "center", margin: "4px 0 0" }}>
                 A guest can upload emails and use the whole triage flow, but has no forwarding address, because a forwarding address belongs to a confirmed email account.
               </p>
@@ -301,54 +332,46 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
         </form>
       </div>
 
-      {/* Floating Notification for Forwarding Inbox */}
+      {/* Forwarding Inbox Notice */}
       {forwardingConfig && !dismissed && (
-        <div
-          className="card"
+        <aside
+          className="card forwarding-notice"
           role="region"
           aria-label="Forwarding inbox notice"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 1000,
-            maxWidth: "340px",
-            padding: "16px",
-            margin: 0,
-            background: "var(--card)",
-            border: "1px solid var(--line)",
-            borderRadius: "var(--radius)",
-          }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-            <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 600 }}>Forwarding inbox</h2>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label="Dismiss"
-              onClick={dismissForwarding}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+          <div className="forwarding-notice-inner">
+            <div className="forwarding-notice-header">
+              <h2>Forwarding inbox</h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Dismiss"
+                onClick={dismissForwarding}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="forwarding-notice-body">
+              <p className="muted">
+                Domain: <span className="mono">{forwardingConfig.alias_domain}</span>
+              </p>
+              <p className="muted">
+                Pattern: <span className="mono">{forwardingConfig.alias_pattern}</span>
+              </p>
+              <p className="muted forwarding-notice-hint">
+                Your own address appears on your Profile once you sign in.
+              </p>
+            </div>
+            {!forwardingConfig.inbound_configured && (
+              <p className="error forwarding-notice-status">
+                Inbound forwarding is not connected yet.
+              </p>
+            )}
           </div>
-          <p className="muted" style={{ fontSize: "0.8rem", margin: "6px 0 2px" }}>
-            Domain: <span className="mono">{forwardingConfig.alias_domain}</span>
-          </p>
-          <p className="muted" style={{ fontSize: "0.8rem", margin: "0 0 2px" }}>
-            Pattern: <span className="mono">{forwardingConfig.alias_pattern}</span>
-          </p>
-          <p className="muted" style={{ fontSize: "0.8rem", margin: "0" }}>
-            Your own address appears on your Profile once you sign in.
-          </p>
-          {!forwardingConfig.inbound_configured && (
-            <p className="error" style={{ fontSize: "0.8rem", margin: "6px 0 0" }}>
-              Inbound forwarding is not connected yet.
-            </p>
-          )}
-        </div>
+        </aside>
       )}
     </div>
   );

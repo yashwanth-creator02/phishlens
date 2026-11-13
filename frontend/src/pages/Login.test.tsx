@@ -117,6 +117,21 @@ describe("Login", () => {
     expect(await screen.findByText(/check your email to confirm the address/i)).toBeInTheDocument();
   });
 
+  it("returns to sign in mode when back button is clicked in create account mode", async () => {
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /create an account/i }));
+    expect(screen.getByRole("heading", { name: /create an account/i })).toBeInTheDocument();
+
+    const backBtn = screen.getByRole("button", { name: /back to sign in/i });
+    await user.click(backBtn);
+    expect(screen.getByRole("heading", { name: /analyst sign in/i })).toBeInTheDocument();
+  });
+
   it("dismisses forwarding notification when dismiss button is clicked", async () => {
     render(
       <MemoryRouter>

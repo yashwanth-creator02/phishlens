@@ -796,6 +796,98 @@ input:focus {
     gap: 32px;
     min-height: auto;
     margin: 20px auto;
+    padding-bottom: 140px;
+  }
+}
+
+/* Forwarding inbox notice on login page */
+.forwarding-notice {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  max-width: 340px;
+  padding: 16px;
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.forwarding-notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.forwarding-notice-header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.forwarding-notice-body p {
+  font-size: 0.8rem;
+  margin: 4px 0 0;
+}
+
+.forwarding-notice-status {
+  font-size: 0.8rem;
+  margin: 6px 0 0;
+}
+
+/* In tablet and mobile view, spread across the bottom edge so it does not obstruct content */
+@media (max-width: 1024px) {
+  .login-layout {
+    padding-bottom: 140px;
+  }
+
+  .forwarding-notice {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+    padding: 12px 24px;
+    background: var(--card);
+  }
+
+  .forwarding-notice-inner {
+    max-width: 1024px;
+    margin: 0 auto;
+  }
+
+  .forwarding-notice-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 16px;
+  }
+
+  .forwarding-notice-body p {
+    margin: 2px 0 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-layout {
+    padding-bottom: 160px;
+  }
+
+  .forwarding-notice {
+    padding: 10px 16px;
+  }
+
+  .forwarding-notice-body {
+    flex-direction: column;
+    gap: 2px;
   }
 }
 
