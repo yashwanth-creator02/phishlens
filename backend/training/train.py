@@ -68,9 +68,9 @@ def split_temporal(groups, dates, test_size=0.25, val_size=0.2):
 
     A group is placed by its EARLIEST date, so a campaign that spans years never
     straddles a boundary - the whole campaign lands on one side of it. Groups
-    with no usable date go to the fit split: with no date they cannot be the
-    newest mail in the corpus, and leaving them out of the test set is the
-    conservative choice.
+    with no usable date go to the fit split (earliest is None sorted first):
+    with no date they cannot be the newest mail in the corpus, and leaving them
+    out of the test set is the conservative choice.
     """
     groups = np.asarray(groups)
     dates = np.asarray(dates, dtype=object)
@@ -79,7 +79,12 @@ def split_temporal(groups, dates, test_size=0.25, val_size=0.2):
         mask = groups == g
         ds = [d for d in dates[mask].tolist() if d is not None]
         earliest = min(ds) if ds else None
-        order.append((earliest is None, earliest or datetime.min.replace(tzinfo=UTC), g))
+        # Sort undated (earliest is None) first: tuple (True, ...) sorts before (False, ...)
+        # Wait: tuple (is_none, date) where is_none=True comes AFTER False unless inverted.
+        # We want undated to come first (fit), so key (earliest is None) should be 0 for None, 1 for dated.
+        # Let's use: is_none = 0 if earliest is None else 1.
+        is_none = 0 if earliest is None else 1
+        order.append((is_none, earliest or datetime.min.replace(tzinfo=UTC), g))
     order.sort(key=lambda t: (t[0], t[1], t[2]))
 
     n = len(order)
@@ -99,7 +104,7 @@ def split_temporal(groups, dates, test_size=0.25, val_size=0.2):
     return fit, val, test
 
 
-def operating_points(y, p, fpr_targets=(0.01, 0.05)) -> dict:
+def operating_points(y, p, fpr_targets=(0.01, 0.05), calibrator=None) -> dict:
     """The thresholds that hold the false-positive rate inside a budget.
 
     These are chosen on VALIDATION data and never on the test set. The bands
@@ -120,20 +125,29 @@ def operating_points(y, p, fpr_targets=(0.01, 0.05)) -> dict:
             continue
         i = ok[-1]
         threshold = float(thr[i])
+        if not np.isfinite(threshold):
+            continue
+        cal_threshold = threshold
+        if calibrator is not None:
+            try:
+                cal_threshold = float(calibrator.predict([threshold])[0])
+            except Exception:
+                pass
         flagged_ham = int(np.sum(p[y == 0] >= threshold))
         flagged_phish = int(np.sum(p[y == 1] >= threshold))
         negatives = int(np.sum(y == 0))
         positives = int(np.sum(y == 1))
         out[f"fpr_{target:g}"] = {
             "threshold": threshold,
-            "score_threshold": int(round(threshold * 100)),
+            "calibrated_threshold": cal_threshold,
+            "score_threshold": int(round(cal_threshold * 100)),
             "fpr": float(flagged_ham / max(1, negatives)),
             "recall": float(flagged_phish / max(1, positives)),
             "precision": float(flagged_phish / max(1, flagged_phish + flagged_ham)),
         }
     if "fpr_0.01" in out and "fpr_0.05" in out:
-        high_min = int(np.ceil(out["fpr_0.01"]["threshold"] * 100))
-        low_max = int(np.floor(out["fpr_0.05"]["threshold"] * 100))
+        high_min = int(np.ceil(out["fpr_0.01"]["calibrated_threshold"] * 100))
+        low_max = int(np.floor(out["fpr_0.05"]["calibrated_threshold"] * 100))
         if low_max >= high_min:
             low_max = high_min - 1
         out["recommended_bands"] = {"low_max": low_max, "high_min": high_min}
@@ -172,7 +186,7 @@ def fit_and_evaluate(X, y, groups, dates, seed: int, split_mode: str) -> dict:
     # The operating point is chosen on validation, on the RAW probabilities: the calibrator is
     # monotone, so it does not change the ranking, and a threshold taken from calibrated
     # validation scores would be fitted on the very data it is measured against.
-    ops = operating_points(yv, model.predict_proba(Xv)[:, 1])
+    ops = operating_points(yv, model.predict_proba(Xv)[:, 1], calibrator=iso)
     return {"fit": fit, "val": val, "test": test, "models": models, "model": model, "iso": iso,
             "best": best, "results_val": results_val, "results_test": results_test,
             "selected_test": selected_test, "operating_points": ops,

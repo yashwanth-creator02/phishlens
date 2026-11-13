@@ -141,7 +141,7 @@ def path_digests(path: str | Path) -> set[str]:
     if p.is_file():
         out.add(path_digest(p.parent))
     elif p.is_dir():
-        for mbox in sorted(p.glob("*.mbox")):
+        for mbox in sorted(p.rglob("*.mbox")):
             out.add(path_digest(mbox))
     return out
 
