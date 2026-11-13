@@ -103,7 +103,7 @@ cd backend
 python -m training.download_phishing_pot --since-year 2022
 ```
 
-- **Licence**: CC BY-NC 4.0 (Attribution-NonCommercial). Non-commercial academic use is permitted with required attribution.
+- **Licence**: CC BY-NC 4.0 (Attribution-NonCommercial). Non-commercial academic use is permitted with required attribution. The project owner confirmed acceptance of these terms for non-commercial research use on 2026-11-13.
 - **Date-header filter**: Filters out messages without a valid Date header or whose year is older than `--since-year` (default 2022).
 - **Shortcut masking**: Replaces every occurrence of `phishing@pot` with `user@example.com` in raw message bytes to prevent the model from learning the upstream contributor's address rewrite as a class giveaway.
 
