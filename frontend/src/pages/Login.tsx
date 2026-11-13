@@ -150,14 +150,14 @@ export default function Login({ signIn: signInProp, signInAsGuest: signInAsGuest
         </div>
 
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "8px" }}>
             <Logo size={40} />
             <h1 style={{ margin: 0, fontSize: "2.25rem", letterSpacing: "-0.03em" }}>PhishLens</h1>
           </div>
-          <span className="brand-subtitle" style={{ display: "block", fontSize: "0.95rem", color: "var(--accent)", letterSpacing: "0.02em", marginBottom: "16px", fontWeight: 500 }}>
+          <span className="brand-subtitle" style={{ display: "block", fontSize: "0.95rem", color: "var(--accent)", letterSpacing: "0.02em", marginBottom: "16px", fontWeight: 500, textAlign: "center" }}>
             Explainable phishing-triage console
           </span>
-          <p className="muted" style={{ fontSize: "1rem", lineHeight: "1.6", maxWidth: "46ch", margin: 0 }}>
+          <p className="muted" style={{ fontSize: "1rem", lineHeight: "1.6", maxWidth: "46ch", margin: "0 auto", textAlign: "center" }}>
             Upload or forward suspicious emails to receive calibrated risk scoring, multi-vector feature extraction across 65 signals, and evidence-verified SHAP reasons.
           </p>
         </div>

@@ -814,6 +814,8 @@ input:focus {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  text-align: center;
+  align-items: center;
 }
 
 .login-hero-badge {
@@ -838,6 +840,9 @@ input:focus {
   flex-direction: column;
   gap: 16px;
   margin-top: 4px;
+  width: 100%;
+  max-width: 440px;
+  text-align: left;
 }
 
 .login-feature-item {
@@ -878,6 +883,7 @@ input:focus {
 .login-trust-badges {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px 16px;
   margin-top: 4px;
   padding-top: 16px;
@@ -885,6 +891,8 @@ input:focus {
   font-size: 0.75rem;
   color: var(--muted);
   font-family: var(--font-mono);
+  width: 100%;
+  max-width: 440px;
 }
 
 .login-trust-item {
