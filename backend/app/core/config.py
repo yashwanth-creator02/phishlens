@@ -5,6 +5,11 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The alias domain that ships as the default. It is not a real mailbox: its MX records do not
+# point anywhere, so no provider can deliver mail to it. Anything equal to it means inbound
+# forwarding is not set up, whatever the rest of the configuration says.
+ALIAS_DOMAIN_PLACEHOLDER = "phishlens.example"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="PHISHLENS_", extra="ignore")
@@ -34,7 +39,7 @@ class Settings(BaseSettings):
 
     # inbound webhook protection (shared secret sent in the X-Webhook-Secret header)
     webhook_secret: str = "change-me"
-    alias_domain: str = "phishlens.example"    # forwarding alias: u-<token>@alias_domain
+    alias_domain: str = ALIAS_DOMAIN_PLACEHOLDER    # forwarding alias: u-<token>@alias_domain
 
     # admin purge endpoint (X-Admin-Token header). Empty = disabled (503).
     admin_token: str = ""

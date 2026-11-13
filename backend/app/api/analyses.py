@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import active_model, current_user
 from app.api.limits import MAX_MESSAGE_BYTES
 from app.core.auth import Principal, is_email_verified
-from app.core.config import Settings, get_settings
+from app.core.config import ALIAS_DOMAIN_PLACEHOLDER, Settings, get_settings
 from app.db import repository as repo
 from app.db.models import Analysis
 from app.db.session import get_db
@@ -124,14 +124,20 @@ def forwarding_info(settings: Settings = Depends(get_settings)) -> ForwardingInf
     """Where a user should forward mail, for a visitor who has no account yet.
 
     The alias is per account, so only the domain and the shape of the address can
-    be published. `inbound_configured` is false while the server still carries the
-    placeholder webhook secret, which means no provider can deliver mail to it yet.
+    be published.
+
+    `inbound_configured` is true only when BOTH halves of the path exist: the alias
+    domain is a real domain, whose MX records can point at an inbound provider, and
+    the webhook secret is set, so that provider can authenticate itself. The
+    webhook secret alone is not enough - Render generates one for every service, so
+    testing it would claim that forwarding works when no mail can arrive.
     """
     domain = settings.alias_domain
     return ForwardingInfo(
         alias_domain=domain,
         alias_pattern=f"u-<token>@{domain}",
-        inbound_configured=settings.webhook_secret not in ("", "change-me"),
+        inbound_configured=(settings.webhook_secret not in ("", "change-me")
+                            and domain != ALIAS_DOMAIN_PLACEHOLDER),
     )
 
 

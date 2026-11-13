@@ -6,15 +6,16 @@ Forward a suspicious email to the PhishLens bot address; get a **Low / Medium / 
 **verified against evidence actually found in the email** before they are shown.
 
 > Status: **v0.2 (mini-project build)** - a working end-to-end skeleton (parser -> six feature groups -> model -> SHAP ->
-> verified reasons -> API -> web UI) with 115 backend and 23 frontend tests, plus a Playwright smoke test. The
+> verified reasons -> API -> web UI) with 126 backend and 31 frontend tests, plus a Playwright smoke test. The
 > released model is `xgboost-corpus-20261112-s7`, an XGBoost over the same 65 features, fitted partly on one real
 > inbox. It measures a false-positive rate of 0.018 on held-out 2026 mail **from that same inbox**, with phishing
 > recall 0.770. **Those numbers describe that combination and are not a general detection rate**: the feature set
 > identifies the mail provider and the era with 0.981 accuracy, and the corpora are 20 years old. The caveats, the
 > ablations and the measurement are in
 > [docs/21-modern-corpus-evaluation-plan.md](docs/21-modern-corpus-evaluation-plan.md) and
-> [docs/15-risks-and-limitations.md](docs/15-risks-and-limitations.md). Real inbound-email provider, real domain-age
-> lookups and the user study are still to do (see [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md)).
+> [docs/22-training-methodology-and-measurements.md](docs/22-training-methodology-and-measurements.md).
+> Real inbound-email provider, real domain-age lookups and the user study are still to do (see
+> [docs/03-plan-and-roadmap.md](docs/03-plan-and-roadmap.md)).
 
 **New here?** [docs/SUMMARY.md](docs/SUMMARY.md) is the whole project in three minutes; every claim links to the
 detailed page behind it.

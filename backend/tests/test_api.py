@@ -2,7 +2,7 @@ import base64
 
 from app.api.limits import MAX_MESSAGE_BYTES
 
-from .conftest import sample, token_for
+from .conftest import _reset_caches, sample, token_for
 
 
 def upload(client, name, headers=None):
@@ -133,10 +133,24 @@ def test_forwarding_endpoint_publishes_the_domain_but_not_an_alias(client):
     assert body["alias_pattern"] == "u-<token>@phishlens.example"
     # The pattern is a shape, not an address: no real token may leak here.
     assert "<token>" in body["alias_pattern"]
-    assert body["inbound_configured"] is True     # the fixture sets a real webhook secret
+    # The alias domain is still the placeholder, so no mail can arrive whatever the secret says.
+    assert body["inbound_configured"] is False
 
 
-def test_forwarding_endpoint_reports_unconfigured_inbound(make_client):
+def test_forwarding_endpoint_reports_unconfigured_inbound(make_client, monkeypatch):
     c = make_client("disabled")
     body = c.get("/api/forwarding").json()
-    assert body["inbound_configured"] is True or body["inbound_configured"] is False
+    assert body["inbound_configured"] is False
+
+
+def test_forwarding_endpoint_is_configured_only_with_a_real_domain_and_a_secret(make_client, monkeypatch):
+    # A real webhook secret alone is not enough: Render generates one for every service, so
+    # testing it would claim that forwarding works when no mail can arrive.
+    c = make_client("disabled")
+    monkeypatch.setenv("PHISHLENS_ALIAS_DOMAIN", "phishlens.test")
+    _reset_caches()
+    assert c.get("/api/forwarding").json()["inbound_configured"] is True
+
+    monkeypatch.setenv("PHISHLENS_WEBHOOK_SECRET", "change-me")
+    _reset_caches()
+    assert c.get("/api/forwarding").json()["inbound_configured"] is False
