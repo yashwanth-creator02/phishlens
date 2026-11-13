@@ -27,8 +27,15 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /^dashboard$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^history$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^model$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^how it works$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^status$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^profile$/i })).toBeInTheDocument();
+  });
+
+  it("renders sidebar close button for mobile/tablet navigation", () => {
+    renderShell("/");
+    const closeBtn = screen.getByRole("button", { name: /close navigation sidebar/i });
+    expect(closeBtn).toBeInTheDocument();
   });
 
   it("renders theme toggle button and toggles theme", () => {

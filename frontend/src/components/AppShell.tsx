@@ -49,9 +49,8 @@ const referenceLinks = [
     label: "How it works",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="6" cy="6" r="3"/>
-        <circle cx="18" cy="18" r="3"/>
-        <path d="M20 6H10a4 4 0 0 0-4 4v2"/>
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
       </svg>
     ),
   },
@@ -80,9 +79,20 @@ const profileLink = {
 function Shell() {
   const { user } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("phishlens-sidebar-collapsed") === "true";
+  });
   const location = useLocation();
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  const toggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("phishlens-sidebar-collapsed", String(next));
+      return next;
+    });
+  };
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
@@ -212,16 +222,42 @@ function Shell() {
           tabIndex={-1}
           role="navigation"
           aria-label="Primary"
-          className={`shell-sidebar ${mobileOpen ? "is-open" : ""}`}
+          className={`shell-sidebar ${mobileOpen ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`}
         >
           <div className="sidebar-header">
             <NavLink to="/" className="shell-brand" end onClick={() => setMobileOpen(false)}>
               <span className="brand-title">
-                <Logo size={22} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
-                PhishLens
+                <Logo size={22} style={{ verticalAlign: 'middle', marginRight: collapsed ? 0 : '8px' }} />
+                {!collapsed && "PhishLens"}
               </span>
-              <span className="brand-subtitle">Explainable email triage</span>
+              {!collapsed && <span className="brand-subtitle">Explainable email triage</span>}
             </NavLink>
+            <button
+              type="button"
+              className="sidebar-close-btn"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="sidebar-collapse-btn"
+              onClick={toggleCollapse}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {collapsed ? (
+                  <polyline points="9 18 15 12 9 6" />
+                ) : (
+                  <polyline points="15 18 9 12 15 6" />
+                )}
+              </svg>
+            </button>
           </div>
 
           <div className="shell-nav">
