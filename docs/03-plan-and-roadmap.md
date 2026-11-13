@@ -34,31 +34,42 @@ Every increment ends in something demonstrable. Targets below are planned, not a
 
 ## Task checklist
 
+Checked items are done and verified; unchecked items are genuinely open. The items that need the user are listed
+in [18-open-manual-actions.md](18-open-manual-actions.md) rather than here.
+
 **Data (Increment 2)**
-- [ ] Download Nazario phishing corpus, SpamAssassin public corpus (ham), Enron corpus; record versions and licences
+- [x] Download Nazario phishing corpus and SpamAssassin public corpus (ham); record versions and licences
+      (Enron is not used: it is 2001, and its era artefacts are worse than SpamAssassin's)
 - [ ] Obtain LLM-rephrased / LLM-generated sets if licence permits (LLM-Nazario; Toth et al. 2025) for tests E4
-- [ ] Deduplicate; split by sender domain / campaign; keep a realistic imbalanced test set
-- [ ] Write a dataset card (sources, counts, label noise estimate, known biases)
+- [x] Deduplicate; split by sender domain / campaign; keep a realistic imbalanced test set
+- [x] Write a dataset card (sources, counts, label noise estimate, known biases) - [datasets/README.md](datasets/README.md)
 - [ ] Build the semi-synthetic behavioural benchmark (Enron histories + injected spoof/compromise cases)
 
 **Models (Increment 2)**
-- [ ] Re-implement one published pipeline as the "existing approach" baseline (e.g. URL-feature RF of Yi et al.) and optionally a DistilBERT text baseline
-- [ ] Tune with grouped CV; calibrate; choose thresholds (HIGH precision >= 0.95; MEDIUM+HIGH recall >= 0.98 as starting rules)
-- [ ] Run E1-E8 ([13-testing-and-evaluation.md](13-testing-and-evaluation.md)); bootstrap CIs; McNemar
-- [ ] Feature pruning with SHAP + ablation; update the feature dictionary
+- [x] Re-implement one published pipeline as the "existing approach" baseline (URL-feature RF) - the
+      `baseline_url_only_rf` row in every training report
+- [x] Tune with grouped CV; calibrate; choose thresholds (the bands that ship are a product decision, and the
+      report prints the validation-derived ones next to them)
+- [ ] Run E1-E8 ([13-testing-and-evaluation.md](13-testing-and-evaluation.md)) completely; bootstrap CIs are done,
+      McNemar is not
+- [x] Feature pruning with SHAP + ablation; update the feature dictionary
 
 **Explainability**
 - [ ] Manual audit: 100 explanations, are they true, useful, and not misleading?
-- [ ] Faithfulness: deletion test, stability test
+- [x] Faithfulness: deletion test and stability test - `backend/app/explain/faithfulness.py`, checked against the
+      shipped model in `backend/tests/test_faithfulness.py`; the results are in
+      [22](22-training-methodology-and-measurements.md) section 8
 - [ ] Wording review with 3-5 non-technical readers
 
 **System**
-- [ ] Choose inbound provider (Postmark / Mailgun / SendGrid / Cloudflare Email Routing); write adapter in `backend/app/ingestion/`
-- [ ] Domain-age provider (RDAP/WHOIS) with caching and timeouts, behind `DomainAgeProvider`
-- [ ] Supabase: apply `supabase/migrations/0001_init.sql`, connect backend with Postgres URL, test RLS, set JWT secret
-- [ ] Encrypt raw emails at rest (Supabase Storage or app-level); run `scripts/purge_old.py` on a schedule
-- [ ] Rate limiting on webhook and upload; request size limits (10 MB in place)
-- [ ] Deploy (Docker + Railway/Render/Fly or one VM + Caddy); CI already in `.github/workflows/ci.yml`
+- [ ] Choose inbound provider (Postmark / Mailgun / SendGrid / Cloudflare Email Routing); write adapter in
+      `backend/app/ingestion/`
+- [ ] Domain-age provider (RDAP/WHOIS) with caching and timeouts, behind `DomainAgeProvider` - the seam exists and
+      `NullDomainAge` is the default, so the feature is off
+- [x] Supabase: apply `supabase/migrations/0001_init.sql`, connect backend with Postgres URL, test RLS
+- [ ] Encrypt raw emails at rest (Supabase Storage or app-level); `scripts/purge_old.py` runs but is not scheduled
+- [ ] Rate limiting on webhook and upload; the 10 MB request size limit is in place
+- [x] Deploy (Docker on Render); CI already in `.github/workflows/ci.yml`
 
 **User study (Increment 4)** - ethics/consent, materials, pilot, run, analyse ([14-user-study.md](14-user-study.md))
 

@@ -45,6 +45,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `explain/shap_engine.py` | SHAP contributions for the active model |
 | `explain/reasons.py` | Candidate reason selection and evidence verification |
 | `explain/templates.py` | Plain-language sentence templates per feature |
+| `explain/faithfulness.py` | Deletion and stability checks: do the reasons name the features that moved the score, and does a reformatted message keep its verdict |
 | `scoring/risk_bands.py` | Probability to 0-100 score and Low/Medium/High band |
 | `services/analysis_service.py` | The end-to-end pipeline: parse, predict, explain, persist, update history |
 
@@ -76,6 +77,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `test_parser.py` | Three forwarding shapes; inline forward marks authentication missing |
 | `test_features.py` | Feature count and order, phishing vs legitimate behaviour, behavioural thresholds |
 | `test_reasons_and_bands.py` | Evidence-verified reasons, discard rules, fallback, band edges |
+| `test_faithfulness.py` | The deletion test against a random control, and that a reformatted message keeps its band, score and reasons |
 | `test_api.py` | Endpoints, upload limits, webhook secret/alias, history pollution, isolation |
 | `test_auth_supabase.py` | JWT verification paths, 401 handling |
 | `test_cors.py` | Configured origin allowed, unknown origin rejected, wildcard refused |

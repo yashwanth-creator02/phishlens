@@ -129,13 +129,41 @@ correlated.
 - The recall: `recall_with_ci()` bootstraps over **campaigns**, for the same reason. Resampling messages would pretend
   that near-duplicate phishing are independent samples and would report an interval that is far too narrow.
 
-## 8. The measurements
+## 8. Are the reasons faithful?
+
+A reason is a sentence about the email. It is only worth reading if the features it names are what moved the
+score. `backend/app/explain/faithfulness.py` measures that, and `backend/tests/test_faithfulness.py` checks it
+against the model that ships.
+
+**The deletion test.** The features the reasons cite are replaced with the model's own reference values (the mean
+of its background sample, not zero, because for a feature where most mail is 1, zero is not a neutral value) and
+the message is scored again. Deleting features always moves a score a little, so the only question that matters is
+whether the cited features move it **more than a random set of the same size**. On the invoice sample the cited
+features account for **0.107** of the raw score, against a random mean of **0.012** and a random worst case of
+**0.049**: the reasons name the features that matter, and by a margin that chance does not explain.
+
+**The test knows when it cannot say anything.** On the PayPal sample the released model is saturated (raw
+probability 0.99999), so no feature set moves the score: deleting the cited features changes it by 0.0004 and the
+best random set changes it by 0.0017. The check reports `has_power: false` there instead of a pass, because a
+number that cannot distinguish the reasons from chance must not be read as a verdict. The consequence is worth
+stating: **the HIGH band has no score resolution, so its explanations can only be trusted through their SHAP
+contribution, not through their effect on the score.**
+
+**Stability.** The same message, reformatted without changing its meaning, must get the same verdict. A blank line
+in the body and the headers in another order change no feature at all, so the band, the score and the reasons come
+out identical for every sample. Scoring the same message twice gives the same answer as well.
+
+One thing this ruled out: adding noise to the feature vector is **not** a stability test. A binary flag moved from
+1 to 1.01 crosses the model's split and means the opposite of what it meant, so a legitimate message's score jumped
+from 0.10 to 0.98. The perturbation has to be one that leaves the message meaning the same thing.
+
+## 9. The measurements
 
 Every figure says which data it was measured on. The data it was measured on matters more than the number.
 
 <!-- MEASUREMENT TABLE -->
 
-## 9. What is NOT tested
+## 10. What is NOT tested
 
 These are the gaps, stated plainly so that nobody reads a number above as more than it is.
 
@@ -156,7 +184,7 @@ These are the gaps, stated plainly so that nobody reads a number above as more t
   observed phishing rate there is 6.1%: 181 of 788 phishing messages land in LOW. The HIGH band is calibrated (predicted
   0.930, observed 0.949) and can be trusted. The UI must not present LOW as safe.
 
-## 10. The commands
+## 11. The commands
 
 ```powershell
 # Fetch the corpora

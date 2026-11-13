@@ -199,6 +199,11 @@ Also upload at least one sample email through the UI or API and confirm a scored
 - The **LOW band is not "safe"**: the model predicts 2.5% risk there and the observed phishing rate is 6.1%, so 181
   of 788 phishing messages land in LOW. The HIGH band is calibrated (predicted 0.930, observed 0.949) and can be
   trusted. Do not present LOW as safety in the UI. See `docs/21-modern-corpus-evaluation-plan.md` section 18.
+- The **HIGH band has no score resolution**: the model saturates at 1.0 on obvious phishing, so every such message
+  scores 100 and the explanations for them cannot be validated by the deletion test, which reports that it has no
+  power rather than a pass. Present HIGH as "very likely phishing", not as a graded number.
+  `backend/app/explain/faithfulness.py` measures this; see `docs/22-training-methodology-and-measurements.md`
+  section 8.
 - No real inbound-email provider or domain-age lookup yet.
 - Corpora are gitignored; `python -m training.download_datasets` (from `backend/`) fetches them. Both the manifest writer
   and `corpus.load_dir` accept extensionless files on purpose: SpamAssassin stores hash-named messages, and a suffix
