@@ -24,7 +24,7 @@ commercially, and do not commit them. Any real message in either corpus is a his
 ## Sizes and statistics
 
 - Nazario: **4,306 phishing messages after dedupe** (measured 2026-11-10), from 12 published files: `phishing0`,
-  `20051114`, `phishing1`, `phishing2`, `phishing3`, and `phishing-2015` … `phishing-2025`. The five files fetched
+  `20051114`, `phishing1`, `phishing2`, `phishing3`, and `phishing-2015` â€¦ `phishing-2025`. The five files fetched
   before the 2026-11-10 expansion (`phishing0`, `phishing1`, `phishing2`, `phishing-2024`, `phishing-2025`) parsed to
   2,182 messages; that smaller set is what the committed evaluation and the promoted model were trained on.
 - SpamAssassin: 2,712 legitimate messages across `easy_ham` (2,500) and `hard_ham` (250), of which 633 carry the
@@ -92,7 +92,7 @@ counts of words and punctuation.
 The Kaggle corpora are 2002-2008 material. They add phishing diversity, not modern phishing: the corpus dates
 are the same era as SpamAssassin, which is the era the released model already handles. What they do not add is a
 single message from the 2015-2025 campaigns. The measured effect is in
-[21](21-modern-corpus-evaluation-plan.md) section 15.
+[21](../21-modern-corpus-evaluation-plan.md) section 15.
 
 ## Phishing Pot corpus
 

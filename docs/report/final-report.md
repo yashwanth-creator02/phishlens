@@ -305,9 +305,9 @@ was evaluated and rejected as a host (HTTP 402: Docker Spaces are paid, free Zer
 
 ## 10. Reading path
 
-- [Project log](02-project-log.md) - what was done, in order
-- [Architecture](04-architecture.md), [backend design](05-backend-design.md), [frontend design](06-frontend-design.md)
-- [ML pipeline](08-ml-pipeline.md), [explainability](09-explainability.md)
-- [Testing and evaluation](13-testing-and-evaluation.md), [risks and limitations](15-risks-and-limitations.md)
-- [Deployment](12-deployment.md), [demo script](16-demo-script.md)
+- [Project log](../02-project-log.md) - what was done, in order
+- [Architecture](../04-architecture.md), [backend design](../05-backend-design.md), [frontend design](../06-frontend-design.md)
+- [ML pipeline](../08-ml-pipeline.md), [explainability](../09-explainability.md)
+- [Testing and evaluation](../13-testing-and-evaluation.md), [risks and limitations](../15-risks-and-limitations.md)
+- [Deployment](../12-deployment.md), [demo script](../16-demo-script.md)
 - Decision records: `docs/decisions/`

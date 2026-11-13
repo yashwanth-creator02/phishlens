@@ -1,4 +1,4 @@
-﻿# PhishLens: one-page project brief
+# PhishLens: one-page project brief
 
 Read this first. It is the project in about three minutes. Every claim here is expanded, and hedged where the
 evidence is thin, in the numbered docs at the end. Last updated 2026-11-11.
@@ -215,7 +215,7 @@ output.
 | If you want | Read |
 |---|---|
 | the measured evaluation and its artefacts | [17-real-corpus-evaluation.md](17-real-corpus-evaluation.md) |
-| all 65 features and the hyperparameters | [20-model-features-and-parameters.md](20-model-features-and-parameters.md) |
+| all 65 features and the hyperparameters | [20-model-parameters-and-features.md](20-model-parameters-and-features.md) |
 | what to click in a demo or viva | [16-demo-script.md](16-demo-script.md) |
 | the submission write-up | [report/final-report.md](report/final-report.md) |
 | the long story, in order | [02-project-log.md](02-project-log.md) |

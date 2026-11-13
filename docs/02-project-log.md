@@ -1,11 +1,11 @@
-﻿# 02 - Project log: what was done, in order, and why
+# 02 - Project log: what was done, in order, and why
 
 This is the complete record of the work done with Claude on PhishLens up to the creation of this repository (v0.1).
 Dates are from the working sessions (Sep-Oct 2026). Status legend: **DONE**, **PARTIAL**, **NOT DONE**.
 
 ## 0. Starting point
 Input: the written project definition (preserved in [original/original-project-idea.md](original/original-project-idea.md)) and
-later the team's synopsis ([original/synopsis_mini_project_phishlens.docx](original/synopsis_mini_project_phishlens.docx)) and the
+later the team's synopsis (original/synopsis_mini_project_phishlens.docx, not kept in this repository) and the
 evaluation rubric screenshot (40 marks: literature survey and relevance; problem identification and objectives;
 proposed methodology and expected outcomes).
 
