@@ -120,16 +120,16 @@ export default function Dashboard() {
                     )}
                   </button>
                   <a
-                    href={`mailto:${aliasState.address}`}
+                    href="mailto:"
                     onClick={() => copyAddress()}
                     className="mail-app-link btn"
-                    title="Copy address and open your default email app"
+                    title="Copy forwarding address and open default email app"
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <line x1="22" y1="2" x2="11" y2="13"/>
                       <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
-                    <span>{copiedAddress ? "Copied & Opening..." : "Open in Mail App"}</span>
+                    <span>{copiedAddress ? "Copied! Opening..." : "Open Mail App"}</span>
                   </a>
                 </div>
               </>
