@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     )
     supabase_jwks_url: str = "https://vmbtdrmevlovvvfvtqmd.supabase.co/auth/v1/.well-known/jwks.json"
     supabase_jwt_secret: str = ""
+    supabase_service_role_key: str = ""
+    supabase_storage_bucket: str = "raw_emails"
     dev_user_id: str = "dev-user"
 
     # inbound webhook protection (shared secret sent in the X-Webhook-Secret header)

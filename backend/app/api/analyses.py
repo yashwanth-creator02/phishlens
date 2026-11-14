@@ -55,7 +55,7 @@ async def upload_eml(file: UploadFile = File(...), user: Principal = Depends(cur
                      bundle: ModelBundle = Depends(active_model)) -> AnalysisDetail:
     """Analyse an .eml file (used by the web UI's upload box and by developers)."""
     raw = await _read(file)
-    a = analysis_service.analyze(db, settings, bundle, user.id, raw)
+    a = analysis_service.analyze(db, settings, bundle, user.id, raw, user_token=user.token)
     return _detail(db, a)
 
 
@@ -99,10 +99,11 @@ def get_features(aid: str, user: Principal = Depends(current_user), db: Session 
 
 
 @router.delete("/analyses/{aid}", status_code=204)
-def delete_analysis(aid: str, user: Principal = Depends(current_user), db: Session = Depends(get_db)) -> None:
+def delete_analysis(aid: str, user: Principal = Depends(current_user), db: Session = Depends(get_db),
+                    settings: Settings = Depends(get_settings)) -> None:
     # _own() raises 404 for missing or other-user rows, so the service only runs for owned rows.
     _own(db, user, aid)
-    if analysis_service.delete_analysis(db, user.id, aid) is False:
+    if analysis_service.delete_analysis(db, user.id, aid, settings=settings, user_token=user.token) is False:
         raise HTTPException(404, "Analysis not found")
 
 
@@ -115,7 +116,7 @@ def purge_old(x_admin_token: str | None = Header(default=None, alias="X-Admin-To
     if x_admin_token != settings.admin_token:
         raise HTTPException(401, "Invalid admin token")
     before = datetime.utcnow() - timedelta(days=settings.retention_days)
-    deleted = analysis_service.purge_expired(db, before)
+    deleted = analysis_service.purge_expired(db, before, settings=settings)
     return PurgeOut(deleted=deleted)
 
 

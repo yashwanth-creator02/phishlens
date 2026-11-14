@@ -48,6 +48,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `explain/faithfulness.py` | Deletion and stability checks: do the reasons name the features that moved the score, and does a reformatted message keep its verdict |
 | `scoring/risk_bands.py` | Probability to 0-100 score and Low/Medium/High band |
 | `services/analysis_service.py` | The end-to-end pipeline: parse, predict, explain, persist, update history |
+| `services/raw_storage.py` | Raw .eml payload storage: Supabase Storage bucket 'raw_emails' with local filesystem fallback and batch purge |
 
 ## `backend/training/` and `backend/scripts/`
 
@@ -90,6 +91,7 @@ Generated or downloaded content is deliberately absent: `backend/.venv/`, `backe
 | `test_evaluate_modern.py` | Leakage guard, dual-threshold metrics, domain-macro FPR, corpus-label collisions |
 | `test_rls_contract.py` | Live-only PostgreSQL RLS contract (skips without credentials) |
 | `test_email_verification.py` | The alias gate: unconfirmed 403, confirmed 200, unconfigured 503, and no alias row on refusal |
+| `test_raw_storage.py` | Raw .eml storage in Supabase Storage with RLS and local filesystem fallback, object deletion and batch purge |
 
 ## `backend/data/sample_emails/`
 
@@ -136,6 +138,7 @@ legitimate bank alert.
 |---|---|
 | `0001_init.sql` | Tables, indexes, RLS enablement |
 | `0002_auth_hardening.sql` | Idempotent policy hardening for the authenticated role |
+| `0003_storage_raw_emails.sql` | Private storage bucket 'raw_emails' with 10 MB cap and tenant-isolated RLS policies on storage.objects |
 
 ## `docs/`
 

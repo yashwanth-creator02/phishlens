@@ -21,6 +21,7 @@ from app.features.feature_vector import FEATURE_GROUP, FEATURE_NAMES, extract_al
 from app.ingestion.email_parser import parse_email
 from app.ml.registry import ModelBundle
 from app.scoring.risk_bands import band_for, to_score
+from app.services.raw_storage import delete_raw_email, purge_raw_emails, store_raw_email
 
 
 @dataclass
@@ -29,12 +30,9 @@ class BaselineResult:
     message_count: int
 
 
-def _store_raw(settings: Settings, user_id: str, analysis_id: str, raw: bytes) -> str:
-    d = Path(settings.storage_dir) / user_id
-    d.mkdir(parents=True, exist_ok=True)
-    path = d / f"{analysis_id}.eml"
-    path.write_bytes(raw)
-    return str(path)
+def _store_raw(settings: Settings, user_id: str, analysis_id: str, raw: bytes,
+               user_token: str | None = None) -> str:
+    return store_raw_email(settings, user_id, analysis_id, raw, user_token=user_token)
 
 
 def add_baseline(db: Session, settings: Settings, user_id: str, raw: bytes,
@@ -53,7 +51,8 @@ def add_baseline(db: Session, settings: Settings, user_id: str, raw: bytes,
 
 
 def analyze(db: Session, settings: Settings, bundle: ModelBundle, user_id: str, raw: bytes,
-            domain_age: DomainAgeProvider | None = None, now: datetime | None = None) -> Analysis:
+            domain_age: DomainAgeProvider | None = None, now: datetime | None = None,
+            user_token: str | None = None) -> Analysis:
     now = now or datetime.utcnow()
     parsed = parse_email(raw)
     sender = parsed.from_addr or "unknown"
@@ -77,7 +76,7 @@ def analyze(db: Session, settings: Settings, bundle: ModelBundle, user_id: str, 
         subject=parsed.subject, scope=parsed.scope, forwarded_by=parsed.forwarded_by, probability=p_cal,
         risk_score=score, risk_band=band, model_version=bundle.version_tag, auth=parsed.auth, evidence=fx.evidence)
     a.raw = EmailRaw(
-        analysis_id=aid, storage_path=_store_raw(settings, user_id, aid, raw), sha256=parsed.raw_sha256,
+        analysis_id=aid, storage_path=_store_raw(settings, user_id, aid, raw, user_token=user_token), sha256=parsed.raw_sha256,
         headers=parsed.headers, text_preview=parsed.text_body[:2000],
         links=[{"href": l.href, "text": l.text} for l in parsed.links[:50]],
         attachments=[{"filename": x.filename, "content_type": x.content_type, "size": x.size, "sha256": x.sha256}
@@ -97,7 +96,9 @@ def analyze(db: Session, settings: Settings, bundle: ModelBundle, user_id: str, 
     return a
 
 
-def delete_analysis(db: Session, user_id: str, analysis_id: str) -> bool:
+def delete_analysis(db: Session, user_id: str, analysis_id: str,
+                    settings: Settings | None = None,
+                    user_token: str | None = None) -> bool:
     """Delete one analysis (row + children), then remove the stored file. False = missing/other user."""
     from sqlalchemy.orm import object_session
 
@@ -108,15 +109,22 @@ def delete_analysis(db: Session, user_id: str, analysis_id: str) -> bool:
     db.delete(row)
     db.commit()
     if storage_path:
-        Path(storage_path).unlink(missing_ok=True)
+        if settings:
+            delete_raw_email(settings, storage_path, user_token=user_token)
+        else:
+            Path(storage_path).unlink(missing_ok=True)
     return True
 
 
-def purge_expired(db: Session, before: datetime) -> int:
+def purge_expired(db: Session, before: datetime,
+                  settings: Settings | None = None) -> int:
     """Delete analyses older than `before` across all users, then remove stored files."""
     count, paths = repo.purge_expired(db, before)
-    for p in paths:
-        Path(p).unlink(missing_ok=True)
+    if settings:
+        purge_raw_emails(settings, paths)
+    else:
+        for p in paths:
+            Path(p).unlink(missing_ok=True)
     return count
 
 
