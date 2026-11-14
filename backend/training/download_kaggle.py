@@ -96,7 +96,7 @@ def _normalise_date(value: str) -> str | None:
         dt = parsedate_to_datetime(value)
     except (TypeError, ValueError):
         return None
-    if dt is None:
+    if dt is None or dt.year < 1970 or dt.year > 2100:
         return None
     try:
         return formatdate(dt.timestamp())
