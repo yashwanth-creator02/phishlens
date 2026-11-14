@@ -173,7 +173,7 @@ additional unseen window only if the candidate does not train on it.
 
 | ID | Hypothesis | Why it is plausible | Evidence that confirms it | Evidence that rejects it | Status |
 |---|---|---|---|---|---|
-| H1 | Era-feature leakage is the primary cause. The model learned "authentication missing" as legitimate because 2003 SpamAssassin ham has `auth_missing=1` on nearly 100% of messages, while only about 1.1% of modern Nazario phishing does. On modern mail, legitimate messages pass authentication, so they land in the phishing region. | The inversion is measured in [19](19-teammate-training-guide.md) and [15](15-risks-and-limitations.md); related era features are `from_returnpath_mismatch` and `http_only`. | A P2 variant that removes the 7 authentication features, or the 9 era features, cuts modern FPR to the P4 gates while held-out 2015-2023 recall stays at or above 0.90 and historical grouped macro-F1 stays at or above 0.95. | FPR stays above the gates after ablation, or recall/F1 collapses, or the full model and the ablated model rank modern ham similarly. | Rejected as sufficient (measured 2026-11-11, section 7.1): dropping the 7 authentication features leaves FPR@0.29 at 0.971, and the 9-feature and header-group variants stay above 0.93. The inversion is real but it is not the cause. |
+| H1 | Era-feature leakage is the primary cause. The model learned "authentication missing" as legitimate because 2003 SpamAssassin ham has `auth_missing=1` on nearly 100% of messages, while only about 1.1% of modern Nazario phishing does. On modern mail, legitimate messages pass authentication, so they land in the phishing region. | The inversion is measured in [17](17-real-corpus-evaluation.md) and [15](15-risks-and-limitations.md); related era features are `from_returnpath_mismatch` and `http_only`. | A P2 variant that removes the 7 authentication features, or the 9 era features, cuts modern FPR to the P4 gates while held-out 2015-2023 recall stays at or above 0.90 and historical grouped macro-F1 stays at or above 0.95. | FPR stays above the gates after ablation, or recall/F1 collapses, or the full model and the ablated model rank modern ham similarly. | Rejected as sufficient (measured 2026-11-11, section 7.1): dropping the 7 authentication features leaves FPR@0.29 at 0.971, and the 9-feature and header-group variants stay above 0.93. The inversion is real but it is not the cause. |
 | H2 | Calibration is a secondary contributor. The calibrated probability, not the ranking, pushes scores over 0.29. | Isotonic calibration is monotone, so it cannot create separation; it can only move the threshold crossing. If raw scores are mostly below 0.29 and calibrated scores are above, recalibration is a partial fix. | Raw and calibrated distributions differ at the 0.29 boundary for the same messages; refitting the calibrator on era-matched data reduces FPR without a recall loss. | Raw probabilities are already near 1.0 for the same messages; recalibration changes almost nothing. | Rejected (measured 2026-11-11): on the 2,216 mailbox messages the uncalibrated probabilities average 0.967 and 99.7% are already above 0.29; calibration moves only 0.18% of messages across the boundary. |
 | H3 | Domain skew distorts the headline. A few high-volume senders dominate the message-level FPR. | The largest sender is 32% of the mailbox and the top four are about half. | Domain-macro FPR is materially lower than message-level FPR, and the failures concentrate in a small number of domains. | Domain-macro FPR is close to the message-level rate; failures are spread across domains. | Rejected (measured): domain-macro FPR@0.29 is 0.996 against a message-level 0.999, and the ten worst sender domains are each at 1.000. The failures are spread, not concentrated. |
 
@@ -500,7 +500,7 @@ If every P4 gate passes:
 - Ask the project owner for explicit approval to promote. This plan does not authorize a merge or a deployment.
 - Promote by retraining with `--out models` using the same seed and data, or by copying the candidate tag to
   `models/active`. The previous tag stays under `models/` as the rollback.
-- Update the Docker and Render path only if the deployment is in scope; see [19](19-teammate-training-guide.md).
+- Update the Docker and Render path only if the deployment is in scope; see [12](12-deployment.md).
 - Verify `/api/health` reports the new `version_tag` and `model_loaded: true`.
 
 If any gate fails:
@@ -517,7 +517,7 @@ Documentation:
 - Update [15](15-risks-and-limitations.md) with the measured modern FPR and the outcome.
 - Update [17](17-real-corpus-evaluation.md) with the in-sample warning and the temporal holdout rule.
 - Update [20](20-model-parameters-and-features.md) if the feature mode or the feature set changes.
-- Update [19](19-teammate-training-guide.md) so the documented training command matches the served feature mode.
+- Update [08](08-ml-pipeline.md) so the documented training command matches the served feature mode.
 - Add this page to [README.md](README.md) and [FILE_INVENTORY.md](FILE_INVENTORY.md).
 - Add an ADR under `decisions/` if a model is promoted or the auth-blind mode is adopted.
 - Update [18](18-open-manual-actions.md) only for actions that need the user; remove an item when it is done.
@@ -1192,8 +1192,6 @@ second inbox to measure on.
 - [18 - Open manual actions](18-open-manual-actions.md): work that needs the user.
 - [22 - Training methodology and measurements](22-training-methodology-and-measurements.md): the method, the
   measurements, and what is not tested.
-- [19 - Teammate training guide](19-teammate-training-guide.md): the training commands and the era-artifact
-  explanation.
 - [20 - Model parameters and features](20-model-parameters-and-features.md): the 65 features, candidates,
   calibration, and bands.
 - [15 - Risks and limitations](15-risks-and-limitations.md): the honest limit this plan measures.

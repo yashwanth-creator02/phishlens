@@ -11,7 +11,7 @@ from app.db.repository import sync_model_version
 from app.db.session import get_sessionmaker, init_db
 from app.ml.registry import ModelNotAvailable, load_active
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 @asynccontextmanager

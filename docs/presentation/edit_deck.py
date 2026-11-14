@@ -36,10 +36,9 @@ def setc(n, name, r, c, pi, text):
 setp(1, 'Subtitle 2', 0, 'PhishLens: An Explainable AI System')
 setp(1, 'Subtitle 2', 1, 'for Phishing Detection and Risk Justification')
 setp(1, 'Subtitle 2', 2, 'Forward a suspicious email  +  get a risk level with plain-language reasons (SHAP-based XAI)')
-setp(1, 'Subtitle 2', 3, 'Presented by  (', 'Batch 45)')
-dup_para(1, 'Subtitle 2', 4)
-setp(1, 'Subtitle 2', 4, 'Md Saquib Ali (1TE24CS174)   |   N Sai Yashwanth Simha (1TE24CS178)')
-setp(1, 'Subtitle 2', 5, 'Nakshatra Chaudhary (1TE24CS179)   |   Mourya M Goankar (1BY24CS173)')
+setp(1, 'Subtitle 2', 3, 'Presented by:')
+setp(1, 'Subtitle 2', 4, 'N Sai Yashwanth Simha (1TE24CS178)')
+setp(1, 'Subtitle 2', 5, '')
 setp(1, 'Subtitle 2', 7, 'Dr. Shanthi D L')
 
 # ------------------------------------------------------------------ slide 3 Introduction
@@ -363,14 +362,14 @@ for num, txt in [('[13]  ', 'Anti-Phishing Working Group (APWG), “Phishing Act
 
 # ------------------------------------------------------------------ slide 23 Thank you
 dup_para(23, 'Shape 424', 0)
-setp(23, 'Shape 424', 0, 'Md Saquib Ali (1TE24CS174)   ·   N Sai Yashwanth Simha (1TE24CS178)')
-setp(23, 'Shape 424', 1, 'Nakshatra Chaudhary (1TE24CS179)   ·   Mourya M Goankar (1BY24CS173)')
+setp(23, 'Shape 424', 0, 'N Sai Yashwanth Simha (1TE24CS178)')
+setp(23, 'Shape 424', 1, '')
 setp(23, 'Shape 424', 2, 'Guide: Dr. Shanthi D L, Dept. of CSE, BMSIT&M')
 
 # ------------------------------------------------------------------ metadata
 cp = prs.core_properties
-cp.title = 'PhishLens - Mini Project Review 1'
-cp.last_modified_by = 'Team PhishLens (Batch 45)'
+cp.title = 'PhishLens'
+cp.last_modified_by = 'N Sai Yashwanth Simha'
 
 prs.save('/home/claude/work/ppt/PhishLens_Review1.pptx')
 print('saved')

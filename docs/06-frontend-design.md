@@ -23,9 +23,10 @@ The Dashboard deliberately does not repeat the History controls. It answers "wha
 * LOW results are titled "Minor signals noticed", MEDIUM/HIGH "Why this message looks suspicious".
 * The UI states plainly that explanations are checked against the email and that it does not replace the user's judgement.
 
-## Screenshots (captured from the running app with the synthetic demo model)
+## Screenshots (captured from the running app)
 ![Dashboard](screenshots/dashboard.png)
 ![Analysis detail](screenshots/analysis_detail.png)
+![Login page](screenshots/login.png)
 
 Note: in the SHAP table, some features show contributions that look odd (e.g. a failed SPF with a negative contribution). That is a property of the *synthetic* demo model (legitimate synthetic mail also fails SPF sometimes); it is exactly the kind of thing to examine with real data. Reasons only use risk-*raising* contributions.
 

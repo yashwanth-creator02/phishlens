@@ -80,14 +80,10 @@ in [18-open-manual-actions.md](18-open-manual-actions.md) rather than here.
 ## Definition of done (per increment)
 Tests pass in CI; docs updated; no number is reported unless it came from real data and a documented procedure; demo works from a clean checkout.
 
-## Open decisions (need the team)
-1. Inbound email provider and the bot domain (e.g. `phishlens.<domain>`).
-2. Which corpora are allowed/available under the guide's rules; storage for large files.
-3. How to obtain trusted sender history in real use: baseline uploads only (v0.1), or a mailbox connector later (see ADR-007).
-4. Hosting provider and budget (free tiers vs one VM).
-5. Review and final submission dates (the deck footer date is a placeholder).
-6. Who owns which area (suggested split: data+models / backend+ingestion / frontend+user study / docs+evaluation).
+## Open decisions & completed infrastructure
 
-## Immediate next steps (first two weeks)
-1. Run the quick start; read docs 04, 08, 09. 2. Pick the provider and corpora (decisions 1-2). 3. Download corpora and run `training.train --source corpus`
-once to see real numbers (expect lower than synthetic). 4. Start the dataset card. 5. Split work by owner.
+1. Inbound email provider and the bot domain: active on `phislens.dpdns.org` via Cloudflare Email Routing and Worker webhook.
+2. Corpora: Nazario, Kaggle CEAS 2008, 419 scams, SpamAssassin ham.
+3. Sender history: baseline uploads with trusted sender profiles (ADR-007).
+4. Hosting: Render free tier Docker web service for FastAPI backend; Vercel Hobby for React frontend; Supabase for PostgreSQL and Auth.
+5. Models: released `xgboost-corpus-20261112-s7` served in production.

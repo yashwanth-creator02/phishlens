@@ -206,9 +206,8 @@ python -m uvicorn app.main:app --port 8000
 ```
 
 In a second terminal: `cd frontend; npm install; npm run dev`, open <http://localhost:5173>, and upload a file from
-`backend/data/sample_emails/`. To train on the public corpora instead, follow
-[19-teammate-training-guide.md](19-teammate-training-guide.md); it is the exact command list, including expected
-output.
+`backend/data/sample_emails/`. To train on the public corpora instead, see
+[08-ml-pipeline.md](08-ml-pipeline.md) and [datasets/README.md](datasets/README.md).
 
 ## Where to read more
 
@@ -220,6 +219,6 @@ output.
 | the submission write-up | [report/final-report.md](report/final-report.md) |
 | the long story, in order | [02-project-log.md](02-project-log.md) |
 | what is broken or unfinished | [15-risks-and-limitations.md](15-risks-and-limitations.md) |
-| exact commands to train and ship | [19-teammate-training-guide.md](19-teammate-training-guide.md) |
+| inbound email forwarding setup | [23-cloudflare-email-forwarding.md](23-cloudflare-email-forwarding.md) |
 
 Document index: [docs/README.md](README.md).

@@ -58,7 +58,7 @@ only sees the F1 will over-read it.
    model therefore learns "headers present and passing" as a phishing signal, which is the opposite of what a
    modern reader expects. A modern legitimate email with full SPF/DKIM/DMARC pass lands in the phishing region and
    is scored near 1.0. This is the single largest caveat on the result. The full walkthrough, with the demo
-   implications, is in `docs/19-teammate-training-guide.md` step 7.
+   implications, is in [docs/21-modern-corpus-evaluation-plan.md](21-modern-corpus-evaluation-plan.md).
 
 ## Split
 
@@ -143,7 +143,7 @@ procedure. The two runs differ in feature set, so this is not a controlled compa
 
 The training artifact is `backend/models/active/` and the run record is `backend/reports/training_report.md`
 (both gitignored). It is **not** in the Docker image yet: Render still bakes the synthetic demo model. Shipping it
-is the manual step in `docs/18-open-manual-actions.md` and `docs/19-teammate-training-guide.md` step 8, and it comes
+is documented in `docs/18-open-manual-actions.md` and `docs/12-deployment.md`, and it comes
 with the `auth_missing` caveat above, which is why it is a decision and not a formality.
 
 ### This model does not work on modern mail (measured 2026-11-11)

@@ -147,10 +147,10 @@ legitimate bank alert.
 | `16-demo-script.md` | Review walkthrough with expected screens and fallbacks |
 | `17-real-corpus-evaluation.md` | Measured Nazario + SpamAssassin results, grouped split, caveats |
 | `18-open-manual-actions.md` | Dashboard/account steps that still need the user, with values and verification |
-| `19-teammate-training-guide.md` | Step-by-step corpora download, evaluation, training and promotion, with expected outputs and the header artefact caveat |
 | `20-model-parameters-and-features.md` | Canonical list of the 65 features, candidate hyperparameters, selection rule, calibration, bands and reason thresholds |
 | `21-modern-corpus-evaluation-plan.md` | Modern-mail evaluation: measured 99.9% FPR on a modern inbox, the ablation that ruled out the obvious cause, the promotion gates, and the mailbox-training decision with its privacy constraint |
 | `22-training-methodology-and-measurements.md` | The training method and every measurement it produced: the shortcut test, the temporal split, the operating points, the seed sweep, the confidence intervals, and the list of what is not tested |
+| `23-cloudflare-email-forwarding.md` | Inbound email forwarding configuration: Cloudflare Email Routing, Worker integration, webhook contract, DNS verification |
 | `decisions/ADR-001`-`014` | Decision records |
 | `report/01`-`04` | Long-form report chapters |
 | `report/final-report.md` | Submission write-up: objectives, implementation, verified results, limits |

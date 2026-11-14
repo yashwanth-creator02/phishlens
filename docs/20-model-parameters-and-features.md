@@ -219,7 +219,7 @@ promoting a model.
 
 ## 5. Related pages
 
-- `docs/08-ml-pipeline.md` - pipeline stages and evaluation design.
+- `docs/08-ml-pipeline.md` - pipeline stages, training scripts, and evaluation design.
 - `docs/17-real-corpus-evaluation.md` - the measured benchmark and its artefacts.
-- `docs/19-teammate-training-guide.md` - how to retrain from scratch.
+- `docs/21-modern-corpus-evaluation-plan.md` - modern evaluation and training methodology.
 - `docs/15-risks-and-limitations.md` - why the corpora-trained model is not a production detector.

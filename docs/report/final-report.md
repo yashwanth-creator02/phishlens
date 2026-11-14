@@ -4,12 +4,9 @@
 
 BMSIT&M, Department of CSE - Mini Project (Batch 45), 2026-27 - Product Development category
 
-| Member | USN |
+| Student | USN |
 |---|---|
-| Md Saquib Ali | 1TE24CS174 |
 | N Sai Yashwanth Simha | 1TE24CS178 |
-| Nakshatra Chaudhary | 1TE24CS179 |
-| Mourya M Goankar | 1BY24CS173 |
 
 Guide: Dr. Shanthi D L
 
@@ -295,8 +292,8 @@ was evaluated and rejected as a host (HTTP 402: Docker Spaces are paid, free Zer
    split cannot support a claim that two configurations differ.
 2. Train the serving model on real mail once a holdout strategy beyond the two research corpora exists, so the app's
    own output stops being a synthetic-pipeline demo. The `training.train --legit-mailbox` path and the temporal
-   split in `docs/19-teammate-training-guide.md` step 6a are the mechanism; the constraint is that a model trained
-   on a personal mailbox is personal-data-derived and stays out of the public deployment.
+   split in `docs/21-modern-corpus-evaluation-plan.md` are the mechanism; the constraint is that a model trained
+   on a personal mailbox is personal-data-derived and requires privacy auditing before deployment.
 3. Add Gmail IMAP ingestion so a user can forward without leaving their client.
 4. Add domain-age and reputation enrichment behind the existing feature interface.
 5. Run the user study in `docs/14-user-study.md` to test whether verified reasons change user decisions.

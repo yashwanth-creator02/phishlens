@@ -11,29 +11,28 @@ Rules for this file:
 
 ---
 
-## 1. Get a second person's mailbox for the final false-positive test (20 minutes for them)
+## 1. Test against a second independent mailbox for the final false-positive test
 
 *(Status: Deferred by user - to be added later)*
 
-**Why:** the model's false-positive rate is currently measured on **your** inbox, which is also part of its training
+**Why:** the model's false-positive rate is currently measured on the primary inbox, which is also part of its training
 data. The reviewer's point is that this number cannot be read as a general false-positive rate: the feature set
 identifies the mail provider and the era, not only the message (`docs/22-training-methodology-and-measurements.md` has the measurement). A second inbox from
 a different provider is the only way to find out whether the number transfers, and it is the final test set - nothing
 is tuned on it.
 
-**Steps:** ask a friend or a classmate, with their clear consent, for their legitimate mail. The cleanest route is for
-them to run the extraction script locally and send only the feature CSV, never the raw emails:
+**Steps:** obtain an independent second mailbox export. The cleanest route is to run the extraction script locally and produce only the feature CSV, never raw emails:
 
-1. In Google Takeout, select **Mail only** (not Spam or Trash) and download the export. Put the `.mbox` in
+1. In Google Takeout or another provider export, select **Mail only** (not Spam or Trash) and place the `.mbox` in
    `backend/data/raw/mailbox-second/` - that directory is gitignored, and it must never be committed.
-2. Or run the extraction locally and send only the CSV:
+2. Or run the extraction locally and save only the CSV:
    ```powershell
    cd backend
-   .\.venv\Scripts\python.exe -m training.profile_corpus --mailbox <path-to-their-export> --out <their-csv>
+   .\.venv\Scripts\python.exe -m training.profile_corpus --mailbox <path-to-export> --out <feature-csv>
    ```
    The CSV has one row per message and 65 numbers per row. It contains no text, no addresses and no subjects.
 
-**Their data never enters training.** It is the test set, and it is used once.
+**This data never enters training.** It is strictly a holdout test set, used once.
 
 **Done when:** the folder `backend/data/raw/mailbox-second/` has the export (or the CSV is handed over), and the
 agent can report the false-positive rate at the shipped thresholds on mail the model has never seen.

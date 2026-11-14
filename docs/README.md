@@ -22,11 +22,11 @@ minutes. The table below is the full set, for when you need the detail.
 | 15 | [Risks and limitations](15-risks-and-limitations.md) | what can go wrong, what is not done |
 | 16 | [Demo script](16-demo-script.md) | what to click during the review, and what to say |
 | 17 | [**Real-corpus evaluation**](17-real-corpus-evaluation.md) | **measured** numbers on Nazario + SpamAssassin, the grouped split, and what they do not prove |
-| 18 | [**Open manual actions**](18-open-manual-actions.md) | **what still needs you**: Space creation, Supabase auth settings, with exact values |
-| 19 | [**Teammate training guide**](19-teammate-training-guide.md) | exact commands to download the corpora, run evaluation, train and ship the real model |
+| 18 | [**Open manual actions**](18-open-manual-actions.md) | **what still needs you**: deferred actions with exact instructions |
 | 20 | [**Model parameters and features**](20-model-parameters-and-features.md) | **the 65 features**, candidate hyperparameters, selection rule, calibration, bands, reason threshold |
 | 21 | [**Modern corpus evaluation**](21-modern-corpus-evaluation-plan.md) | **measured** failure of the corpora model on modern mail, the ablation that ruled out the obvious cause, the promotion gates, and the mailbox-training decision |
 | 22 | [**Training methodology and measurements**](22-training-methodology-and-measurements.md) | the shortcut test and what it found, the temporal split, the validation-set operating points, the seed sweep, the confidence intervals, and what is **not** tested |
+| 23 | [**Cloudflare email forwarding**](23-cloudflare-email-forwarding.md) | Inbound email forwarding setup with Cloudflare Email Routing and Worker integration |
 | - | [File inventory](FILE_INVENTORY.md) | what each tracked path is for |
 | - | [Dataset card](datasets/README.md) | corpus sources, licences, fetch command, split rules |
 | - | [Decision log (ADRs)](decisions/) | why each important choice was made |

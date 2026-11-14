@@ -20,7 +20,7 @@
     mailing-list traffic). A model trained on these corpora treats present-and-passing headers and matching
     return-paths as phishing signals, so it scores modern, fully-authenticated legitimate mail near 1.0.
     Retraining on a modern ham corpus with real headers is the remedy, not threshold tuning. Full detail in
-    [17](17-real-corpus-evaluation.md) and the teammate guide, step 7.
+    [17](17-real-corpus-evaluation.md) and [21](21-modern-corpus-evaluation-plan.md).
 12. **Measured: the corpora-trained model flags 99.9% of modern legitimate mail.** On 2,216 received messages from a
     real Gmail inbox (2020-2026, 87% with links, 99.7% with SPF) the corpus model `xgboost-corpus-20261110-s7`
     returns FPR 0.999 at probability 0.5 and at the LOW/MEDIUM boundary: 2,202 HIGH, 12 MEDIUM, 2 LOW. Mean

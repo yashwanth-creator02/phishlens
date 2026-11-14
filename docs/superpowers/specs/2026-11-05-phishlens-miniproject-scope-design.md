@@ -46,7 +46,7 @@ A college mini-project submission: an explainable phishing-triage prototype that
 - Frontend: Vercel Hobby, React and Vite, Supabase JS auth, API base URL from an environment variable.
 - Backend: Hugging Face Spaces Docker, FastAPI, CORS limited to the frontend origin, secrets stored in Space settings.
 - Data: Supabase Auth, Postgres, row-level security keyed by user id, private Storage bucket for raw email.
-- Model: trained offline by a teammate, artifact baked into the Space image or downloaded from a release; no training inside the Space.
+- Model: trained offline, artifact baked into the Docker image or downloaded from a release; no training inside the container.
 - Ingestion: upload first, simulated webhook second, Gmail IMAP only if time allows.
 - Build: a GitHub Actions workflow pushes the backend subset to a public Hugging Face Space using an `HF_TOKEN`. The Space source is public; the GitHub repository stays private.
 - Model artifact: baked into the image when small enough for a fast cold start, otherwise fetched from a private Hugging Face model repository at boot.
